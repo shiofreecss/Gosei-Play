@@ -185,7 +185,7 @@ io.on('connection', (socket) => {
   });
 
   // Handle a pass
-  socket.on('passTurn', ({ gameId, color, playerId }) => {
+  socket.on('passTurn', ({ gameId, color, playerId, endGame }) => {
     log(`Player ${playerId} passed their turn in game ${gameId}`);
     
     // Update the game state if it exists in memory
@@ -204,16 +204,19 @@ io.on('connection', (socket) => {
         const secondLastMove = gameState.history[historyLength - 2];
         
         if (lastMove.pass && secondLastMove.pass) {
-          // Game ends after two consecutive passes
-          gameState.status = 'finished';
+          // Transition to scoring phase instead of finishing immediately
+          gameState.status = 'scoring';
+          gameState.deadStones = []; // Initialize empty dead stones array
           
-          // Simple score calculation (in a real implementation, calculate territory)
-          const blackScore = gameState.capturedStones.black;
-          const whiteScore = gameState.capturedStones.white + 6.5; // 6.5 komi for white
-          gameState.winner = whiteScore > blackScore ? 'white' : 'black';
-          
-          log(`Game ${gameId} has ended after two consecutive passes. Winner: ${gameState.winner}`);
+          log(`Game ${gameId} has transitioned to scoring phase after two consecutive passes.`);
         }
+      }
+      
+      // If client explicitly signals this is an end game move, ensure scoring state
+      if (endGame) {
+        gameState.status = 'scoring';
+        gameState.deadStones = gameState.deadStones || []; // Ensure deadStones array exists
+        log(`Client signaled end game, ensuring scoring state for game ${gameId}`);
       }
       
       // Store updated game state
@@ -224,14 +227,19 @@ io.on('connection', (socket) => {
         gameId,
         color,
         playerId,
-        nextTurn: gameState.currentTurn
+        nextTurn: gameState.currentTurn,
+        isEndGame: gameState.status === 'scoring'
       });
       log(`Broadcasting pass to all clients in room ${gameId}`);
       
       // Also broadcast the full game state
       io.to(gameId).emit('gameState', gameState);
       log(`Broadcasting updated game state to all clients in room ${gameId}`);
-      log(`Broadcasting status change to all clients in room ${gameId}`);
+      
+      if (gameState.status === 'scoring') {
+        log(`Broadcasting scoring phase start to all clients in room ${gameId}`);
+        io.to(gameId).emit('scoringPhaseStarted', { gameId });
+      }
     }
   });
 
@@ -290,6 +298,66 @@ io.on('connection', (socket) => {
     } else {
       log(`Game ${gameId} not found for sync request`);
       socket.emit('error', `Game ${gameId} not found`);
+    }
+  });
+
+  // Handle game end after scoring
+  socket.on('gameEnded', ({ gameId, score, winner, territory }) => {
+    log(`Game ${gameId} has ended. Winner: ${winner}`);
+    
+    // Update the game state if it exists in memory
+    const gameState = activeGames.get(gameId);
+    if (gameState) {
+      // Update game status to finished
+      gameState.status = 'finished';
+      gameState.score = score;
+      gameState.winner = winner;
+      gameState.territory = territory;
+      
+      // Store updated game state
+      activeGames.set(gameId, gameState);
+      
+      // Broadcast the game end to ALL clients in the room
+      io.to(gameId).emit('gameFinished', {
+        gameId,
+        score,
+        winner,
+        territory
+      });
+      log(`Broadcasting game end to all clients in room ${gameId}`);
+      
+      // Also broadcast the full game state
+      io.to(gameId).emit('gameState', gameState);
+      log(`Broadcasting final game state to all clients in room ${gameId}`);
+    }
+  });
+
+  // Handle player resignation
+  socket.on('resignGame', ({ gameId, playerId, color }) => {
+    log(`Player ${playerId} (${color}) resigned from game ${gameId}`);
+    
+    // Update the game state if it exists in memory
+    const gameState = activeGames.get(gameId);
+    if (gameState) {
+      // Set game as finished with the opponent as winner
+      gameState.status = 'finished';
+      gameState.winner = color === 'black' ? 'white' : 'black';
+      
+      // Store updated game state
+      activeGames.set(gameId, gameState);
+      
+      // Broadcast the resignation to ALL clients in the room
+      io.to(gameId).emit('playerResigned', {
+        gameId,
+        playerId,
+        color,
+        winner: gameState.winner
+      });
+      log(`Broadcasting resignation to all clients in room ${gameId}`);
+      
+      // Also broadcast the full game state
+      io.to(gameId).emit('gameState', gameState);
+      log(`Broadcasting updated game state to all clients in room ${gameId}`);
     }
   });
 });

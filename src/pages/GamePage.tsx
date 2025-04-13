@@ -9,7 +9,7 @@ import { Position, GameMove } from '../types/go';
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { gameState, loading, currentPlayer, error, placeStone, passTurn, leaveGame, joinGame, syncGameState, resignGame, toggleDeadStone, confirmScore, requestUndo, respondToUndoRequest } = useGame();
+  const { gameState, loading, currentPlayer, error, placeStone, passTurn, leaveGame, joinGame, syncGameState, resignGame, toggleDeadStone, confirmScore, requestUndo, respondToUndoRequest, resetGame } = useGame();
   const [username, setUsername] = useState<string>('');
   const [showJoinForm, setShowJoinForm] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -317,20 +317,55 @@ const GamePage: React.FC = () => {
             
             {/* Scoring Controls */}
             {gameState.status === 'scoring' && (
-              <div className="text-center mt-6 w-full bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Scoring Mode</h3>
-                <p className="text-sm text-yellow-700 mb-3">
-                  Click on stones to mark them as dead. Dead stones will be removed from the final score.
-                </p>
-                <div className="flex flex-wrap justify-center gap-3">
+              <div className="text-center mt-6 w-full bg-yellow-50 p-6 rounded-lg border border-yellow-200 shadow-md">
+                <h3 className="text-xl font-semibold text-yellow-800 mb-3">Scoring Phase</h3>
+                <div className="text-sm text-yellow-700 mb-4 max-w-2xl mx-auto">
+                  <p className="mb-2">
+                    The game has ended. Now it's time to determine the score:
+                  </p>
+                  <ol className="list-decimal text-left pl-8 space-y-1">
+                    <li>Click on stones that are considered dead (surrounded with no chance of living)</li>
+                    <li>These stones will be removed from the board during scoring</li>
+                    <li>When both players agree on dead stones, click "Confirm Score" to end the game</li>
+                  </ol>
+                </div>
+                
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
                   <button
                     onClick={handleConfirmScore}
-                    className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2"
+                    className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2 text-base font-medium flex items-center gap-2"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
                     Confirm Score
                   </button>
-                  <div className="text-sm bg-white p-2 rounded border border-yellow-200">
-                    <div className="font-medium">Dead Stones: {gameState.deadStones?.length || 0}</div>
+                  
+                  <div className="bg-white p-3 rounded-lg border border-yellow-200 flex items-center">
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium text-yellow-800">Dead Stones: 
+                        <span className="font-bold ml-1 text-yellow-900">{gameState.deadStones?.length || 0}</span>
+                      </span>
+                      <span className="text-xs text-yellow-600">
+                        Current scoring rule: {gameState.scoringRule || 'Japanese'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Territory visualization key */}
+                <div className="flex items-center justify-center gap-6 mt-6 p-2 bg-white rounded-lg border border-yellow-100 max-w-md mx-auto">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-black opacity-30 rounded-full mr-2"></div>
+                    <span className="text-sm">Black Territory</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-white border border-gray-500 opacity-30 rounded-full mr-2"></div>
+                    <span className="text-sm">White Territory</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-red-400 opacity-30 rounded-full mr-2"></div>
+                    <span className="text-sm">Dead Stones</span>
                   </div>
                 </div>
               </div>
@@ -361,6 +396,56 @@ const GamePage: React.FC = () => {
       
       {/* Game error messages */}
       <GameError />
+
+      {gameState.status === 'finished' && (
+        <div className="text-center mt-6 w-full bg-indigo-50 p-6 rounded-lg border border-indigo-200 shadow-md">
+          <h3 className="text-xl font-semibold text-indigo-800 mb-3">Game Complete</h3>
+          
+          <div className="flex justify-center items-center mb-4">
+            <div className={`text-center p-4 ${gameState.winner === 'black' ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-900'} rounded-lg shadow-md w-60`}>
+              <div className="text-sm font-medium mb-1">
+                {gameState.winner === 'black' ? 'Black Wins!' : gameState.winner === 'white' ? 'White Wins!' : 'Draw!'}
+              </div>
+              {gameState.score && (
+                <div className="flex justify-center items-center gap-4">
+                  <div>
+                    <div className="text-xs opacity-80">Black</div>
+                    <div className="text-xl font-bold">{gameState.score.black.toFixed(1)}</div>
+                  </div>
+                  <div className="text-sm">vs</div>
+                  <div>
+                    <div className="text-xs opacity-80">White</div>
+                    <div className="text-xl font-bold">{gameState.score.white.toFixed(1)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-center gap-4 mt-6">
+            <button
+              onClick={() => navigate('/')}
+              className="btn bg-indigo-600 text-white hover:bg-indigo-700 px-6 py-2"
+            >
+              Return to Home
+            </button>
+            <button
+              onClick={() => {
+                // Reset game state and start a new game
+                resetGame();
+                navigate('/');
+              }}
+              className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2"
+            >
+              Play Again
+            </button>
+          </div>
+          
+          <p className="text-sm text-indigo-600 mt-4">
+            See the detailed score breakdown in the game info panel.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

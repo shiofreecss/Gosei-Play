@@ -183,12 +183,22 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
           )}
           {status === 'scoring' && (
             <p style={{color: '#9333ea', fontWeight: '500'}}>
-              Scoring Mode - Mark dead stones
+              <span style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
+                </svg>
+                Scoring Mode - Mark dead stones
+              </span>
             </p>
           )}
           {status === 'finished' && (
             <p style={{color: '#7c3aed', fontWeight: '500'}}>
-              Game over - {gameState.winner === null ? "Draw" : `${gameState.winner === 'black' ? 'Black' : 'White'} wins`}
+              <span style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Game over - {gameState.winner === null ? "Draw" : `${gameState.winner === 'black' ? 'Black' : 'White'} wins`}
+              </span>
             </p>
           )}
         </div>
@@ -219,12 +229,40 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
       {status === 'finished' && score && (
         <div style={scoreDetailStyle}>
           <div style={scoreHeaderStyle}>
-            <span>Score Breakdown</span>
+            <span>Final Score</span>
             <span style={scoringRuleStyle}>{getScoringRuleName()} Rules</span>
           </div>
 
+          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem'}}>
+            <div style={{
+              padding: '0.5rem',
+              backgroundColor: '#18181b',
+              color: 'white',
+              borderRadius: '0.25rem',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              width: '45%'
+            }}>
+              <div>Black</div>
+              <div style={{fontSize: '1.5rem'}}>{score.black.toFixed(1)}</div>
+            </div>
+            <div style={{
+              padding: '0.5rem',
+              backgroundColor: 'white',
+              color: '#18181b',
+              borderRadius: '0.25rem',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              width: '45%',
+              border: '1px solid #d4d4d8'
+            }}>
+              <div>White</div>
+              <div style={{fontSize: '1.5rem'}}>{score.white.toFixed(1)}</div>
+            </div>
+          </div>
+
           {/* Black player score details */}
-          <div>
+          <div style={{marginTop: '1rem'}}>
             <strong>Black:</strong>
             {score.blackTerritory !== undefined && (
               <div style={scoreRowStyle}>
@@ -244,9 +282,9 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
                 <span>{score.blackCaptures}</span>
               </div>
             )}
-            <div style={scoreRowStyle}>
-              <strong>Total:</strong>
-              <strong>{score.black}</strong>
+            <div style={{...scoreRowStyle, fontWeight: 'bold'}}>
+              <span>Total:</span>
+              <span>{score.black.toFixed(1)}</span>
             </div>
           </div>
 
@@ -276,13 +314,27 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
             {score.komi !== undefined && (
               <div style={scoreRowStyle}>
                 <span>Komi:</span>
-                <span>{score.komi}</span>
+                <span>{score.komi.toFixed(1)}</span>
               </div>
             )}
-            <div style={scoreRowStyle}>
-              <strong>Total:</strong>
-              <strong>{score.white}</strong>
+            <div style={{...scoreRowStyle, fontWeight: 'bold'}}>
+              <span>Total:</span>
+              <span>{score.white.toFixed(1)}</span>
             </div>
+          </div>
+          
+          {/* Winner announcement */}
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.5rem',
+            backgroundColor: gameState.winner === 'black' ? '#18181b' : 'white',
+            color: gameState.winner === 'black' ? 'white' : '#18181b',
+            borderRadius: '0.25rem',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            border: gameState.winner === 'white' ? '1px solid #d4d4d8' : 'none'
+          }}>
+            {gameState.winner === null ? 'Draw' : `${gameState.winner === 'black' ? 'Black' : 'White'} Wins!`}
           </div>
         </div>
       )}

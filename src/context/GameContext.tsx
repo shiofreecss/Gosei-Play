@@ -175,293 +175,91 @@ export const GameProvider: React.FC<GameProviderProps> = ({
   
   // Socket connection
   useEffect(() => {
-    // Create socket connection
-    const socket = io(socketUrl);
-    
-    socket.on('connect', () => {
-      console.log('Connected to server');
-      
-      // If we have a game state already, request a sync to ensure we're up to date
-      if (state.gameState && state.currentPlayer) {
-        console.log('Requesting game state sync after connection');
-        socket.emit('requestSync', {
-          gameId: state.gameState.id,
-          playerId: state.currentPlayer.id
-        });
-      }
-    });
-    
-    socket.on('gameState', (gameState: GameState) => {
-      console.log('Received updated game state from server:', gameState);
-      
-      // Update our state if it's different from what we have
-      if (!state.gameState || 
-          state.gameState.board.stones.length !== gameState.board.stones.length ||
-          state.gameState.status !== gameState.status ||
-          state.gameState.currentTurn !== gameState.currentTurn) {
-        console.log('Updating game state from server data');
-        
-        // Save to localStorage as backup
-        try {
-          safelySetItem(`gosei-game-${gameState.code}`, JSON.stringify(gameState));
-        } catch (e) {
-          console.error('Error saving game state to localStorage:', e);
-        }
-        
-        dispatch({ type: 'UPDATE_GAME_STATE', payload: gameState });
-      }
-    });
-    
-    socket.on('moveMade', (data: { 
-      gameId: string, 
-      position: Position, 
-      color: StoneColor, 
-      playerId: string,
-      capturedCount?: number
-    }) => {
-      console.log('Received move from server:', data);
-      
-      // Skip updating if this is our own move (we already updated locally)
-      if (state.currentPlayer && data.playerId === state.currentPlayer.id) {
-        console.log('Skipping our own move broadcast');
-        return;
-      }
-      
-      if (state.gameState && state.gameState.id === data.gameId) {
-        // Check if we already have this stone
-        const stoneExists = state.gameState.board.stones.some(
-          stone => 
-            stone.position.x === data.position.x && 
-            stone.position.y === data.position.y
-        );
-        
-        if (stoneExists) {
-          console.log('Stone already exists, skipping update');
-          return;
-        }
-        
-        // Update captured stones count if any
-        const updatedCapturedStones = { ...state.gameState.capturedStones };
-        if (data.capturedCount && data.capturedCount > 0 && data.color) {
-          if (data.color === 'black' || data.color === 'white') {
-            console.log(`Opponent captured ${data.capturedCount} stones`);
-            updatedCapturedStones[data.color] += data.capturedCount;
-          }
-        }
-        
-        // Update local game state when a move is made by another player
-        const updatedGameState: GameState = {
-          ...state.gameState,
-          board: {
-            ...state.gameState.board,
-            stones: [
-              ...state.gameState.board.stones,
-              { position: data.position, color: data.color }
-            ]
-          },
-          currentTurn: data.color === 'black' ? 'white' : 'black',
-          history: [...state.gameState.history, data.position],
-          capturedStones: updatedCapturedStones
-        };
-        
-        // Save to localStorage as backup
-        try {
-          safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
-          console.log('Updated game state saved to localStorage after opponent move');
-        } catch (e) {
-          console.error('Error saving received move to localStorage:', e);
-        }
-        
-        // Dispatch the update to re-render the board
-        dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
-      }
-    });
-    
-    socket.on('syncRequest', (data: { gameId: string, playerId: string }) => {
-      // Another player requested a sync, let's make sure we're in sync too
-      if (state.gameState && state.gameState.id === data.gameId) {
-        console.log('Another player requested sync, syncing our game state too');
-        socket.emit('requestSync', {
-          gameId: state.gameState.id,
-          playerId: state.currentPlayer?.id || 'unknown'
-        });
-      }
-    });
-    
-    socket.on('playerJoined', (data: { gameId: string, playerId: string, username: string }) => {
-      console.log(`Player ${data.username} joined the game`);
-      
-      // If we have this game open, update to show the player joined
-      if (state.gameState && state.gameState.id === data.gameId) {
-        // We'll get a full gameState update from the server, so no need to update here
-        console.log('Will receive updated game state with the new player');
-      }
-    });
-    
-    socket.on('error', (error: string) => {
-      console.error('Socket error:', error);
-      dispatch({ type: 'GAME_ERROR', payload: error });
-    });
-    
-    socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-    });
-    
-    socket.on('reconnect', () => {
-      console.log('Reconnected to server');
-      
-      // Request a sync after reconnection to ensure we have the latest state
-      if (state.gameState && state.currentPlayer) {
-        console.log('Requesting game state sync after reconnection');
-        socket.emit('requestSync', {
-          gameId: state.gameState.id,
-          playerId: state.currentPlayer.id
-        });
-      }
-    });
-    
-    // Add socket event handlers for data sync issues
-    socket.on('syncGameState', (gameState: GameState) => {
-      console.log('Received sync game state from server');
-      
-      // Always update when we get a sync response
+    // Only try to connect if we don't already have a socket
+    if (!state.socket) {
       try {
-        safelySetItem(`gosei-game-${gameState.code}`, JSON.stringify(gameState));
+        console.log('Attempting to connect to socket server...');
+        const newSocket = io(socketUrl);
+        
+        dispatch({ type: 'SET_SOCKET', payload: newSocket });
+        
+        // Set up listeners for socket events
+        newSocket.on('connect', () => {
+          console.log('Connected to socket server');
+        });
+        
+        newSocket.on('disconnect', () => {
+          console.log('Disconnected from socket server');
+        });
+        
+        newSocket.on('gameState', (gameState: GameState) => {
+          console.log('Received game state update from server', gameState);
+          dispatch({ type: 'UPDATE_GAME_STATE', payload: gameState });
+        });
+        
+        newSocket.on('error', (errorMessage: string) => {
+          console.error('Received error from server:', errorMessage);
+          dispatch({ type: 'GAME_ERROR', payload: errorMessage });
+        });
+        
+        newSocket.on('playerJoined', (data: { gameId: string, playerId: string, username: string }) => {
+          console.log(`Player ${data.username} (${data.playerId}) joined the game`);
+        });
+        
+        newSocket.on('playerLeft', (data: { gameId: string, playerId: string }) => {
+          console.log(`Player ${data.playerId} left the game`);
+        });
+        
+        newSocket.on('moveMade', (moveData: { position: Position, color: StoneColor, capturedCount: number }) => {
+          console.log(`Move made at (${moveData.position.x}, ${moveData.position.y}) by ${moveData.color}`);
+          if (moveData.capturedCount > 0) {
+            console.log(`${moveData.capturedCount} stones were captured`);
+          }
+        });
+        
+        newSocket.on('turnPassed', (passData: { color: StoneColor, nextTurn: StoneColor, isEndGame: boolean }) => {
+          console.log(`${passData.color} passed their turn. Next turn: ${passData.nextTurn}`);
+          if (passData.isEndGame) {
+            console.log('Game transitioning to scoring phase after two consecutive passes');
+          }
+        });
+        
+        newSocket.on('undoRequested', (undoData: { requestedBy: string, moveIndex: number }) => {
+          console.log(`Undo requested by ${undoData.requestedBy} to move ${undoData.moveIndex}`);
+        });
+        
+        newSocket.on('undoAccepted', (undoData: { moveIndex: number }) => {
+          console.log(`Undo accepted, reverting to move ${undoData.moveIndex}`);
+        });
+        
+        newSocket.on('undoRejected', (undoData: { requestedBy: string }) => {
+          console.log(`Undo requested by ${undoData.requestedBy} was rejected`);
+        });
+        
+        newSocket.on('scoringPhaseStarted', (data: { gameId: string }) => {
+          console.log(`Game ${data.gameId} has entered the scoring phase`);
+        });
+        
+        newSocket.on('playerResigned', (data: { gameId: string, playerId: string, color: StoneColor, winner: StoneColor }) => {
+          console.log(`Player ${data.playerId} (${data.color}) resigned. ${data.winner} wins the game.`);
+        });
+        
+        newSocket.on('gameFinished', (data: { gameId: string, score: any, winner: StoneColor }) => {
+          console.log(`Game ${data.gameId} has finished. Winner: ${data.winner}`);
+          console.log('Final score:', data.score);
+        });
+        
+        // Clean up socket on unmount
+        return () => {
+          console.log('Cleaning up socket connection...');
+          newSocket.disconnect();
+          dispatch({ type: 'SET_SOCKET', payload: null });
+        };
       } catch (e) {
-        console.error('Error saving synced game state to localStorage:', e);
+        console.error('Error setting up socket:', e);
       }
-      
-      dispatch({ type: 'UPDATE_GAME_STATE', payload: gameState });
-    });
-    
-    // Handle pass turn event
-    socket.on('turnPassed', (data: { gameId: string, color: StoneColor, playerId: string, nextTurn: StoneColor }) => {
-      console.log('Received pass from server:', data);
-      
-      // Skip updating if this is our own pass (we already updated locally)
-      if (state.currentPlayer && data.playerId === state.currentPlayer.id) {
-        console.log('Skipping our own pass broadcast');
-        return;
-      }
-      
-      if (state.gameState && state.gameState.id === data.gameId) {
-        // Update local game state when a pass is made by another player
-        const updatedGameState: GameState = {
-          ...state.gameState,
-          currentTurn: data.nextTurn,
-          history: [...state.gameState.history, createPassMove()],
-        };
-        
-        // If there are two consecutive passes, the game ends
-        const historyLength = updatedGameState.history.length;
-        if (historyLength >= 2) {
-          const lastMove = updatedGameState.history[historyLength - 1];
-          const secondLastMove = updatedGameState.history[historyLength - 2];
-          
-          if (isPassMove(lastMove) && isPassMove(secondLastMove)) {
-            // Game ends after two consecutive passes - server will send the final state
-            console.log('Game ending after two consecutive passes');
-          }
-        }
-        
-        // Save to localStorage as backup
-        try {
-          safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
-          console.log('Updated game state saved to localStorage after opponent pass');
-        } catch (e) {
-          console.error('Error saving received pass to localStorage:', e);
-        }
-        
-        // Dispatch the update to re-render the board
-        dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
-      }
-    });
-    
-    // Handle undo requests
-    socket.on('undoRequested', (data: {
-      gameId: string,
-      playerId: string,
-      moveIndex: number
-    }) => {
-      console.log('Received undo request:', data);
-      
-      if (state.gameState && state.gameState.id === data.gameId) {
-        // Update game state with undo request
-        const updatedGameState: GameState = {
-          ...state.gameState,
-          undoRequest: {
-            requestedBy: data.playerId,
-            moveIndex: data.moveIndex
-          }
-        };
-        
-        // Update local state
-        dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
-        
-        // Save to localStorage
-        try {
-          const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
-          if (!stored) {
-            console.error('Failed to save game state after receiving undo request');
-          }
-        } catch (e) {
-          console.error('Error saving game state after receiving undo request:', e);
-        }
-      }
-    });
-    
-    // Handle undo responses
-    socket.on('undoResponse', (data: {
-      gameId: string,
-      playerId: string,
-      accepted: boolean,
-      gameState?: GameState
-    }) => {
-      console.log('Received undo response:', data);
-      
-      if (state.gameState && state.gameState.id === data.gameId) {
-        if (data.accepted && data.gameState) {
-          // If accepted, update with the provided game state
-          dispatch({ type: 'UPDATE_GAME_STATE', payload: data.gameState });
-          
-          // Save to localStorage
-          try {
-            const stored = safelySetItem(`gosei-game-${data.gameState.code}`, JSON.stringify(data.gameState));
-            if (!stored) {
-              console.error('Failed to save game state after undo was accepted');
-            }
-          } catch (e) {
-            console.error('Error saving game state after undo was accepted:', e);
-          }
-        } else {
-          // If rejected, just clear the undo request
-          const updatedGameState: GameState = {
-            ...state.gameState,
-            undoRequest: undefined
-          };
-          
-          dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
-          
-          // Save to localStorage
-          try {
-            const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
-            if (!stored) {
-              console.error('Failed to save game state after undo was rejected');
-            }
-          } catch (e) {
-            console.error('Error saving game state after undo was rejected:', e);
-          }
-        }
-      }
-    });
-    
-    // Store socket in state
-    dispatch({ type: 'SET_SOCKET', payload: socket });
-    
-    return () => {
-      socket.disconnect();
-    };
-  }, [socketUrl]);
+    }
+  }, [state.socket]);
 
   // Listen for changes in game state from other clients
   useEffect(() => {
@@ -959,14 +757,17 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     // Clear any previous move errors
     dispatch({ type: 'CLEAR_MOVE_ERROR' });
     
+    // Create the pass move
+    const passMove = createPassMove();
+    
     // Update the game state for the pass move
     const updatedGameState: GameState = {
       ...gameState,
       currentTurn: gameState.currentTurn === 'black' ? 'white' : 'black',
-      history: [...gameState.history, createPassMove()],
+      history: [...gameState.history, passMove],
     };
     
-    // If there are two consecutive passes, transition to scoring phase
+    // Check for two consecutive passes to transition to scoring phase
     const historyLength = updatedGameState.history.length;
     if (historyLength >= 2) {
       const lastMove = updatedGameState.history[historyLength - 1];
@@ -974,8 +775,25 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       
       if (isPassMove(lastMove) && isPassMove(secondLastMove)) {
         // Transition to scoring phase after two consecutive passes
+        console.log("Two consecutive passes detected - transitioning to scoring phase");
         updatedGameState.status = 'scoring';
         updatedGameState.deadStones = []; // Initialize empty dead stones array
+        
+        // Calculate initial territory for visual feedback
+        // This is just for UI feedback and will be recalculated when scoring is confirmed
+        const deadStonePositions = new Set<string>();
+        const scoringRule = updatedGameState.scoringRule || 'japanese';
+        
+        try {
+          // Get territories for visual feedback
+          const scoringUtils = scoringRule === 'chinese' 
+            ? calculateChineseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones)
+            : calculateJapaneseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          
+          updatedGameState.territory = scoringUtils.territories;
+        } catch (e) {
+          console.error('Error calculating initial territories:', e);
+        }
       }
     }
     
@@ -988,7 +806,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         gameId: gameState.id,
         pass: true,
         color: currentPlayer.color,
-        playerId: currentPlayer.id
+        playerId: currentPlayer.id,
+        endGame: updatedGameState.status === 'scoring' // Signal if this pass triggered end game
       };
       
       console.log('Emitting pass to server:', passData);
@@ -1218,7 +1037,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       winner: scoringResult.winner
     };
     
-    // Update local state
+    // Update local state immediately for responsive UI
     dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
     
     // Emit game end to server if socket is available
@@ -1226,15 +1045,23 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       const scoreData = {
         gameId: gameState.id,
         score: scoringResult.score,
-        winner: updatedGameState.winner,
+        winner: scoringResult.winner,
         territory: scoringResult.territories
       };
       
-      console.log('Emitting game score to server:', scoreData);
+      console.log('Emitting game end to server:', scoreData);
       state.socket.emit('gameEnded', scoreData);
+    } else {
+      console.warn('Socket not connected, updating state locally only');
+      
+      // Try to reconnect
+      if (state.socket) {
+        console.log('Attempting to reconnect...');
+        state.socket.connect();
+      }
     }
     
-    // Update in localStorage
+    // Update in localStorage as backup
     try {
       const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
       if (!stored) {
