@@ -21,6 +21,13 @@ export interface Player {
   color: StoneColor;
 }
 
+export type ScoringRule = 'chinese' | 'japanese';
+
+export interface Territory {
+  position: Position;
+  owner: StoneColor;
+}
+
 export interface GameState {
   id: string;
   code: string; // Short, shareable game code
@@ -35,9 +42,18 @@ export interface GameState {
   status: 'waiting' | 'playing' | 'finished' | 'scoring';
   winner: StoneColor | null;
   deadStones?: Position[]; // Stones marked as dead during scoring
+  territory?: Territory[]; // Territory ownership for scoring
+  scoringRule?: ScoringRule; // Selected scoring rule (Chinese or Japanese)
   score?: {
     black: number;
     white: number;
+    blackTerritory?: number; // Number of points from territory
+    whiteTerritory?: number; // Number of points from territory
+    blackStones?: number; // Number of points from stones (Chinese rules)
+    whiteStones?: number; // Number of points from stones (Chinese rules)
+    blackCaptures?: number; // Number of points from captures (Japanese rules)
+    whiteCaptures?: number; // Number of points from captures (Japanese rules)
+    komi?: number; // Komi value
   };
   undoRequest?: {
     requestedBy: string; // Player ID who requested undo
@@ -51,4 +67,5 @@ export interface GameOptions {
   boardSize: number;
   timeControl: number; // minutes per player
   handicap: number;
+  scoringRule: ScoringRule; // Scoring rule to use for the game
 } 

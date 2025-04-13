@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Board, Position, Stone, StoneColor } from '../../types/go';
+import { Board, Position, Stone, StoneColor, Territory } from '../../types/go';
 
 interface GoBoardProps {
   board: Board;
@@ -10,6 +10,8 @@ interface GoBoardProps {
   isScoring?: boolean;
   deadStones?: Position[];
   onToggleDeadStone?: (position: Position) => void;
+  territory?: Territory[];
+  showTerritory?: boolean;
 }
 
 const GoBoard: React.FC<GoBoardProps> = ({
@@ -21,6 +23,8 @@ const GoBoard: React.FC<GoBoardProps> = ({
   isScoring = false,
   deadStones = [],
   onToggleDeadStone,
+  territory = [],
+  showTerritory = false,
 }) => {
   const [hoverPosition, setHoverPosition] = useState<Position | null>(null);
 
@@ -75,6 +79,13 @@ const GoBoard: React.FC<GoBoardProps> = ({
     return deadStones.some(stone => stone.x === x && stone.y === y);
   };
 
+  // Check if a position is part of a territory and get its owner
+  const getTerritoryOwner = (x: number, y: number): StoneColor => {
+    if (!showTerritory) return null;
+    const territoryPoint = territory.find(t => t.position.x === x && t.position.y === y);
+    return territoryPoint?.owner || null;
+  };
+
   // Handle click on board intersection
   const handleIntersectionClick = (x: number, y: number) => {
     if (isScoring) {
@@ -123,29 +134,36 @@ const GoBoard: React.FC<GoBoardProps> = ({
   };
 
   return (
-    <div className="board-bg">
-      <div 
-        className="board-grid" 
-        style={{ 
-          gridTemplateColumns: `repeat(${board.size}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${board.size}, minmax(0, 1fr))`,
-        }}
-      >
+    <div className="relative">
+      <div className={`board board-${board.size}`}>
         {Array.from({ length: board.size * board.size }).map((_, index) => {
           const x = index % board.size;
           const y = Math.floor(index / board.size);
-          const stone = getStoneAtPosition(x, y);
-          const isHovered = hoverPosition?.x === x && hoverPosition?.y === y;
-          const isLastMove = lastMove?.x === x && lastMove?.y === y;
-          const stoneSize = getStoneSize();
-          const isDead = isDeadStone(x, y);
-
-          // Determine edge classes
+          
+          // Get edge classes for grid styling
           let edgeClasses = '';
-          if (x === 0) edgeClasses += ' board-edge-left';
-          if (x === board.size - 1) edgeClasses += ' board-edge-right';
-          if (y === 0) edgeClasses += ' board-edge-top';
-          if (y === board.size - 1) edgeClasses += ' board-edge-bottom';
+          if (y === 0) edgeClasses += ' top-edge';
+          if (y === board.size - 1) edgeClasses += ' bottom-edge';
+          if (x === 0) edgeClasses += ' left-edge';
+          if (x === board.size - 1) edgeClasses += ' right-edge';
+          
+          // Check if there's a stone at this position
+          const stone = getStoneAtPosition(x, y);
+          
+          // Check if this is the last move
+          const isLastMove = lastMove && lastMove.x === x && lastMove.y === y;
+          
+          // Check if stone is marked as dead
+          const isDead = stone && isDeadStone(x, y);
+          
+          // Check if this is the hover position
+          const isHovered = hoverPosition && hoverPosition.x === x && hoverPosition.y === y;
+          
+          // Check territory ownership
+          const territoryOwner = getTerritoryOwner(x, y);
+          
+          // Stone size based on board size
+          const stoneSize = getStoneSize();
 
           return (
             <div
@@ -158,6 +176,17 @@ const GoBoard: React.FC<GoBoardProps> = ({
               {/* Star point markers */}
               {isStarPoint(x, y) && (
                 <div className={`star-point ${getStarPointClass()}`} />
+              )}
+
+              {/* Territory markers */}
+              {showTerritory && territoryOwner && !stone && (
+                <div 
+                  className={`territory-marker ${territoryOwner === 'black' ? 'territory-black' : 'territory-white'}`}
+                  style={{ 
+                    width: stoneSize, 
+                    height: stoneSize 
+                  }}
+                ></div>
               )}
 
               {/* Placed stones */}
@@ -194,6 +223,18 @@ const GoBoard: React.FC<GoBoardProps> = ({
       {isScoring && (
         <div className="absolute top-0 left-0 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-br-lg text-sm font-medium">
           Scoring Mode: Click stones to mark as dead
+        </div>
+      )}
+
+      {/* Territory legend */}
+      {showTerritory && (
+        <div className="absolute top-0 right-0 bg-gray-100 text-gray-800 px-3 py-1 rounded-bl-lg text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-black opacity-30 rounded-full"></div>
+            <span>Black Territory</span>
+            <div className="w-3 h-3 bg-white border border-gray-500 opacity-30 rounded-full ml-2"></div>
+            <span>White Territory</span>
+          </div>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ const HomePage: React.FC = () => {
     boardSize: 19,
     timeControl: 30,
     handicap: 0,
+    scoringRule: 'japanese',
   });
 
   // Effect to navigate to game after creation or joining
@@ -229,6 +230,54 @@ const HomePage: React.FC = () => {
                       <option value={8}>8 stones</option>
                       <option value={9}>9 stones</option>
                     </select>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block text-lg font-medium text-neutral-700 mb-2">
+                      Scoring Rules
+                    </label>
+                    <div className="flex gap-4">
+                      <div
+                        className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                          gameOptions.scoringRule === 'japanese' 
+                            ? 'border-primary-500 bg-primary-50 shadow-md' 
+                            : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30'
+                        }`}
+                        onClick={() => setGameOptions({...gameOptions, scoringRule: 'japanese'})}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-lg">Japanese</span>
+                          {gameOptions.scoringRule === 'japanese' && (
+                            <span className="text-primary-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-600">Territory + captured stones + komi</p>
+                      </div>
+                      <div
+                        className={`flex-1 border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                          gameOptions.scoringRule === 'chinese' 
+                            ? 'border-primary-500 bg-primary-50 shadow-md' 
+                            : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30'
+                        }`}
+                        onClick={() => setGameOptions({...gameOptions, scoringRule: 'chinese'})}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-lg">Chinese</span>
+                          {gameOptions.scoringRule === 'chinese' && (
+                            <span className="text-primary-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-600">Territory + stones on board + komi</p>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="flex space-x-4 mt-10">

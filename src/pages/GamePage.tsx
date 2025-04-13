@@ -231,6 +231,8 @@ const GamePage: React.FC = () => {
                 isScoring={gameState.status === 'scoring'}
                 deadStones={gameState.deadStones}
                 onToggleDeadStone={handleToggleDeadStone}
+                territory={gameState.territory}
+                showTerritory={gameState.status === 'finished' || gameState.status === 'scoring'}
               />
             </div>
             

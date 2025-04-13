@@ -1,14 +1,14 @@
 import React from 'react';
-import { GameState, Player, GameMove, Position } from '../../types/go';
+import { GameState, Player, GameMove, Position, StoneColor } from '../../types/go';
+
+// Helper function to check if a move is a pass
+function isPassMove(move: GameMove): move is { pass: true } {
+  return (move as any).pass === true;
+}
 
 interface GameInfoProps {
   gameState: GameState;
   currentPlayer?: Player;
-}
-
-// Helper function to check if a move is a pass
-function isPassMove(move: GameMove): move is { pass: true } {
-  return typeof move === 'object' && 'pass' in move;
 }
 
 const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
@@ -30,6 +30,11 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
   
   // Count total moves excluding passes
   const totalStones = history.filter(move => !isPassMove(move)).length;
+
+  // Get scoring rule display name
+  const getScoringRuleName = () => {
+    return gameState.scoringRule === 'chinese' ? 'Chinese' : 'Japanese';
+  };
   
   // Styles for the component
   const containerStyle = {
@@ -66,20 +71,17 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
     marginBottom: '0.5rem',
   };
   
-  const stoneStyle = (color: 'black' | 'white') => ({
+  const stoneStyle = (color: StoneColor) => ({
     width: '1rem',
     height: '1rem',
     borderRadius: '50%',
     background: color === 'black' ? '#000' : '#fff',
-    border: '1px solid #e5e7eb',
+    border: color === 'white' ? '1px solid #000' : 'none',
     marginRight: '0.5rem',
   });
   
   const nameTextStyle = {
     fontWeight: '500',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
   };
   
   const capturedStyle = {
@@ -93,23 +95,50 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
   };
   
   const statusStyle = {
-    marginBottom: '0.5rem',
+    marginBottom: '1rem',
+    padding: '0.5rem',
+    backgroundColor: '#f9fafb',
+    borderRadius: '0.25rem',
+    textAlign: 'center' as const,
   };
   
   const gameInfoStyle = {
     fontSize: '0.875rem',
     color: '#4b5563',
   };
-  
-  const moveHistoryStyle = {
+
+  const scoreDetailStyle = {
     marginTop: '1rem',
-    borderTop: '1px solid #e5e7eb',
-    paddingTop: '1rem',
-  };
-  
-  const moveHistoryItemStyle = {
+    padding: '0.75rem',
+    backgroundColor: '#f9fafb',
+    borderRadius: '0.25rem',
     fontSize: '0.875rem',
+  };
+
+  const scoreRowStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
     marginBottom: '0.25rem',
+  };
+
+  const scoreHeaderStyle = {
+    fontSize: '1rem',
+    fontWeight: '600',
+    marginBottom: '0.5rem',
+    display: 'flex',
+    justifyContent: 'space-between',
+  };
+
+  const scoringRuleStyle = {
+    fontSize: '0.75rem',
+    color: '#6b7280',
+    fontStyle: 'italic',
+  };
+
+  const dividerStyle = {
+    height: '1px',
+    backgroundColor: '#e5e7eb',
+    margin: '0.5rem 0',
   };
   
   return (
@@ -135,7 +164,7 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
           </div>
           <div style={capturedStyle}>
             <p>Captured: {capturedStones.white}</p>
-            {score && <p style={{ fontWeight: 'bold' }}>Score: {score.white} (incl. komi)</p>}
+            {score && <p style={{ fontWeight: 'bold' }}>Score: {score.white}</p>}
           </div>
         </div>
       </div>
@@ -186,18 +215,74 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
         </div>
       </div>
       
-      {/* Hide recent moves section in scoring or finished status */}
-      {history.length > 0 && status !== 'scoring' && status !== 'finished' && (
-        <div style={moveHistoryStyle}>
-          <h3 style={{fontSize: '1rem', fontWeight: '500', marginBottom: '0.5rem'}}>Recent Moves</h3>
+      {/* Detailed score breakdown for finished games */}
+      {status === 'finished' && score && (
+        <div style={scoreDetailStyle}>
+          <div style={scoreHeaderStyle}>
+            <span>Score Breakdown</span>
+            <span style={scoringRuleStyle}>{getScoringRuleName()} Rules</span>
+          </div>
+
+          {/* Black player score details */}
           <div>
-            {history.slice(-5).reverse().map((move, idx) => (
-              <div key={idx} style={moveHistoryItemStyle}>
-                {isPassMove(move) 
-                  ? `${history.length - idx}. ${(history.length - idx) % 2 === 0 ? 'White' : 'Black'} passed` 
-                  : `${history.length - idx}. ${(history.length - idx) % 2 === 0 ? 'White' : 'Black'} at (${(move as Position).x}, ${(move as Position).y})`}
+            <strong>Black:</strong>
+            {score.blackTerritory !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Territory:</span>
+                <span>{score.blackTerritory}</span>
               </div>
-            ))}
+            )}
+            {score.blackStones !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Stones:</span>
+                <span>{score.blackStones}</span>
+              </div>
+            )}
+            {score.blackCaptures !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Captures:</span>
+                <span>{score.blackCaptures}</span>
+              </div>
+            )}
+            <div style={scoreRowStyle}>
+              <strong>Total:</strong>
+              <strong>{score.black}</strong>
+            </div>
+          </div>
+
+          <div style={dividerStyle}></div>
+
+          {/* White player score details */}
+          <div>
+            <strong>White:</strong>
+            {score.whiteTerritory !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Territory:</span>
+                <span>{score.whiteTerritory}</span>
+              </div>
+            )}
+            {score.whiteStones !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Stones:</span>
+                <span>{score.whiteStones}</span>
+              </div>
+            )}
+            {score.whiteCaptures !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Captures:</span>
+                <span>{score.whiteCaptures}</span>
+              </div>
+            )}
+            {score.komi !== undefined && (
+              <div style={scoreRowStyle}>
+                <span>Komi:</span>
+                <span>{score.komi}</span>
+              </div>
+            )}
+            <div style={scoreRowStyle}>
+              <strong>Total:</strong>
+              <strong>{score.white}</strong>
+            </div>
           </div>
         </div>
       )}

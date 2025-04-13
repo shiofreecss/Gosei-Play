@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
-import { GameState, Position, Player, StoneColor, GameMove, GameOptions, Stone } from '../types/go';
+import { GameState, Position, Player, StoneColor, GameMove, GameOptions, Stone, ScoringRule, Territory } from '../types/go';
 import { applyGoRules } from '../utils/goGameLogic';
 import { SOCKET_URL } from '../config';
+import { 
+  calculateChineseScore, 
+  calculateJapaneseScore 
+} from '../utils/scoringUtils';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -677,6 +681,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       history: [],
       status: 'waiting',
       winner: null,
+      scoringRule: options.scoringRule, // Add scoring rule to game state
     };
     
     // Store the game in localStorage for retrieval by code
@@ -1176,51 +1181,41 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       return;
     }
     
-    // Calculate territory and final score
-    // For simplicity, we'll just count stones on the board minus dead stones
-    const { board, deadStones = [] } = gameState;
-    
     // Convert dead stones to a Set for faster lookups
-    const deadStoneSet = new Set<string>();
+    const deadStonePositions = new Set<string>();
+    const deadStones = gameState.deadStones || [];
     deadStones.forEach(pos => {
-      deadStoneSet.add(`${pos.x},${pos.y}`);
+      deadStonePositions.add(`${pos.x},${pos.y}`);
     });
     
-    // Count remaining stones by color (excluding dead stones)
-    let blackStones = 0;
-    let whiteStones = 0;
+    // Calculate score based on selected scoring rule
+    const scoringRule = gameState.scoringRule || 'japanese'; // Default to Japanese rules if not specified
     
-    board.stones.forEach(stone => {
-      const posKey = `${stone.position.x},${stone.position.y}`;
-      if (!deadStoneSet.has(posKey)) {
-        if (stone.color === 'black') {
-          blackStones++;
-        } else if (stone.color === 'white') {
-          whiteStones++;
-        }
-      }
-    });
+    let scoringResult;
     
-    // Add captured stones to the count
-    blackStones += gameState.capturedStones.black;
-    whiteStones += gameState.capturedStones.white;
+    if (scoringRule === 'chinese') {
+      // Use Chinese scoring rules
+      scoringResult = calculateChineseScore(
+        gameState.board,
+        deadStonePositions,
+        gameState.capturedStones
+      );
+    } else {
+      // Use Japanese scoring rules
+      scoringResult = calculateJapaneseScore(
+        gameState.board,
+        deadStonePositions,
+        gameState.capturedStones
+      );
+    }
     
-    // Add komi for white (standard 6.5 points)
-    const komi = 6.5;
-    whiteStones += komi;
-    
-    // Calculate the final score
-    const score = {
-      black: blackStones,
-      white: whiteStones
-    };
-    
-    // Update game state with score and winner
+    // Update game state with score, territory, and winner
     const updatedGameState: GameState = {
       ...gameState,
       status: 'finished',
-      score,
-      winner: score.black > score.white ? 'black' : 'white'
+      score: scoringResult.score,
+      territory: scoringResult.territories,
+      winner: scoringResult.winner
     };
     
     // Update local state
@@ -1230,8 +1225,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     if (state.socket && state.socket.connected) {
       const scoreData = {
         gameId: gameState.id,
-        score,
-        winner: updatedGameState.winner
+        score: scoringResult.score,
+        winner: updatedGameState.winner,
+        territory: scoringResult.territories
       };
       
       console.log('Emitting game score to server:', scoreData);
