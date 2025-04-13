@@ -276,6 +276,7 @@ export const isKoViolation = (position: Position, color: StoneColor, gameState: 
   if (gameState.history.length < 2) return false;
   
   // Get the most recent move
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lastMove = gameState.history[gameState.history.length - 1];
   
   // Check if the current move is at the same position as the second-to-last move

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import GoBoard from '../components/go-board/GoBoard';
 import GameInfo from '../components/go-board/GameInfo';
 import GameError from '../components/GameError';
@@ -9,7 +9,7 @@ import { Position, GameMove } from '../types/go';
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { gameState, loading, currentPlayer, error, placeStone, passTurn, leaveGame, joinGame, syncGameState } = useGame();
+  const { gameState, loading, currentPlayer, error, placeStone, passTurn, leaveGame, joinGame, syncGameState, resignGame, toggleDeadStone, confirmScore, requestUndo, respondToUndoRequest } = useGame();
   const [username, setUsername] = useState<string>('');
   const [showJoinForm, setShowJoinForm] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -41,6 +41,18 @@ const GamePage: React.FC = () => {
     navigate('/');
   };
 
+  const handleResignGame = () => {
+    resignGame();
+  };
+
+  const handleToggleDeadStone = (position: Position) => {
+    toggleDeadStone(position);
+  };
+
+  const handleConfirmScore = () => {
+    confirmScore();
+  };
+
   const handleJoinGame = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() && gameId) {
@@ -63,6 +75,18 @@ const GamePage: React.FC = () => {
     setSyncing(true);
     syncGameState();
     setTimeout(() => setSyncing(false), 2000);
+  };
+
+  const handleRequestUndo = () => {
+    requestUndo();
+  };
+
+  const handleAcceptUndo = () => {
+    respondToUndoRequest(true);
+  };
+
+  const handleRejectUndo = () => {
+    respondToUndoRequest(false);
   };
 
   // Helper function to check if a move is a pass
@@ -204,21 +228,109 @@ const GamePage: React.FC = () => {
                   isPassMove(gameState.history[gameState.history.length - 1]) ? 
                     undefined : gameState.history[gameState.history.length - 1] as Position 
                   : undefined}
+                isScoring={gameState.status === 'scoring'}
+                deadStones={gameState.deadStones}
+                onToggleDeadStone={handleToggleDeadStone}
               />
             </div>
             
-            {/* Pass button */}
-            {gameState.status === 'playing' && currentPlayer?.color === gameState.currentTurn && (
-              <div className="text-center mt-6 w-full">
-                <button
-                  onClick={handlePassTurn}
-                  className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 px-8 py-3 text-lg"
-                >
-                  Pass Turn
-                </button>
-                <p className="text-sm text-neutral-500 mt-2">
-                  Pass when you have no good moves. Two consecutive passes ends the game.
+            {/* Undo Request Notification */}
+            {gameState.status === 'playing' && gameState.undoRequest && currentPlayer && gameState.undoRequest.requestedBy !== currentPlayer.id && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center w-full max-w-md">
+                <p className="text-blue-800 font-medium mb-2">
+                  Your opponent has requested to undo to a previous position.
                 </p>
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={handleAcceptUndo}
+                    className="btn bg-green-600 text-white hover:bg-green-700"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={handleRejectUndo}
+                    className="btn bg-red-100 text-red-800 hover:bg-red-200"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Undo Request Pending */}
+            {gameState.status === 'playing' && gameState.undoRequest && currentPlayer && gameState.undoRequest.requestedBy === currentPlayer.id && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center w-full max-w-md">
+                <p className="text-yellow-800">
+                  Undo request sent. Waiting for opponent's response...
+                </p>
+              </div>
+            )}
+            
+            {/* Game Control Buttons */}
+            {gameState.status === 'playing' && currentPlayer && (
+              <div className="w-full mt-6 flex flex-col items-center gap-3">
+                {/* Pass button - only shown when it's the player's turn */}
+                {currentPlayer.color === gameState.currentTurn && (
+                  <div className="text-center w-full">
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={handlePassTurn}
+                        className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 px-8 py-3 text-lg"
+                      >
+                        Pass Turn
+                      </button>
+                    </div>
+                    <p className="text-sm text-neutral-500 mt-2">
+                      Pass when you have no good moves. Two consecutive passes ends the game.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Game action buttons */}
+                <div className="flex justify-center gap-3 mt-2">
+                  {/* Resign button - available to everyone */}
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to resign? This will end the game.')) {
+                        handleResignGame();
+                      }
+                    }}
+                    className="btn bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2"
+                  >
+                    Resign
+                  </button>
+                  
+                  {/* Undo button - only shown if no pending undo request */}
+                  {!gameState.undoRequest && gameState.history.length > 0 && (
+                    <button
+                      onClick={handleRequestUndo}
+                      className="btn bg-amber-100 text-amber-800 hover:bg-amber-200 px-4 py-2"
+                    >
+                      Request Undo
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Scoring Controls */}
+            {gameState.status === 'scoring' && (
+              <div className="text-center mt-6 w-full bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">Scoring Mode</h3>
+                <p className="text-sm text-yellow-700 mb-3">
+                  Click on stones to mark them as dead. Dead stones will be removed from the final score.
+                </p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    onClick={handleConfirmScore}
+                    className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2"
+                  >
+                    Confirm Score
+                  </button>
+                  <div className="text-sm bg-white p-2 rounded border border-yellow-200">
+                    <div className="font-medium">Dead Stones: {gameState.deadStones?.length || 0}</div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

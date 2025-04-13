@@ -12,7 +12,7 @@ function isPassMove(move: GameMove): move is { pass: true } {
 }
 
 const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
-  const { players, currentTurn, status, capturedStones, history } = gameState;
+  const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest } = gameState;
   
   // Find black and white players
   const blackPlayer = players.find(player => player.color === 'black');
@@ -123,7 +123,8 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
             <span style={nameTextStyle}>{blackPlayer?.username || 'Black'}</span>
           </div>
           <div style={capturedStyle}>
-            <p>Captured: {capturedStones.white}</p>
+            <p>Captured: {capturedStones.black}</p>
+            {score && <p style={{ fontWeight: 'bold' }}>Score: {score.black}</p>}
           </div>
         </div>
         
@@ -133,7 +134,8 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
             <span style={nameTextStyle}>{whitePlayer?.username || 'White'}</span>
           </div>
           <div style={capturedStyle}>
-            <p>Captured: {capturedStones.black}</p>
+            <p>Captured: {capturedStones.white}</p>
+            {score && <p style={{ fontWeight: 'bold' }}>Score: {score.white} (incl. komi)</p>}
           </div>
         </div>
       </div>
@@ -150,6 +152,11 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
                 : <span style={{color: '#2563eb'}}>Opponent's turn</span>}
             </p>
           )}
+          {status === 'scoring' && (
+            <p style={{color: '#9333ea', fontWeight: '500'}}>
+              Scoring Mode - Mark dead stones
+            </p>
+          )}
           {status === 'finished' && (
             <p style={{color: '#7c3aed', fontWeight: '500'}}>
               Game over - {gameState.winner === null ? "Draw" : `${gameState.winner === 'black' ? 'Black' : 'White'} wins`}
@@ -160,17 +167,27 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
         <div style={gameInfoStyle}>
           <p>Board size: {gameState.board.size}×{gameState.board.size}</p>
           <p>Stones played: {totalStones}</p>
+          {status === 'scoring' && deadStones && (
+            <p style={{color: '#9333ea', marginTop: '0.25rem'}}>
+              Dead stones: {deadStones.length}
+            </p>
+          )}
           {lastMoveWasPass && (
             <p style={{color: '#db2777', marginTop: '0.25rem'}}>
               {lastMove === secondLastMove ? 'Both players' : currentTurn === 'black' ? 'White' : 'Black'} passed
-              {consecutivePasses ? ' - Game ending' : ''}
+              {consecutivePasses ? ' - Scoring phase' : ''}
+            </p>
+          )}
+          {undoRequest && (
+            <p style={{color: '#2563eb', marginTop: '0.25rem', fontStyle: 'italic'}}>
+              Undo request pending
             </p>
           )}
         </div>
       </div>
       
-      {/* Show last few moves */}
-      {history.length > 0 && (
+      {/* Hide recent moves section in scoring or finished status */}
+      {history.length > 0 && status !== 'scoring' && status !== 'finished' && (
         <div style={moveHistoryStyle}>
           <h3 style={{fontSize: '1rem', fontWeight: '500', marginBottom: '0.5rem'}}>Recent Moves</h3>
           <div>

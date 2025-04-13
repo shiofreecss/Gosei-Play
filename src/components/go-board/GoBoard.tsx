@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Board, Position, Stone, StoneColor } from '../../types/go';
 
 interface GoBoardProps {
@@ -7,6 +7,9 @@ interface GoBoardProps {
   onPlaceStone: (position: Position) => void;
   isPlayerTurn: boolean;
   lastMove?: Position;
+  isScoring?: boolean;
+  deadStones?: Position[];
+  onToggleDeadStone?: (position: Position) => void;
 }
 
 const GoBoard: React.FC<GoBoardProps> = ({
@@ -15,6 +18,9 @@ const GoBoard: React.FC<GoBoardProps> = ({
   onPlaceStone,
   isPlayerTurn,
   lastMove,
+  isScoring = false,
+  deadStones = [],
+  onToggleDeadStone,
 }) => {
   const [hoverPosition, setHoverPosition] = useState<Position | null>(null);
 
@@ -64,9 +70,20 @@ const GoBoard: React.FC<GoBoardProps> = ({
     return !getStoneAtPosition(x, y);
   };
 
+  // Check if a stone is marked as dead during scoring
+  const isDeadStone = (x: number, y: number): boolean => {
+    return deadStones.some(stone => stone.x === x && stone.y === y);
+  };
+
   // Handle click on board intersection
   const handleIntersectionClick = (x: number, y: number) => {
-    if (isPlayerTurn && isValidPlacement(x, y)) {
+    if (isScoring) {
+      // In scoring mode, clicking toggles whether a stone is marked as dead
+      const stone = getStoneAtPosition(x, y);
+      if (stone && onToggleDeadStone) {
+        onToggleDeadStone({ x, y });
+      }
+    } else if (isPlayerTurn && isValidPlacement(x, y)) {
       onPlaceStone({ x, y });
     }
   };
@@ -121,6 +138,7 @@ const GoBoard: React.FC<GoBoardProps> = ({
           const isHovered = hoverPosition?.x === x && hoverPosition?.y === y;
           const isLastMove = lastMove?.x === x && lastMove?.y === y;
           const stoneSize = getStoneSize();
+          const isDead = isDeadStone(x, y);
 
           // Determine edge classes
           let edgeClasses = '';
@@ -132,7 +150,7 @@ const GoBoard: React.FC<GoBoardProps> = ({
           return (
             <div
               key={`${x}-${y}`}
-              className={`board-intersection${edgeClasses}`}
+              className={`board-intersection${edgeClasses}${isScoring && stone ? ' cursor-pointer' : ''}`}
               onClick={() => handleIntersectionClick(x, y)}
               onMouseOver={() => handleMouseOver(x, y)}
               onMouseLeave={handleMouseLeave}
@@ -145,13 +163,18 @@ const GoBoard: React.FC<GoBoardProps> = ({
               {/* Placed stones */}
               {stone && (
                 <div
-                  className={`stone ${stone.color === 'black' ? 'stone-black' : 'stone-white'} ${isLastMove ? 'last-move' : ''}`}
-                  style={{ width: stoneSize, height: stoneSize }}
+                  className={`stone ${stone.color === 'black' ? 'stone-black' : 'stone-white'}
+                   ${isLastMove ? 'last-move' : ''} ${isDead ? 'dead-stone' : ''}`}
+                  style={{ 
+                    width: stoneSize, 
+                    height: stoneSize,
+                    opacity: isDead ? 0.5 : 1 
+                  }}
                 ></div>
               )}
 
               {/* Hover indicator */}
-              {isHovered && !stone && (
+              {isHovered && !stone && !isScoring && (
                 <div
                   className={`stone ${currentTurn === 'black' ? 'stone-black' : 'stone-white'} stone-hover`}
                   style={{ width: stoneSize, height: stoneSize }}
@@ -166,6 +189,13 @@ const GoBoard: React.FC<GoBoardProps> = ({
       <div className="board-size-indicator">
         {board.size}×{board.size}
       </div>
+      
+      {/* Scoring mode indicator */}
+      {isScoring && (
+        <div className="absolute top-0 left-0 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-br-lg text-sm font-medium">
+          Scoring Mode: Click stones to mark as dead
+        </div>
+      )}
     </div>
   );
 };

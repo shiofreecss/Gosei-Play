@@ -32,8 +32,17 @@ export interface GameState {
     white: number;
   };
   history: GameMove[];
-  status: 'waiting' | 'playing' | 'finished';
+  status: 'waiting' | 'playing' | 'finished' | 'scoring';
   winner: StoneColor | null;
+  deadStones?: Position[]; // Stones marked as dead during scoring
+  score?: {
+    black: number;
+    white: number;
+  };
+  undoRequest?: {
+    requestedBy: string; // Player ID who requested undo
+    moveIndex: number;   // Index in history to undo to
+  };
 }
 
 export type GameMove = Position | { pass: true };

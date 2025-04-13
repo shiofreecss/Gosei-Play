@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { GameState, Position, Player, StoneColor, GameMove, GameOptions, Stone } from '../types/go';
-import { isWithinBounds, applyGoRules } from '../utils/goGameLogic';
+import { applyGoRules } from '../utils/goGameLogic';
 import { SOCKET_URL } from '../config';
 
 // Helper function to check if a move is a pass
@@ -30,6 +30,11 @@ interface GameContextType {
   resetGame: () => void;
   syncGameState: () => void;
   clearMoveError: () => void;
+  resignGame: () => void;
+  toggleDeadStone: (position: Position) => void;
+  confirmScore: () => void;
+  requestUndo: () => void;
+  respondToUndoRequest: (accept: boolean) => void;
 }
 
 // Create context with default values
@@ -47,6 +52,11 @@ const GameContext = createContext<GameContextType>({
   resetGame: () => {},
   syncGameState: () => {},
   clearMoveError: () => {},
+  resignGame: () => {},
+  toggleDeadStone: () => {},
+  confirmScore: () => {},
+  requestUndo: () => {},
+  respondToUndoRequest: () => {},
 });
 
 // Action types
@@ -363,6 +373,84 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       }
     });
     
+    // Handle undo requests
+    socket.on('undoRequested', (data: {
+      gameId: string,
+      playerId: string,
+      moveIndex: number
+    }) => {
+      console.log('Received undo request:', data);
+      
+      if (state.gameState && state.gameState.id === data.gameId) {
+        // Update game state with undo request
+        const updatedGameState: GameState = {
+          ...state.gameState,
+          undoRequest: {
+            requestedBy: data.playerId,
+            moveIndex: data.moveIndex
+          }
+        };
+        
+        // Update local state
+        dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+        
+        // Save to localStorage
+        try {
+          const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+          if (!stored) {
+            console.error('Failed to save game state after receiving undo request');
+          }
+        } catch (e) {
+          console.error('Error saving game state after receiving undo request:', e);
+        }
+      }
+    });
+    
+    // Handle undo responses
+    socket.on('undoResponse', (data: {
+      gameId: string,
+      playerId: string,
+      accepted: boolean,
+      gameState?: GameState
+    }) => {
+      console.log('Received undo response:', data);
+      
+      if (state.gameState && state.gameState.id === data.gameId) {
+        if (data.accepted && data.gameState) {
+          // If accepted, update with the provided game state
+          dispatch({ type: 'UPDATE_GAME_STATE', payload: data.gameState });
+          
+          // Save to localStorage
+          try {
+            const stored = safelySetItem(`gosei-game-${data.gameState.code}`, JSON.stringify(data.gameState));
+            if (!stored) {
+              console.error('Failed to save game state after undo was accepted');
+            }
+          } catch (e) {
+            console.error('Error saving game state after undo was accepted:', e);
+          }
+        } else {
+          // If rejected, just clear the undo request
+          const updatedGameState: GameState = {
+            ...state.gameState,
+            undoRequest: undefined
+          };
+          
+          dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+          
+          // Save to localStorage
+          try {
+            const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+            if (!stored) {
+              console.error('Failed to save game state after undo was rejected');
+            }
+          } catch (e) {
+            console.error('Error saving game state after undo was rejected:', e);
+          }
+        }
+      }
+    });
+    
     // Store socket in state
     dispatch({ type: 'SET_SOCKET', payload: socket });
     
@@ -370,6 +458,40 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       socket.disconnect();
     };
   }, [socketUrl]);
+
+  // Listen for changes in game state from other clients
+  useEffect(() => {
+    if (state.socket) {
+      console.log('Setting up game state listener');
+      
+      // Listen for game state updates from other clients
+      state.socket.on('gameState', (updatedGameState: GameState) => {
+        console.log('Received updated game state from server');
+        
+        // Only update if we already have a game with this ID
+        if (state.gameState && state.gameState.id === updatedGameState.id) {
+          console.log('Updating local game state');
+          
+          // Preserve the current player reference
+          const currentPlayer = state.currentPlayer && updatedGameState.players.find(
+            p => p.id === state.currentPlayer?.id
+          );
+          
+          dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+          
+          // If there's a currentPlayer mismatch after update, fix it
+          if (currentPlayer && state.currentPlayer?.id !== currentPlayer.id) {
+            console.log('Fixing current player reference after game state update');
+            // We'd need to add a new action type to fix just the currentPlayer
+          }
+        }
+      });
+      
+      return () => {
+        state.socket?.off('gameState');
+      };
+    }
+  }, [state.socket, state.gameState, state.currentPlayer]);
 
   // Generate handicap stones based on board size and handicap count
   const getHandicapStones = (boardSize: number, handicap: number): Stone[] => {
@@ -839,20 +961,16 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       history: [...gameState.history, createPassMove()],
     };
     
-    // If there are two consecutive passes, the game ends
+    // If there are two consecutive passes, transition to scoring phase
     const historyLength = updatedGameState.history.length;
     if (historyLength >= 2) {
       const lastMove = updatedGameState.history[historyLength - 1];
       const secondLastMove = updatedGameState.history[historyLength - 2];
       
       if (isPassMove(lastMove) && isPassMove(secondLastMove)) {
-        // Game ends after two consecutive passes
-        updatedGameState.status = 'finished';
-        
-        // Default winner based on score (in a real implementation, calculate territory)
-        const blackScore = updatedGameState.capturedStones.black;
-        const whiteScore = updatedGameState.capturedStones.white + 6.5; // 6.5 komi for white
-        updatedGameState.winner = whiteScore > blackScore ? 'white' : 'black';
+        // Transition to scoring phase after two consecutive passes
+        updatedGameState.status = 'scoring';
+        updatedGameState.deadStones = []; // Initialize empty dead stones array
       }
     }
     
@@ -928,6 +1046,410 @@ export const GameProvider: React.FC<GameProviderProps> = ({
   const clearMoveError = () => {
     dispatch({ type: 'CLEAR_MOVE_ERROR' });
   };
+  
+  // Resign from the game (forfeit)
+  const resignGame = () => {
+    if (!state.gameState || !state.currentPlayer) {
+      console.log("Cannot resign: no game state or current player");
+      dispatch({ type: 'MOVE_ERROR', payload: 'Game not started properly' });
+      return;
+    }
+    
+    const { gameState, currentPlayer } = state;
+    
+    // Prevent resigning if game status is not 'playing'
+    if (gameState.status !== 'playing') {
+      console.log("Cannot resign - game not in progress");
+      dispatch({ type: 'MOVE_ERROR', payload: 'Game not in progress' });
+      return;
+    }
+    
+    // Clear any previous move errors
+    dispatch({ type: 'CLEAR_MOVE_ERROR' });
+    
+    // Update the game state for resignation
+    const updatedGameState: GameState = {
+      ...gameState,
+      status: 'finished',
+      winner: currentPlayer.color === 'black' ? 'white' : 'black',
+    };
+    
+    // Update local state immediately for responsive UI
+    dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+    
+    // Emit resignation to server if socket is available
+    if (state.socket && state.socket.connected) {
+      const resignData = {
+        gameId: gameState.id,
+        playerId: currentPlayer.id,
+        color: currentPlayer.color
+      };
+      
+      console.log('Emitting resign to server:', resignData);
+      state.socket.emit('resignGame', resignData);
+    } else {
+      console.warn('Socket not connected, updating state locally only');
+      
+      // Try to reconnect
+      if (state.socket) {
+        console.log('Attempting to reconnect...');
+        state.socket.connect();
+      }
+    }
+    
+    // Update the game in localStorage as backup
+    try {
+      const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+      if (!stored) {
+        console.error('Failed to save game state after resignation');
+      }
+    } catch (e) {
+      console.error('Error saving game state after resignation:', e);
+    }
+  };
+
+  // Function to toggle a stone as dead during scoring
+  const toggleDeadStone = (position: Position) => {
+    if (!state.gameState) {
+      console.log("Cannot toggle dead stone: no game state");
+      return;
+    }
+    
+    const { gameState } = state;
+    
+    // Only allow toggling in scoring mode
+    if (gameState.status !== 'scoring') {
+      console.log("Cannot toggle dead stone: not in scoring mode");
+      return;
+    }
+    
+    // Find if the position already exists in deadStones
+    const currentDeadStones = gameState.deadStones || [];
+    const stoneIndex = currentDeadStones.findIndex(
+      stone => stone.x === position.x && stone.y === position.y
+    );
+    
+    let updatedDeadStones: Position[];
+    
+    if (stoneIndex >= 0) {
+      // Remove from dead stones if already marked
+      updatedDeadStones = [
+        ...currentDeadStones.slice(0, stoneIndex),
+        ...currentDeadStones.slice(stoneIndex + 1)
+      ];
+    } else {
+      // Add to dead stones
+      updatedDeadStones = [...currentDeadStones, position];
+    }
+    
+    const updatedGameState: GameState = {
+      ...gameState,
+      deadStones: updatedDeadStones
+    };
+    
+    // Update local state immediately
+    dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+    
+    // Update in localStorage as backup
+    try {
+      const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+      if (!stored) {
+        console.error('Failed to save game state after toggling dead stone');
+      }
+    } catch (e) {
+      console.error('Error saving game state after toggling dead stone:', e);
+    }
+  };
+  
+  // Calculate the final score and end the game
+  const confirmScore = () => {
+    if (!state.gameState) {
+      console.log("Cannot confirm score: no game state");
+      return;
+    }
+    
+    const { gameState } = state;
+    
+    // Only allow scoring confirmation in scoring mode
+    if (gameState.status !== 'scoring') {
+      console.log("Cannot confirm score: not in scoring mode");
+      return;
+    }
+    
+    // Calculate territory and final score
+    // For simplicity, we'll just count stones on the board minus dead stones
+    const { board, deadStones = [] } = gameState;
+    
+    // Convert dead stones to a Set for faster lookups
+    const deadStoneSet = new Set<string>();
+    deadStones.forEach(pos => {
+      deadStoneSet.add(`${pos.x},${pos.y}`);
+    });
+    
+    // Count remaining stones by color (excluding dead stones)
+    let blackStones = 0;
+    let whiteStones = 0;
+    
+    board.stones.forEach(stone => {
+      const posKey = `${stone.position.x},${stone.position.y}`;
+      if (!deadStoneSet.has(posKey)) {
+        if (stone.color === 'black') {
+          blackStones++;
+        } else if (stone.color === 'white') {
+          whiteStones++;
+        }
+      }
+    });
+    
+    // Add captured stones to the count
+    blackStones += gameState.capturedStones.black;
+    whiteStones += gameState.capturedStones.white;
+    
+    // Add komi for white (standard 6.5 points)
+    const komi = 6.5;
+    whiteStones += komi;
+    
+    // Calculate the final score
+    const score = {
+      black: blackStones,
+      white: whiteStones
+    };
+    
+    // Update game state with score and winner
+    const updatedGameState: GameState = {
+      ...gameState,
+      status: 'finished',
+      score,
+      winner: score.black > score.white ? 'black' : 'white'
+    };
+    
+    // Update local state
+    dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+    
+    // Emit game end to server if socket is available
+    if (state.socket && state.socket.connected) {
+      const scoreData = {
+        gameId: gameState.id,
+        score,
+        winner: updatedGameState.winner
+      };
+      
+      console.log('Emitting game score to server:', scoreData);
+      state.socket.emit('gameEnded', scoreData);
+    }
+    
+    // Update in localStorage
+    try {
+      const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+      if (!stored) {
+        console.error('Failed to save game state after scoring');
+      }
+    } catch (e) {
+      console.error('Error saving game state after scoring:', e);
+    }
+  };
+
+  // Request undo
+  const requestUndo = () => {
+    if (!state.gameState || !state.currentPlayer) {
+      console.log("Cannot request undo: no game state or current player");
+      dispatch({ type: 'MOVE_ERROR', payload: 'Game not started properly' });
+      return;
+    }
+    
+    const { gameState, currentPlayer } = state;
+    
+    // Prevent undo requests if game is not in playing state
+    if (gameState.status !== 'playing') {
+      console.log("Cannot request undo - game not in progress");
+      dispatch({ type: 'MOVE_ERROR', payload: 'Cannot undo when game is not in progress' });
+      return;
+    }
+    
+    // Check if there are moves to undo
+    if (gameState.history.length === 0) {
+      console.log("No moves to undo");
+      dispatch({ type: 'MOVE_ERROR', payload: 'No moves to undo' });
+      return;
+    }
+    
+    // Clear any previous move errors
+    dispatch({ type: 'CLEAR_MOVE_ERROR' });
+    
+    // Create undo request - typically we'd undo the last two moves (one from each player)
+    // But if there's only one move, we'll undo just that one
+    const moveIndex = Math.max(0, gameState.history.length - 2);
+    
+    // Update the game state with the undo request
+    const updatedGameState: GameState = {
+      ...gameState,
+      undoRequest: {
+        requestedBy: currentPlayer.id,
+        moveIndex
+      }
+    };
+    
+    // Update local state immediately
+    dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+    
+    // Emit undo request to server if socket is available
+    if (state.socket && state.socket.connected) {
+      const undoData = {
+        gameId: gameState.id,
+        playerId: currentPlayer.id,
+        moveIndex
+      };
+      
+      console.log('Emitting undo request to server:', undoData);
+      state.socket.emit('requestUndo', undoData);
+    }
+    
+    // Update in localStorage as backup
+    try {
+      const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+      if (!stored) {
+        console.error('Failed to save game state after undo request');
+      }
+    } catch (e) {
+      console.error('Error saving game state after undo request:', e);
+    }
+  };
+
+  // Respond to undo request
+  const respondToUndoRequest = (accept: boolean) => {
+    if (!state.gameState || !state.currentPlayer) {
+      console.log("Cannot respond to undo: no game state or current player");
+      dispatch({ type: 'MOVE_ERROR', payload: 'Game not started properly' });
+      return;
+    }
+    
+    const { gameState, currentPlayer } = state;
+    
+    // Check if there's an undo request to respond to
+    if (!gameState.undoRequest) {
+      console.log("No undo request to respond to");
+      dispatch({ type: 'MOVE_ERROR', payload: 'No undo request to respond to' });
+      return;
+    }
+    
+    // Check if the current player is the one who should respond
+    // (not the one who made the request)
+    if (gameState.undoRequest.requestedBy === currentPlayer.id) {
+      console.log("You cannot respond to your own undo request");
+      dispatch({ type: 'MOVE_ERROR', payload: 'You cannot respond to your own undo request' });
+      return;
+    }
+    
+    // Clear any previous move errors
+    dispatch({ type: 'CLEAR_MOVE_ERROR' });
+    
+    if (accept) {
+      // If accepted, revert to the requested move index
+      const moveIndex = gameState.undoRequest.moveIndex;
+      const historyToKeep = gameState.history.slice(0, moveIndex);
+      
+      // Get the stones on the board at that point in history
+      // We need to recreate the board state
+      const boardSize = gameState.board.size;
+      let stones: Stone[] = [];
+      
+      // Add handicap stones first if any
+      if (historyToKeep.length === 0) {
+        // No moves yet, check if there were handicap stones
+        if (gameState.currentTurn === 'white' && gameState.board.stones.some(s => s.color === 'black')) {
+          // If white goes first, there must have been handicap stones
+          stones = gameState.board.stones.filter(s => s.color === 'black');
+        }
+      } else {
+        // Replay history to create the board state
+        let currentTurn: StoneColor = 'black'; // Black goes first by default
+        
+        historyToKeep.forEach(move => {
+          if (!isPassMove(move)) {
+            // Add a stone for this move
+            stones.push({
+              position: move,
+              color: currentTurn
+            });
+            
+            // Check for captures
+            // This is a simplified version - in practice you'd need to fully reapply rules
+            // to account for captures at each step
+            
+            // Toggle turn
+            currentTurn = currentTurn === 'black' ? 'white' : 'black';
+          } else {
+            // Just toggle turn for passes
+            currentTurn = currentTurn === 'black' ? 'white' : 'black';
+          }
+        });
+      }
+      
+      // Calculate the current turn after undo
+      const nextTurn = historyToKeep.length === 0 ? 
+        (gameState.board.stones.some(s => s.color === 'black') ? 'white' : 'black') : // Handicap logic
+        (historyToKeep.length % 2 === 0 ? 'black' : 'white');
+      
+      // Create the updated game state
+      const updatedGameState: GameState = {
+        ...gameState,
+        board: {
+          ...gameState.board,
+          stones
+        },
+        currentTurn: nextTurn,
+        history: historyToKeep,
+        undoRequest: undefined // Clear the undo request
+      };
+      
+      // Update local state
+      dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+      
+      // Emit response to server if socket is available
+      if (state.socket && state.socket.connected) {
+        const undoResponseData = {
+          gameId: gameState.id,
+          playerId: currentPlayer.id,
+          accepted: true,
+          moveIndex
+        };
+        
+        console.log('Emitting undo response to server:', undoResponseData);
+        state.socket.emit('respondToUndoRequest', undoResponseData);
+      }
+    } else {
+      // If rejected, just clear the undo request
+      const updatedGameState: GameState = {
+        ...gameState,
+        undoRequest: undefined
+      };
+      
+      // Update local state
+      dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+      
+      // Emit response to server if socket is available
+      if (state.socket && state.socket.connected) {
+        const undoResponseData = {
+          gameId: gameState.id,
+          playerId: currentPlayer.id,
+          accepted: false
+        };
+        
+        console.log('Emitting undo response to server:', undoResponseData);
+        state.socket.emit('respondToUndoRequest', undoResponseData);
+      }
+    }
+    
+    // Update in localStorage
+    try {
+      const stored = safelySetItem(`gosei-game-${gameState.code}`, JSON.stringify(gameState));
+      if (!stored) {
+        console.error('Failed to save game state after undo response');
+      }
+    } catch (e) {
+      console.error('Error saving game state after undo response:', e);
+    }
+  };
 
   return (
     <GameContext.Provider
@@ -945,6 +1467,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         resetGame,
         syncGameState,
         clearMoveError,
+        resignGame,
+        toggleDeadStone,
+        confirmScore,
+        requestUndo,
+        respondToUndoRequest
       }}
     >
       {children}

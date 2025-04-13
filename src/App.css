@@ -117,6 +117,25 @@
   padding: 0.25rem 0.5rem;
 }
 
+/* Dead stone styling */
+.dead-stone {
+  position: relative;
+}
+
+.dead-stone::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 60%;
+  transform: translate(-50%, -50%);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'><path d='M18 6L6 18M6 6l12 12'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
 /* Responsive board sizes */
 @media (max-width: 480px) {
   .board-grid {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import GoBoard from './GoBoard';
-import { Board, StoneColor } from '../../types/go';
+import { Board, Position } from '../../types/go';
 
 const BoardSizeDemo: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState<number>(19);
