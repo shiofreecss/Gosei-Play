@@ -27,7 +27,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "build:netlify": "npm run build && npx copyfiles -u 1 \"functions/socket-server/**/*\" build/socket-server"
   },
   "eslintConfig": {
     "extends": [

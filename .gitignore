@@ -59,3 +59,15 @@ debug.log
 
 # Local Netlify folder
 .netlify
+
+# Netlify Functions build artifacts
+/functions-build
+/lambda
+/build/socket-server
+/build/functions
+
+# serverless directory
+.serverless
+
+# FuseBox cache
+.fusebox/

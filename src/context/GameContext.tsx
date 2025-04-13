@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
 import { GameState, Position, Player, StoneColor, GameMove, GameOptions, Stone } from '../types/go';
 import { isWithinBounds, applyGoRules } from '../utils/goGameLogic';
+import { SOCKET_URL } from '../config';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -154,7 +155,7 @@ interface GameProviderProps {
 
 export const GameProvider: React.FC<GameProviderProps> = ({ 
   children, 
-  socketUrl = 'http://localhost:3001' 
+  socketUrl = SOCKET_URL 
 }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   
