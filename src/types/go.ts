@@ -19,6 +19,7 @@ export interface Player {
   id: string;
   username: string;
   color: StoneColor;
+  timeRemaining?: number; // Time remaining in seconds
 }
 
 export type ScoringRule = 'chinese' | 'japanese';
@@ -27,6 +28,9 @@ export interface Territory {
   position: Position;
   owner: StoneColor;
 }
+
+// Add new type for color preference
+export type ColorPreference = 'black' | 'white' | 'random';
 
 export interface GameState {
   id: string;
@@ -44,6 +48,8 @@ export interface GameState {
   deadStones?: Position[]; // Stones marked as dead during scoring
   territory?: Territory[]; // Territory ownership for scoring
   scoringRule?: ScoringRule; // Selected scoring rule (Chinese or Japanese)
+  timePerMove?: number; // Time per move in seconds
+  lastMoveTime?: number; // Timestamp of last move
   score?: {
     black: number;
     white: number;
@@ -66,6 +72,8 @@ export type GameMove = Position | { pass: true };
 export interface GameOptions {
   boardSize: number;
   timeControl: number; // minutes per player
+  timePerMove?: number; // seconds per move
   handicap: number;
   scoringRule: ScoringRule; // Scoring rule to use for the game
+  colorPreference?: ColorPreference; // Owner's preferred color
 } 

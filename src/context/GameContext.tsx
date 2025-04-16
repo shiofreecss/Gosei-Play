@@ -178,88 +178,201 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     // Only try to connect if we don't already have a socket
     if (!state.socket) {
       try {
-        console.log('Attempting to connect to socket server...');
-        const newSocket = io(socketUrl);
+        console.log('Attempting to connect to socket server at:', socketUrl);
+        const newSocket = io(socketUrl, {
+          transports: ['websocket', 'polling'], // Try websocket first, then polling
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+          timeout: 60000,
+          forceNew: true,
+          autoConnect: true
+        });
         
         dispatch({ type: 'SET_SOCKET', payload: newSocket });
         
         // Set up listeners for socket events
         newSocket.on('connect', () => {
-          console.log('Connected to socket server');
+          console.log('Connected to socket server successfully');
         });
         
-        newSocket.on('disconnect', () => {
-          console.log('Disconnected from socket server');
+        newSocket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error);
+          dispatch({
+            type: 'GAME_ERROR', 
+            payload: 'Could not connect to game server. Please check your connection.'
+          });
+        });
+        
+        newSocket.on('disconnect', (reason) => {
+          console.log('Disconnected from socket server, reason:', reason);
+        });
+        
+        newSocket.on('error', (error) => {
+          console.error('Socket error:', error);
+          dispatch({ type: 'GAME_ERROR', payload: error });
+        });
+        
+        // Setup handlers for game events
+        newSocket.on('gameCreated', (response) => {
+          if (response.success) {
+            console.log('Game created successfully with ID:', response.gameId);
+          } else {
+            console.error('Game creation failed:', response.error);
+            dispatch({ type: 'GAME_ERROR', payload: response.error || 'Failed to create game' });
+          }
+        });
+        
+        newSocket.on('joinedGame', (response) => {
+          if (response.success) {
+            console.log(`Joined game ${response.gameId} with ${response.numPlayers} players, status: ${response.status}, currentTurn: ${response.currentTurn}`);
+            
+            // Verify that our local state is in sync with the server's state
+            if (state.gameState && state.gameState.id === response.gameId) {
+              // Ensure currentTurn is correct - this fixes the white-player-created game issue
+              if (state.gameState.currentTurn !== response.currentTurn) {
+                console.log(`Correcting current turn from ${state.gameState.currentTurn} to ${response.currentTurn}`);
+                // Create an updated game state with the correct current turn
+                const updatedGameState = {
+                  ...state.gameState,
+                  currentTurn: response.currentTurn
+                };
+                
+                // Update our local state
+                dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+                
+                // Also update localStorage
+                try {
+                  safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
+                } catch (e) {
+                  console.warn('Failed to save corrected game state to localStorage:', e);
+                }
+              }
+            }
+          } else {
+            console.error('Failed to join game:', response.error);
+            dispatch({ type: 'GAME_ERROR', payload: response.error || 'Failed to join game' });
+          }
         });
         
         newSocket.on('gameState', (gameState: GameState) => {
-          console.log('Received game state update from server', gameState);
+          console.log('Received updated game state:', gameState.id);
+          console.log('Current turn:', gameState.currentTurn);
+          // Log players for debugging
+          gameState.players.forEach(player => {
+            console.log(`Player ${player.username} is ${player.color}`);
+          });
+          
           dispatch({ type: 'UPDATE_GAME_STATE', payload: gameState });
-        });
-        
-        newSocket.on('error', (errorMessage: string) => {
-          console.error('Received error from server:', errorMessage);
-          dispatch({ type: 'GAME_ERROR', payload: errorMessage });
-        });
-        
-        newSocket.on('playerJoined', (data: { gameId: string, playerId: string, username: string }) => {
-          console.log(`Player ${data.username} (${data.playerId}) joined the game`);
-        });
-        
-        newSocket.on('playerLeft', (data: { gameId: string, playerId: string }) => {
-          console.log(`Player ${data.playerId} left the game`);
-        });
-        
-        newSocket.on('moveMade', (moveData: { position: Position, color: StoneColor, capturedCount: number }) => {
-          console.log(`Move made at (${moveData.position.x}, ${moveData.position.y}) by ${moveData.color}`);
-          if (moveData.capturedCount > 0) {
-            console.log(`${moveData.capturedCount} stones were captured`);
+          
+          // Save game state to localStorage for persistence
+          try {
+            safelySetItem(`gosei-game-${gameState.id}`, JSON.stringify(gameState));
+          } catch (e) {
+            console.warn('Failed to save game state to localStorage:', e);
           }
         });
         
-        newSocket.on('turnPassed', (passData: { color: StoneColor, nextTurn: StoneColor, isEndGame: boolean }) => {
-          console.log(`${passData.color} passed their turn. Next turn: ${passData.nextTurn}`);
-          if (passData.isEndGame) {
-            console.log('Game transitioning to scoring phase after two consecutive passes');
+        newSocket.on('moveMade', (moveData) => {
+          console.log(`Move made at (${moveData.position.x}, ${moveData.position.y}) by ${moveData.playerId}`);
+        });
+        
+        newSocket.on('turnPassed', (passData) => {
+          console.log(`Turn passed by ${passData.playerId}, next turn: ${passData.nextTurn}`);
+        });
+        
+        newSocket.on('playerJoined', (joinData) => {
+          console.log(`Player ${joinData.username} (${joinData.playerId}) joined the game`);
+        });
+        
+        newSocket.on('playerLeft', (leaveData) => {
+          console.log(`Player ${leaveData.playerId} left the game`);
+        });
+        
+        newSocket.on('playerDisconnected', (disconnectData) => {
+          console.log(`Player with socket ${disconnectData.socketId} disconnected`);
+        });
+        
+        // Handle timer updates
+        newSocket.on('timeUpdate', (timeData) => {
+          console.log(`Time update for player ${timeData.playerId}: ${timeData.timeRemaining}s remaining`);
+          // We're receiving time updates from the server, but we don't need to update the state
+          // as the full gameState will include this information
+        });
+        
+        // Handle player timeout
+        newSocket.on('playerTimeout', (timeoutData) => {
+          console.log(`Player ${timeoutData.playerId} (${timeoutData.color}) has run out of time`);
+          // Alert the user that time has run out
+          if (timeoutData.color === state.currentPlayer?.color) {
+            dispatch({ 
+              type: 'MOVE_ERROR', 
+              payload: 'You ran out of time! The game is over.' 
+            });
           }
         });
         
-        newSocket.on('undoRequested', (undoData: { requestedBy: string, moveIndex: number }) => {
-          console.log(`Undo requested by ${undoData.requestedBy} to move ${undoData.moveIndex}`);
-        });
+        // Timer tick handler for polling
+        let timerInterval: ReturnType<typeof setInterval> | null = null;
         
-        newSocket.on('undoAccepted', (undoData: { moveIndex: number }) => {
-          console.log(`Undo accepted, reverting to move ${undoData.moveIndex}`);
-        });
-        
-        newSocket.on('undoRejected', (undoData: { requestedBy: string }) => {
-          console.log(`Undo requested by ${undoData.requestedBy} was rejected`);
-        });
-        
-        newSocket.on('scoringPhaseStarted', (data: { gameId: string }) => {
-          console.log(`Game ${data.gameId} has entered the scoring phase`);
-        });
-        
-        newSocket.on('playerResigned', (data: { gameId: string, playerId: string, color: StoneColor, winner: StoneColor }) => {
-          console.log(`Player ${data.playerId} (${data.color}) resigned. ${data.winner} wins the game.`);
-        });
-        
-        newSocket.on('gameFinished', (data: { gameId: string, score: any, winner: StoneColor }) => {
-          console.log(`Game ${data.gameId} has finished. Winner: ${data.winner}`);
-          console.log('Final score:', data.score);
-        });
-        
-        // Clean up socket on unmount
-        return () => {
-          console.log('Cleaning up socket connection...');
-          newSocket.disconnect();
-          dispatch({ type: 'SET_SOCKET', payload: null });
+        // Set up timer interval when game state changes
+        const startTimerPolling = (gameState: GameState | null) => {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          
+          if (gameState && gameState.status === 'playing' && gameState.timePerMove && gameState.timePerMove > 0) {
+            timerInterval = setInterval(() => {
+              if (newSocket && gameState.id) {
+                newSocket.emit('timerTick', { gameId: gameState.id });
+              }
+            }, 1000); // Poll every second
+          }
         };
-      } catch (e) {
-        console.error('Error setting up socket:', e);
+        
+        // Call startTimerPolling whenever the game state changes
+        if (state.gameState) {
+          startTimerPolling(state.gameState);
+        }
+        
+        // Clean up function to remove event listeners and intervals
+        return () => {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+          }
+          
+          if (newSocket) {
+            newSocket.off('connect');
+            newSocket.off('connect_error');
+            newSocket.off('disconnect');
+            newSocket.off('error');
+            newSocket.off('gameCreated');
+            newSocket.off('joinedGame');
+            newSocket.off('gameState');
+            newSocket.off('moveMade');
+            newSocket.off('turnPassed');
+            newSocket.off('playerJoined');
+            newSocket.off('playerLeft');
+            newSocket.off('playerDisconnected');
+            newSocket.off('timeUpdate');
+            newSocket.off('playerTimeout');
+            
+            if (newSocket.connected) {
+              console.log('Disconnecting from socket server');
+              newSocket.disconnect();
+            }
+          }
+        };
+      } catch (error) {
+        console.error('Error setting up socket connection:', error);
+        dispatch({
+          type: 'GAME_ERROR',
+          payload: 'Failed to connect to game server'
+        });
       }
     }
-  }, [state.socket]);
+  }, [state.socket, socketUrl]);
 
   // Listen for changes in game state from other clients
   useEffect(() => {
@@ -448,62 +561,94 @@ export const GameProvider: React.FC<GameProviderProps> = ({
   const createGame = (options: GameOptions & { playerName?: string }) => {
     dispatch({ type: 'CREATE_GAME_START' });
     
-    // For demo purposes, we'll create a local game
-    // In a real app, this would connect to a server
-    const playerId = uuidv4();
-    const gameId = uuidv4();
-    const gameCode = generateGameCode();
+    const playerId = uuidv4(); // Generate a unique ID for this player
     
+    // Set default options if not provided
+    const boardSize = options.boardSize || 19;
+    const handicap = options.handicap || 0;
+    const scoringRule = options.scoringRule || 'japanese';
+    const playerName = options.playerName || 'Player 1';
+    const colorPreference = options.colorPreference || 'random';
+    const timePerMove = options.timePerMove || 0;
+    
+    // Determine player color based on preference
+    let playerColor: 'black' | 'white' = 'black'; // Default is black
+    
+    if (colorPreference === 'white') {
+      playerColor = 'white';
+    } else if (colorPreference === 'random') {
+      // Random assignment
+      playerColor = Math.random() < 0.5 ? 'black' : 'white';
+    }
+    
+    // Create the player object
     const player: Player = {
       id: playerId,
-      username: options.playerName || 'Player 1',
-      color: 'black',
+      username: playerName,
+      color: playerColor,
+      timeRemaining: timePerMove > 0 ? timePerMove : undefined
     };
     
-    // Generate handicap stones if needed
-    const handicapStones = getHandicapStones(options.boardSize, options.handicap);
+    // Create the initial game state
+    const gameId = uuidv4(); // Generate unique game ID
     
-    const initialGameState: GameState = {
+    // Generate a user-friendly game code
+    const gameCode = generateGameCode();
+    
+    // Create new game state
+    const gameState: GameState = {
       id: gameId,
       code: gameCode,
       board: {
-        size: options.boardSize,
-        stones: handicapStones,
+        size: boardSize,
+        stones: []
       },
       players: [player],
-      currentTurn: options.handicap > 0 ? 'white' : 'black', // White goes first if there are handicap stones
+      currentTurn: 'black', // Black always goes first
+      history: [],
       capturedStones: {
         black: 0,
-        white: 0,
+        white: 0
       },
-      history: [],
       status: 'waiting',
       winner: null,
-      scoringRule: options.scoringRule, // Add scoring rule to game state
+      scoringRule: scoringRule,
+      timePerMove: timePerMove
     };
     
-    // Store the game in localStorage for retrieval by code
-    const stored = safelySetItem(`gosei-game-${gameCode}`, JSON.stringify(initialGameState));
-    if (!stored) {
-      dispatch({ type: 'GAME_ERROR', payload: 'Failed to save the game. Please try again.' });
+    // Send the game data to the server
+    if (state.socket) {
+      console.log('Sending createGame request to server with game state:', gameState.id);
+      state.socket.emit('createGame', {
+        gameState,
+        playerId
+      });
+    } else {
+      console.error('Socket not connected, cannot create game');
+      dispatch({
+        type: 'GAME_ERROR',
+        payload: 'Not connected to game server. Please refresh and try again.'
+      });
       return;
     }
     
-    // If socket is connected, emit createGame event to server
-    if (state.socket && state.socket.connected) {
-      console.log(`Emitting createGame event for game ${gameId}`);
-      state.socket.emit('createGame', {
-        gameState: initialGameState,
-        playerId: player.id
-      });
-    } else {
-      console.warn('Socket not connected, game state will only be synchronized locally');
-    }
-    
+    // Update the local state with the new game
     dispatch({
       type: 'CREATE_GAME_SUCCESS',
-      payload: { gameState: initialGameState, player },
+      payload: {
+        gameState,
+        player
+      }
     });
+    
+    // Save game to localStorage for persistence
+    try {
+      safelySetItem(`gosei-game-${gameId}`, JSON.stringify(gameState));
+      safelySetItem('gosei-current-game', gameId);
+      safelySetItem('gosei-player-id', playerId);
+    } catch (e) {
+      console.warn('Failed to save game to localStorage:', e);
+    }
   };
   
   // Join an existing game
@@ -595,10 +740,20 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         // New player joins
         console.log(`Creating new player with username: ${username}`);
         const playerId = uuidv4();
+        
+        // Determine color based on existing players
+        let playerColor: StoneColor = 'white'; // Default for second player
+        
+        if (foundGame.players.length > 0) {
+          const firstPlayerColor = foundGame.players[0].color;
+          playerColor = firstPlayerColor === 'black' ? 'white' : 'black';
+        }
+        
         player = {
           id: playerId,
           username,
-          color: 'white', // Second player is white
+          color: playerColor,
+          timeRemaining: foundGame.timePerMove || undefined
         };
         updatedPlayers.push(player);
       }
@@ -609,16 +764,18 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       const updatedGameState: GameState = {
         ...foundGame,
         players: updatedPlayers,
-        status: newStatus
+        status: newStatus,
+        // Ensure black always goes first
+        currentTurn: 'black'
       };
       
       // Update the game in localStorage
       try {
-        const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+        const stored = safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
         if (!stored) {
           throw new Error('Failed to save game state');
         }
-        console.log(`Game ${updatedGameState.code} updated in localStorage`);
+        console.log(`Game ${updatedGameState.id} updated in localStorage`);
       } catch (e) {
         console.error('Error saving game to localStorage:', e);
         dispatch({ type: 'GAME_ERROR', payload: 'Failed to update the game. Please try again.' });
@@ -1305,4 +1462,5 @@ export const GameProvider: React.FC<GameProviderProps> = ({
 // Custom hook for using the game context
 export const useGame = () => useContext(GameContext);
 
+// Only export default once
 export default GameContext; 

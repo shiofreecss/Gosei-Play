@@ -11,7 +11,13 @@ const io = socketIo(server, {
   cors: {
     origin: "*", // Allow connections from any origin for development
     methods: ["GET", "POST"]
-  }
+  },
+  // Add these settings to fix disconnection issues
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  upgradeTimeout: 30000,
+  maxHttpBufferSize: 1e8
 });
 
 // Store active games in memory
@@ -34,6 +40,37 @@ io.on('connection', (socket) => {
   // Create a new game
   socket.on('createGame', ({ gameState, playerId }) => {
     log(`Creating game: ${gameState.id}, Code: ${gameState.code}`);
+    
+    // Check for color preference if provided
+    if (gameState.colorPreference) {
+      log(`Owner requested color preference: ${gameState.colorPreference}`);
+      
+      // Find the owner player
+      const ownerPlayer = gameState.players.find(p => p.id === playerId);
+      
+      if (ownerPlayer) {
+        if (gameState.colorPreference === 'black') {
+          ownerPlayer.color = 'black';
+        } else if (gameState.colorPreference === 'white') {
+          ownerPlayer.color = 'white';
+          // Set current turn based on owner's color
+          gameState.currentTurn = 'black'; // Always set black to go first
+        }
+        // If 'random', keep the default assignment
+      }
+    }
+    
+    // Initialize move timer if specified
+    if (gameState.timePerMove && gameState.timePerMove > 0) {
+      gameState.lastMoveTime = Date.now();
+      
+      // Initialize time remaining for each player
+      if (!gameState.players[0].timeRemaining) {
+        gameState.players.forEach(player => {
+          player.timeRemaining = gameState.timePerMove;
+        });
+      }
+    }
     
     // Store the game state
     activeGames.set(gameState.id, gameState);
@@ -66,17 +103,38 @@ io.on('connection', (socket) => {
         const playerIndex = gameState.players.findIndex(p => p.id === playerId);
         
         if (playerIndex === -1) {
-          // Add new player if not found
+          // Determine color for new player
+          let newPlayerColor = 'white'; // Default second player is white
+          
+          // Check if the owner had a color preference
+          const ownerPlayer = gameState.players[0];
+          if (ownerPlayer && ownerPlayer.color) {
+            // Assign opposite color to second player
+            newPlayerColor = ownerPlayer.color === 'black' ? 'white' : 'black';
+          }
+          
+          // Add new player with the determined color
           gameState.players.push({
             id: playerId,
             username,
-            color: 'white' // Second player is white
+            color: newPlayerColor,
+            timeRemaining: gameState.timePerMove || 0, // Initialize time remaining
           });
           
           // If we now have 2 players, set status to playing
           if (gameState.players.length >= 2) {
             log(`Game ${gameId} now has 2 players, changing status to playing`);
             gameState.status = 'playing';
+            gameState.lastMoveTime = Date.now(); // Initialize move timer
+            
+            // Ensure currentTurn is 'black' regardless of which player is black
+            gameState.currentTurn = 'black'; // Always black first in Go
+            
+            log(`Game's currentTurn is set to: ${gameState.currentTurn}`);
+            // Debug log to show which player has which color
+            gameState.players.forEach(player => {
+              log(`Player ${player.username} is ${player.color}`);
+            });
           }
         }
         
@@ -105,10 +163,11 @@ io.on('connection', (socket) => {
         gameId, 
         playerId,
         numPlayers: gameState.players.length,
-        status: gameState.status
+        status: gameState.status,
+        currentTurn: gameState.currentTurn // Send current turn info explicitly
       });
       
-      log(`Game ${gameId} now has ${gameState.players.length} players, status: ${gameState.status}`);
+      log(`Game ${gameId} now has ${gameState.players.length} players, status: ${gameState.status}, currentTurn: ${gameState.currentTurn}`);
     } else {
       log(`Game ${gameId} not found in active games`);
       socket.emit('error', `Game ${gameId} not found`);
@@ -133,6 +192,37 @@ io.on('connection', (socket) => {
         return;
       }
       
+      // Check if the player has timed out (if move timer is enabled)
+      if (gameState.timePerMove && gameState.timePerMove > 0 && gameState.lastMoveTime) {
+        const currentPlayer = gameState.players.find(p => p.color === color);
+        if (currentPlayer && currentPlayer.timeRemaining !== undefined) {
+          const elapsedTime = Math.floor((Date.now() - gameState.lastMoveTime) / 1000);
+          const remainingTime = Math.max(0, currentPlayer.timeRemaining - elapsedTime);
+          
+          if (remainingTime <= 0) {
+            log(`Player ${playerId} has run out of time`);
+            // Handle timeout - opponent wins
+            gameState.status = 'finished';
+            gameState.winner = color === 'black' ? 'white' : 'black';
+            activeGames.set(gameId, gameState);
+            
+            // Broadcast timeout
+            io.to(gameId).emit('playerTimeout', {
+              gameId,
+              playerId,
+              color
+            });
+            
+            // Broadcast updated game state
+            io.to(gameId).emit('gameState', gameState);
+            return;
+          }
+          
+          // Update remaining time
+          currentPlayer.timeRemaining = remainingTime;
+        }
+      }
+      
       // Add the stone
       const updatedStones = [...gameState.board.stones, {
         position,
@@ -151,6 +241,17 @@ io.on('connection', (socket) => {
       gameState.board.stones = capturedStones.remainingStones;
       gameState.currentTurn = color === 'black' ? 'white' : 'black';
       gameState.history.push(position);
+      
+      // Reset timer for the next move
+      gameState.lastMoveTime = Date.now();
+      
+      // Reset move timer for the player who just made a move
+      if (gameState.timePerMove && gameState.timePerMove > 0) {
+        const currentPlayer = gameState.players.find(p => p.color === color);
+        if (currentPlayer) {
+          currentPlayer.timeRemaining = gameState.timePerMove;
+        }
+      }
       
       // Update captured stones count
       if (!gameState.capturedStones) {
@@ -172,7 +273,8 @@ io.on('connection', (socket) => {
         position,
         color,
         playerId,
-        capturedCount: capturedStones.capturedCount
+        capturedCount: capturedStones.capturedCount,
+        timeRemaining: gameState.players.find(p => p.color === gameState.currentTurn)?.timeRemaining
       });
       log(`Broadcasting move to all clients in room ${gameId}`);
       
@@ -181,6 +283,47 @@ io.on('connection', (socket) => {
         io.to(gameId).emit('gameState', gameState);
         log(`Broadcasting full game state to all clients in room ${gameId}`);
       }, 200);
+    }
+  });
+
+  // Timer tick event to update remaining time
+  socket.on('timerTick', ({ gameId }) => {
+    const gameState = activeGames.get(gameId);
+    if (gameState && gameState.status === 'playing' && gameState.timePerMove > 0 && gameState.lastMoveTime) {
+      const currentPlayer = gameState.players.find(p => p.color === gameState.currentTurn);
+      
+      if (currentPlayer && currentPlayer.timeRemaining !== undefined) {
+        const elapsedTime = Math.floor((Date.now() - gameState.lastMoveTime) / 1000);
+        const remainingTime = Math.max(0, currentPlayer.timeRemaining - elapsedTime);
+        
+        if (remainingTime <= 0 && currentPlayer.timeRemaining > 0) {
+          // Player has just run out of time
+          log(`Player ${currentPlayer.id} has run out of time`);
+          
+          // Handle timeout - opponent wins
+          gameState.status = 'finished';
+          gameState.winner = gameState.currentTurn === 'black' ? 'white' : 'black';
+          activeGames.set(gameId, gameState);
+          
+          // Broadcast timeout
+          io.to(gameId).emit('playerTimeout', {
+            gameId,
+            playerId: currentPlayer.id,
+            color: currentPlayer.color
+          });
+          
+          // Broadcast updated game state
+          io.to(gameId).emit('gameState', gameState);
+        } else {
+          // Just update time
+          io.to(gameId).emit('timeUpdate', {
+            gameId,
+            playerId: currentPlayer.id,
+            color: currentPlayer.color,
+            timeRemaining: remainingTime
+          });
+        }
+      }
     }
   });
 
@@ -196,6 +339,17 @@ io.on('connection', (socket) => {
       
       // Add pass to history
       gameState.history.push({ pass: true });
+      
+      // Reset timer for the next move
+      gameState.lastMoveTime = Date.now();
+      
+      // Reset move timer for the player who just passed
+      if (gameState.timePerMove && gameState.timePerMove > 0) {
+        const currentPlayer = gameState.players.find(p => p.color === color);
+        if (currentPlayer) {
+          currentPlayer.timeRemaining = gameState.timePerMove;
+        }
+      }
       
       // Check if this is the second consecutive pass (game end)
       const historyLength = gameState.history.length;
@@ -228,7 +382,8 @@ io.on('connection', (socket) => {
         color,
         playerId,
         nextTurn: gameState.currentTurn,
-        isEndGame: gameState.status === 'scoring'
+        isEndGame: gameState.status === 'scoring',
+        timeRemaining: gameState.players.find(p => p.color === gameState.currentTurn)?.timeRemaining
       });
       log(`Broadcasting pass to all clients in room ${gameId}`);
       
@@ -364,7 +519,7 @@ io.on('connection', (socket) => {
 
 // Route to check server status
 app.get('/', (req, res) => {
-  res.send('Gosei Play Socket Server is running');
+  res.send('Socket server is running');
 });
 
 const PORT = process.env.PORT || 3001;
