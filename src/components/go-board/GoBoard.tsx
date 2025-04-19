@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Board, Position, Stone, StoneColor, Territory } from '../../types/go';
+import { isHandicapPoint } from '../../utils/handicapUtils';
 
 interface GoBoardProps {
   board: Board;
@@ -12,6 +13,7 @@ interface GoBoardProps {
   onToggleDeadStone?: (position: Position) => void;
   territory?: Territory[];
   showTerritory?: boolean;
+  isHandicapPlacement?: boolean;
 }
 
 const GoBoard: React.FC<GoBoardProps> = ({
@@ -25,6 +27,7 @@ const GoBoard: React.FC<GoBoardProps> = ({
   onToggleDeadStone,
   territory = [],
   showTerritory = false,
+  isHandicapPlacement = false,
 }) => {
   const [hoverPosition, setHoverPosition] = useState<Position | null>(null);
 
@@ -84,6 +87,12 @@ const GoBoard: React.FC<GoBoardProps> = ({
     if (!showTerritory) return null;
     const territoryPoint = territory.find(t => t.position.x === x && t.position.y === y);
     return territoryPoint?.owner || null;
+  };
+
+  // Check if a position is valid for handicap stone placement
+  const isValidHandicapPoint = (x: number, y: number): boolean => {
+    if (!isHandicapPlacement) return false;
+    return isHandicapPoint({ x, y }, board.size) && !getStoneAtPosition(x, y);
   };
 
   // Handle click on board intersection
@@ -165,10 +174,15 @@ const GoBoard: React.FC<GoBoardProps> = ({
           // Stone size based on board size
           const stoneSize = getStoneSize();
 
+          // Add handicap point indicator
+          const isValidHandicap = isValidHandicapPoint(x, y);
+
           return (
             <div
               key={`${x}-${y}`}
-              className={`board-intersection${edgeClasses}${isScoring && stone ? ' cursor-pointer' : ''}`}
+              className={`board-intersection${edgeClasses}${isScoring && stone ? ' cursor-pointer' : ''}${
+                isValidHandicap ? ' valid-handicap-point' : ''
+              }`}
               onClick={() => handleIntersectionClick(x, y)}
               onMouseOver={() => handleMouseOver(x, y)}
               onMouseLeave={handleMouseLeave}
@@ -209,6 +223,17 @@ const GoBoard: React.FC<GoBoardProps> = ({
                   style={{ width: stoneSize, height: stoneSize }}
                 ></div>
               )}
+
+              {/* Handicap point indicator */}
+              {isValidHandicap && !stone && (
+                <div 
+                  className="handicap-point-indicator"
+                  style={{ 
+                    width: getStoneSize(),
+                    height: getStoneSize(),
+                  }}
+                />
+              )}
             </div>
           );
         })}
@@ -223,6 +248,12 @@ const GoBoard: React.FC<GoBoardProps> = ({
       {isScoring && (
         <div className="absolute top-0 left-0 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-br-lg text-sm font-medium">
           Scoring Mode: Click stones to mark as dead
+        </div>
+      )}
+
+      {isHandicapPlacement && (
+        <div className="absolute top-0 left-0 bg-blue-100 text-blue-800 px-3 py-1 rounded-br-lg text-sm font-medium">
+          Handicap Mode: Place stones on highlighted points
         </div>
       )}
 

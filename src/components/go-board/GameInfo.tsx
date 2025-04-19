@@ -325,7 +325,7 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
   const getGameTypeDescription = () => {
     switch (gameState.gameType) {
       case 'handicap':
-        return 'Handicap stones give the weaker player an advantage at the start.';
+        return `Handicap game with ${gameState.handicap} stones. Komi is ${gameState.komi} points.`;
       case 'blitz':
         return 'Fast-paced game with shorter time controls. Quick moves are essential!';
       case 'teaching':
@@ -353,8 +353,22 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
       {/* Game Type Info Panel - displayed when game type is specified */}
       {gameState.gameType && (
         <div style={getGameTypeInfoStyle()}>
-          {getGameTypeIcon()}
-          <span style={{ marginLeft: '0.5rem' }}>{getGameTypeDescription()}</span>
+          <div className="flex-1">
+            <h3 className="font-medium">{gameState.gameType?.charAt(0).toUpperCase() + gameState.gameType?.slice(1)} Game</h3>
+            <p className="text-sm mt-1">{getGameTypeDescription()}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Handicap-specific info */}
+      {gameState.gameType === 'handicap' && (
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-900">Handicap Rules</h4>
+          <ul className="mt-2 text-sm text-gray-600 space-y-1">
+            <li>• Black places {gameState.handicap} stones at the start</li>
+            <li>• White plays first after handicap stones</li>
+            <li>• Komi is reduced to {gameState.komi} points</li>
+          </ul>
         </div>
       )}
 

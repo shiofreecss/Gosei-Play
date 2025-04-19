@@ -51,7 +51,7 @@ export interface GameState {
   winner: StoneColor | null;
   deadStones?: Position[]; // Stones marked as dead during scoring
   territory?: Territory[]; // Territory ownership for scoring
-  scoringRule?: ScoringRule; // Selected scoring rule (Chinese or Japanese)
+  scoringRule: ScoringRule; // Selected scoring rule (Chinese or Japanese)
   gameType?: GameType; // Type of game being played
   timePerMove?: number; // Time per move in seconds
   lastMoveTime?: number; // Timestamp of last move
@@ -70,6 +70,8 @@ export interface GameState {
     requestedBy: string; // Player ID who requested undo
     moveIndex: number;   // Index in history to undo to
   };
+  komi: number;
+  handicap: number;
 }
 
 export type GameMove = Position | { pass: true };

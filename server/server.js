@@ -53,8 +53,6 @@ io.on('connection', (socket) => {
           ownerPlayer.color = 'black';
         } else if (gameState.colorPreference === 'white') {
           ownerPlayer.color = 'white';
-          // Set current turn based on owner's color
-          gameState.currentTurn = 'black'; // Always set black to go first
         }
         // If 'random', keep the default assignment
       }
@@ -127,8 +125,11 @@ io.on('connection', (socket) => {
             gameState.status = 'playing';
             gameState.lastMoveTime = Date.now(); // Initialize move timer
             
-            // Ensure currentTurn is 'black' regardless of which player is black
-            gameState.currentTurn = 'black'; // Always black first in Go
+            // Keep the current turn as is for handicap games (should be 'white')
+            // Only set to 'black' for non-handicap games
+            if (gameState.gameType !== 'handicap') {
+              gameState.currentTurn = 'black';
+            }
             
             log(`Game's currentTurn is set to: ${gameState.currentTurn}`);
             // Debug log to show which player has which color

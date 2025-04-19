@@ -11,6 +11,7 @@ import {
   calculateAGAScore,
   calculateIngScore
 } from '../utils/scoringUtils';
+import { getHandicapStones, getAdjustedKomi, getStartingColor } from '../utils/handicapUtils';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -411,72 +412,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     }
   }, [state.socket, state.gameState, state.currentPlayer]);
 
-  // Generate handicap stones based on board size and handicap count
-  const getHandicapStones = (boardSize: number, handicap: number): Stone[] => {
-    if (handicap < 2) return [];
-    
-    console.log(`Creating ${handicap} handicap stones for board size ${boardSize}`);
-    const stones: Stone[] = [];
-    
-    // Standard handicap positions for different board sizes
-    const positions: Record<number, Position[]> = {
-      19: [
-        { x: 3, y: 3 },    // bottom left
-        { x: 15, y: 15 },  // top right
-        { x: 15, y: 3 },   // bottom right
-        { x: 3, y: 15 },   // top left
-        { x: 9, y: 9 },    // center
-        { x: 9, y: 3 },    // bottom center
-        { x: 9, y: 15 },   // top center
-        { x: 3, y: 9 },    // left center
-        { x: 15, y: 9 },   // right center
-      ],
-      13: [
-        { x: 3, y: 3 },    // bottom left
-        { x: 9, y: 9 },    // top right
-        { x: 9, y: 3 },    // bottom right
-        { x: 3, y: 9 },    // top left
-        { x: 6, y: 6 },    // center
-        { x: 6, y: 3 },    // bottom center
-        { x: 6, y: 9 },    // top center
-        { x: 3, y: 6 },    // left center
-        { x: 9, y: 6 },    // right center
-      ],
-      9: [
-        { x: 2, y: 2 },    // bottom left
-        { x: 6, y: 6 },    // top right
-        { x: 6, y: 2 },    // bottom right
-        { x: 2, y: 6 },    // top left
-        { x: 4, y: 4 },    // center
-        { x: 4, y: 2 },    // bottom center
-        { x: 4, y: 6 },    // top center
-        { x: 2, y: 4 },    // left center
-        { x: 6, y: 4 },    // right center
-      ],
-    };
-    
-    // Ensure we have positions for this board size
-    if (!positions[boardSize]) {
-      console.log(`No predefined handicap positions for board size ${boardSize}`);
-      return [];
-    }
-    
-    // Get the handicap positions (limit to 9)
-    const handicapPositions = positions[boardSize].slice(0, Math.min(handicap, 9));
-    
-    // Create stones for each position
-    handicapPositions.forEach(position => {
-      console.log(`Adding handicap stone at (${position.x}, ${position.y})`);
-      stones.push({
-        position,
-        color: 'black',
-      });
-    });
-    
-    console.log(`Created ${stones.length} handicap stones`);
-    return stones;
-  };
-  
   // Helper to generate a short, readable game code
   const generateGameCode = (): string => {
     // Create a short, readable code (e.g., "BLUE-STONE-42")
@@ -638,12 +573,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     const colorPreference = options.colorPreference || 'random';
     const timePerMove = options.timePerMove || 0;
     
-    // Determine player color based on preference
-    let playerColor: 'black' | 'white' = 'black'; // Default is black
+    // Determine player color based on preference and handicap
+    let playerColor: 'black' | 'white';
     
     if (colorPreference === 'white') {
       playerColor = 'white';
-    } else if (colorPreference === 'random') {
+    } else if (colorPreference === 'black') {
+      playerColor = 'black';
+    } else {
       // Random assignment
       playerColor = Math.random() < 0.5 ? 'black' : 'white';
     }
@@ -656,10 +593,17 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       timeRemaining: timePerMove > 0 ? timePerMove : undefined
     };
     
+    // Get handicap stones if applicable
+    const handicapStones = getHandicapStones(boardSize, handicap);
+    
+    // Determine starting color based on handicap
+    const startingColor = getStartingColor(handicap);
+    
+    // Calculate adjusted komi based on handicap and rules
+    const adjustedKomi = getAdjustedKomi(handicap, scoringRule);
+    
     // Create the initial game state
     const gameId = uuidv4(); // Generate unique game ID
-    
-    // Generate a user-friendly game code
     const gameCode = generateGameCode();
     
     // Create new game state
@@ -668,10 +612,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       code: gameCode,
       board: {
         size: boardSize,
-        stones: []
+        stones: handicapStones // Initialize with handicap stones if any
       },
       players: [player],
-      currentTurn: 'black', // Black always goes first
+      currentTurn: handicap > 0 ? 'white' : 'black', // Force white to play first in handicap games
       history: [],
       capturedStones: {
         black: 0,
@@ -680,7 +624,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       status: 'waiting',
       winner: null,
       scoringRule: scoringRule,
-      timePerMove: timePerMove
+      timePerMove: timePerMove,
+      komi: adjustedKomi, // Use adjusted komi for handicap games
+      gameType: handicap > 0 ? 'handicap' : 'even',
+      handicap: handicap
     };
     
     // Send the game data to the server
@@ -832,8 +779,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         ...foundGame,
         players: updatedPlayers,
         status: newStatus,
-        // Ensure black always goes first
-        currentTurn: 'black'
+        // Preserve white's turn for handicap games
+        currentTurn: foundGame.gameType === 'handicap' ? 'white' : 'black'
       };
       
       // Update the game in localStorage

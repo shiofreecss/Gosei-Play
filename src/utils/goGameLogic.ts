@@ -422,6 +422,7 @@ export const applyGoRules = (
       stones: afterCaptureStones
     },
     capturedStones: updatedCapturedStones,
+    // Toggle turn normally after the first move
     currentTurn: color === 'black' ? 'white' : 'black',
     history: [...gameState.history, position],
   };

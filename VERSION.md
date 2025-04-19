@@ -1,4 +1,28 @@
-# Version History
+# Gosei Play Version History
+
+## v1.0.1 build2 (2025-04-19)
+
+### Bug Fixes
+- Fixed critical issue with handicap game turn order
+  - White now correctly plays first after black's handicap stones are placed
+  - Fixed turn handling in game creation and joining logic
+  - Corrected turn alternation in move handling
+
+### Known Issues
+- None reported
+
+## v1.0.1 build1 (2025-04-18)
+
+### Features
+- Initial implementation of handicap games
+- Support for multiple board sizes (9x9, 13x13, 19x19)
+- Basic scoring rules implemented (Japanese, Chinese, Korean, AGA, Ing)
+- Real-time multiplayer functionality
+- Game state persistence
+- Move validation and capture logic
+
+### Known Issues
+- Handicap games incorrectly started with black's turn instead of white's turn (Fixed in build2)
 
 ## v1.0.1 (Current)
 ### Features
@@ -33,7 +57,7 @@
 - Fixed ko rule validation
 - Fixed game state synchronization after reconnection
 
-## v1.0.0
+## v1.0.0 (Initial)
 ### Features
 - Initial release with core Go game functionality
 - Real-time multiplayer with Socket.io
