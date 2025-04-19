@@ -73,7 +73,7 @@ const MusicPlayer: React.FC = () => {
         audioRef.current = null;
       }
     };
-  }, [isActivePage]);
+  }, [isActivePage, currentTrackIndex, isPlaying, volume]);
 
   // Handle track change
   useEffect(() => {

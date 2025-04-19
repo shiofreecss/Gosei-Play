@@ -14,7 +14,7 @@ const ConnectionStatus: React.FC = () => {
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       // Try to connect to the socket server endpoint
-      const response = await fetch(SOCKET_URL, { 
+      await fetch(SOCKET_URL, { 
         signal: controller.signal,
         mode: 'no-cors' // This will prevent CORS errors but won't give us status
       });

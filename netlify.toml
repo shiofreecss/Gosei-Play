@@ -3,6 +3,9 @@
   command = "CI=false npm run build"
   publish = "build"
   
+[build.environment]
+  CI = "false"
+  
 [dev]
   command = "npm run start"
   port = 3000
