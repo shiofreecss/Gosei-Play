@@ -1,9 +1,10 @@
 import React from 'react';
 import { GameState, Player, GameMove, Position, StoneColor, GameType } from '../../types/go';
 import TimeControl from '../TimeControl';
+import SoundSettings from '../SoundSettings';
 
 // Helper function to check if a move is a pass
-function isPassMove(move: GameMove): move is { pass: true } {
+function isPassMove(move: GameMove): move is { pass: true, color: StoneColor } {
   return (move as any).pass === true;
 }
 
@@ -398,6 +399,13 @@ const GameInfo: React.FC<GameInfoProps> = ({
     color: '#b91c1c',
   };
   
+  const currentTurnText = {
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    marginTop: '0.5rem',
+    color: '#4b5563',
+  };
+
   return (
     <div style={containerStyle}>
       <h2 style={titleStyle}>
@@ -704,6 +712,46 @@ const GameInfo: React.FC<GameInfoProps> = ({
           </button>
         </div>
       )}
+
+      {/* Game Information */}
+      <div className="text-sm">
+        <div className="flex items-center mb-1">
+          <span className="font-medium">Moves:</span>
+          <span className="ml-1 text-neutral-600">{totalStones}</span>
+        </div>
+        
+        {history.length > 0 && lastMoveWasPass && (
+          <div className="flex items-center mb-1">
+            <span className="font-medium">Last Move:</span>
+            <span className="ml-1 text-neutral-600">
+              {lastMove && isPassMove(lastMove) ? 
+                `${lastMove.color === 'black' ? 'Black' : 'White'} passed` : 
+                'Unknown'}
+            </span>
+          </div>
+        )}
+        
+        {consecutivePasses && (
+          <div className="text-yellow-600 font-medium mb-1">
+            Both players passed. Game is now in scoring phase.
+          </div>
+        )}
+        
+        {isPlayerTurn && status === 'playing' && (
+          <div className="mt-2 p-2 bg-primary-50 border border-primary-100 rounded text-primary-800 font-medium">
+            Your turn to play
+          </div>
+        )}
+        
+        {!isPlayerTurn && status === 'playing' && (
+          <div className="mt-2 p-2 bg-neutral-50 border border-neutral-200 rounded text-neutral-600">
+            Waiting for opponent
+          </div>
+        )}
+      </div>
+
+      {/* Sound Settings */}
+      <SoundSettings />
     </div>
   );
 };

@@ -1,18 +1,27 @@
 # Gosei Play Version History
 
-## v1.0.2 (2025-04-20)
+## v1.0.2 (2025-04-19)
 
 ### Features
 - Improved UI layout and controls organization
 - Added chat functionality for in-game communication
 - Enhanced game control panel with integrated Pass, Resign, and Undo buttons
 - Streamlined interface with cleaner board view
+- Added authentic stone placement sounds with toggle option in game controls
+- Added zen background music player with multiple tracks and volume control
+  - Music player appears only during active gameplay
+  - Features three background music tracks (Traditional Go, Zen Music 1, Zen Music 2)
+  - Includes volume control and track selection
+  - Persists playback state between game screens
 
 ### Improvements
 - Moved game controls to a dedicated section in the Game Information panel
 - Reorganized game information display for better readability
 - Added responsive layout for chat panel on different screen sizes
 - Improved visual feedback for game actions
+- Added sound settings in the game controls
+- Sound preferences are saved between sessions
+- Music player automatically hides during game setup and join screens
 
 ### Bug Fixes
 - Fixed synchronization issues in time control display

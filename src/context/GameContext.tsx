@@ -12,6 +12,7 @@ import {
   calculateIngScore
 } from '../utils/scoringUtils';
 import { getHandicapStones, getAdjustedKomi, getStartingColor } from '../utils/handicapUtils';
+import { playStoneSound } from '../utils/soundUtils';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -300,6 +301,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         
         newSocket.on('moveMade', (moveData) => {
           console.log(`Move made at (${moveData.position.x}, ${moveData.position.y}) by ${moveData.playerId}`);
+          
+          // Play stone sound when opponent makes a move
+          // We only want to play the sound if the current player exists and the move wasn't made by them
+          if (state.currentPlayer && moveData.playerId !== state.currentPlayer.id) {
+            playStoneSound();
+          }
         });
         
         newSocket.on('turnPassed', (passData) => {

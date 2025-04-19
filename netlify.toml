@@ -16,4 +16,15 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200 
+  status = 200
+
+# Cache headers for audio files
+[[headers]]
+  for = "/sounds/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/music/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000" 

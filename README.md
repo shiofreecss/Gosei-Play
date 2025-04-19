@@ -9,6 +9,8 @@ v1.0.2 - See [VERSION.md](VERSION.md) for complete version history and change de
 
 - **Real-time multiplayer Go game** with socket-based communication
 - **Multiple board sizes** (9×9, 13×13, 19×19) suitable for players of all levels
+- **Authentic stone placement sounds** with toggle option in game settings
+- **Zen background music player** with multiple traditional tracks and volume control
 - **Real-time in-game chat** for communication between players
 - **Responsive design** that works across desktop, tablet, and mobile devices
 - **Modern UI** with intuitive controls and visual feedback
@@ -18,6 +20,23 @@ v1.0.2 - See [VERSION.md](VERSION.md) for complete version history and change de
 - **Handicap settings** for balanced gameplay between players of different skill levels
 - **Game state synchronization** to handle connection issues
 - **Clean, organized interface** with game controls in a single location
+
+## Audio Features
+
+### Stone Sounds
+- Authentic stone placement sounds play when placing stones on the board
+- Sound toggle available in the game controls panel
+- Sound preferences are saved between sessions
+
+### Background Music
+- Floating music player appears during active gameplay
+- Three traditional tracks available:
+  - Traditional Go
+  - Zen Music 1
+  - Zen Music 2
+- Controls include play/pause and track selection
+- Volume control with preference saving
+- Music state persists when navigating between game screens
 
 ## Prerequisites
 

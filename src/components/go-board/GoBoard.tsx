@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Board, Position, Stone, StoneColor, Territory } from '../../types/go';
 import { isHandicapPoint } from '../../utils/handicapUtils';
+import { playStoneSound } from '../../utils/soundUtils';
 
 interface GoBoardProps {
   board: Board;
@@ -104,6 +105,8 @@ const GoBoard: React.FC<GoBoardProps> = ({
         onToggleDeadStone({ x, y });
       }
     } else if (isPlayerTurn && isValidPlacement(x, y)) {
+      // Play stone sound when placing a stone
+      playStoneSound();
       onPlaceStone({ x, y });
     }
   };
