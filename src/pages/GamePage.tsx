@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import GoBoard from '../components/go-board/GoBoard';
 import GameInfo from '../components/go-board/GameInfo';
 import GameError from '../components/GameError';
 import { useGame } from '../context/GameContext';
 import { Position, GameMove } from '../types/go';
+import ChatBox from '../components/ChatBox';
 
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -14,6 +15,16 @@ const GamePage: React.FC = () => {
   const [showJoinForm, setShowJoinForm] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: string;
+    playerId: string;
+    username: string;
+    message: string;
+    timestamp: number;
+  }>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(() => {
     // Initialize from localStorage if available
     const savedPref = localStorage.getItem('gosei-auto-save-enabled');
@@ -91,6 +102,89 @@ const GamePage: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Add chat-related effects
+  useEffect(() => {
+    const socket = gameState?.socket;
+    if (!socket) {
+      setConnectionStatus('disconnected');
+      return;
+    }
+
+    // Update connection status when socket state changes
+    if (socket.connected) {
+      setConnectionStatus('connected');
+    } else {
+      setConnectionStatus('connecting');
+    }
+
+    socket.on('connect', () => {
+      setConnectionStatus('connected');
+      console.log('Socket reconnected, rejoining chat room...');
+      if (gameState?.id && currentPlayer) {
+        socket.emit('joinGame', {
+          gameId: gameState.id,
+          playerId: currentPlayer.id,
+          username: currentPlayer.username,
+          isReconnect: true
+        });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      setConnectionStatus('disconnected');
+      console.log('Socket disconnected');
+    });
+
+    socket.on('connect_error', () => {
+      setConnectionStatus('disconnected');
+      console.log('Socket connection error');
+    });
+
+    // Listen for chat messages
+    socket.on('chatMessageReceived', (data) => {
+      console.log('Received chat message:', data);
+      setChatMessages(prev => [...prev, {
+        id: data.id,
+        playerId: data.playerId,
+        username: data.username,
+        message: data.message,
+        timestamp: data.timestamp
+      }]);
+    });
+
+    // Listen for chat history when joining a game
+    socket.on('chatHistory', (data) => {
+      console.log('Received chat history:', data);
+      if (data.messages && Array.isArray(data.messages)) {
+        setChatMessages(data.messages);
+      }
+    });
+
+    // Setup error handler for chat
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
+      if (error.includes('chat')) {
+        alert('Chat error: ' + error);
+      }
+    });
+
+    return () => {
+      socket.off('chatMessageReceived');
+      socket.off('chatHistory');
+      socket.off('error');
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('connect_error');
+    };
+  }, [gameState?.socket, gameState?.id, currentPlayer]);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
   const toggleAutoSave = () => {
     setAutoSaveEnabled(prev => !prev);
   };
@@ -125,7 +219,9 @@ const GamePage: React.FC = () => {
   };
 
   const handleResignGame = () => {
-    resignGame();
+    if (window.confirm('Are you sure you want to resign this game?')) {
+      resignGame();
+    }
   };
 
   const handleToggleDeadStone = (position: Position) => {
@@ -172,10 +268,77 @@ const GamePage: React.FC = () => {
     respondToUndoRequest(false);
   };
 
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!chatInput.trim() || !gameState?.socket || !currentPlayer) {
+      // Show feedback if there's an issue
+      if (!gameState?.socket) {
+        alert('Cannot send message: You are disconnected from the game server.');
+        handleSyncGame(); // Try to reconnect
+        return;
+      }
+      if (!chatInput.trim()) {
+        return; // Just silently return if message is empty
+      }
+      return;
+    }
+
+    // Add message locally first for immediate feedback
+    const messageData = {
+      id: Date.now().toString(),
+      playerId: currentPlayer.id,
+      username: currentPlayer.username,
+      message: chatInput.trim(),
+      timestamp: Date.now()
+    };
+    
+    setChatMessages(prev => [...prev, messageData]);
+    setChatInput('');
+
+    try {
+      // Then send to server
+      console.log('Sending chat message to server:', messageData);
+      gameState.socket.emit('chatMessage', {
+        gameId: gameState.id,
+        playerId: currentPlayer.id,
+        username: currentPlayer.username,
+        message: chatInput.trim()
+      });
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      alert('Failed to send message. Please try again.');
+    }
+  };
+
   // Helper function to check if a move is a pass
   function isPassMove(move: GameMove): move is { pass: true } {
     return typeof move === 'object' && 'pass' in move;
   }
+
+  // Add this to handle sending chat messages to the server
+  const handleChatMessage = (gameId: string, playerId: string, username: string, message: string) => {
+    if (gameState && gameState.socket) {
+      gameState.socket.emit('chatMessage', {
+        gameId,
+        playerId,
+        username,
+        message
+      });
+      
+      // Also update the local chat messages state if needed
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          playerId,
+          username,
+          message,
+          timestamp: Date.now()
+        }
+      ]);
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -329,7 +492,15 @@ const GamePage: React.FC = () => {
               <GoBoard
                 board={gameState.board}
                 currentTurn={gameState.currentTurn}
-                onPlaceStone={handleStonePlace}
+                onPlaceStone={(position) => {
+                  // Add debug for handicap games
+                  if (gameState.gameType === 'handicap') {
+                    console.log('Handicap game detected');
+                    console.log(`Current turn: ${gameState.currentTurn}, Player color: ${currentPlayer?.color}`);
+                    console.log(`Handicap stones on board: ${gameState.board.stones.filter(s => s.color === 'black').length}`);
+                  }
+                  handleStonePlace(position);
+                }}
                 isPlayerTurn={gameState.status === 'playing' && currentPlayer?.color === gameState.currentTurn}
                 lastMove={gameState.history.length > 0 ? 
                   isPassMove(gameState.history[gameState.history.length - 1]) ? 
@@ -375,54 +546,7 @@ const GamePage: React.FC = () => {
               </div>
             )}
             
-            {/* Game Control Buttons */}
-            {gameState.status === 'playing' && currentPlayer && (
-              <div className="w-full mt-6 flex flex-col items-center gap-3">
-                {/* Pass button - only shown when it's the player's turn */}
-                {currentPlayer.color === gameState.currentTurn && (
-                  <div className="text-center w-full">
-                    <div className="flex justify-center gap-4">
-                      <button
-                        onClick={handlePassTurn}
-                        className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 px-8 py-3 text-lg"
-                      >
-                        Pass Turn
-                      </button>
-                    </div>
-                    <p className="text-sm text-neutral-500 mt-2">
-                      Pass when you have no good moves. Two consecutive passes ends the game.
-                    </p>
-                  </div>
-                )}
-                
-                {/* Game action buttons */}
-                <div className="flex justify-center gap-3 mt-2">
-                  {/* Resign button - available to everyone */}
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to resign? This will end the game.')) {
-                        handleResignGame();
-                      }
-                    }}
-                    className="btn bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2"
-                  >
-                    Resign
-                  </button>
-                  
-                  {/* Undo button - only shown if no pending undo request */}
-                  {!gameState.undoRequest && gameState.history.length > 0 && (
-                    <button
-                      onClick={handleRequestUndo}
-                      className="btn bg-amber-100 text-amber-800 hover:bg-amber-200 px-4 py-2"
-                    >
-                      Request Undo
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            {/* Scoring Controls */}
+            {/* Keep Scoring Controls */}
             {gameState.status === 'scoring' && (
               <div className="text-center mt-6 w-full bg-yellow-50 p-6 rounded-lg border border-yellow-200 shadow-md">
                 <h3 className="text-xl font-semibold text-yellow-800 mb-3">Scoring Phase</h3>
@@ -478,23 +602,32 @@ const GamePage: React.FC = () => {
               </div>
             )}
           </div>
+          
+          {/* Right sidebar - Game Info and Chat */}
           <div className="xl:col-span-1">
-            <GameInfo gameState={gameState} currentPlayer={currentPlayer || undefined} />
-            
-            <div className="card mt-6">
-              <h3 className="font-semibold text-xl mb-3">Game Chat</h3>
-              <div className="bg-neutral-100 h-60 md:h-80 rounded-lg mb-3 p-3 overflow-y-auto">
-                <p className="text-sm text-neutral-500">No messages yet.</p>
-              </div>
-              <div className="flex">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  className="flex-1 form-input rounded-r-none"
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
+              <div>
+                <GameInfo 
+                  gameState={gameState}
+                  currentPlayer={currentPlayer || undefined}
+                  onResign={handleResignGame}
+                  onRequestUndo={handleRequestUndo}
+                  onAcceptUndo={handleAcceptUndo}
+                  onRejectUndo={handleRejectUndo}
+                  onPassTurn={handlePassTurn}
                 />
-                <button className="btn btn-primary rounded-l-none">
-                  Send
-                </button>
+              </div>
+              
+              <div>
+                {currentPlayer && (
+                  <ChatBox 
+                    gameId={gameState.id}
+                    currentPlayerId={currentPlayer.id}
+                    currentPlayerUsername={currentPlayer.username}
+                    socket={gameState.socket}
+                    messages={chatMessages}
+                  />
+                )}
               </div>
             </div>
           </div>

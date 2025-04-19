@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { v4 as uuidv4 } from 'uuid';
-import { GameState, Position, Player, StoneColor, GameMove, GameOptions, Stone, ScoringRule, Territory } from '../types/go';
+import { GameState, Position, Player, StoneColor, GameMove, GameOptions, Stone, ScoringRule, Territory, GameType, ColorPreference } from '../types/go';
 import { applyGoRules } from '../utils/goGameLogic';
 import { SOCKET_URL } from '../config';
 import { 
@@ -79,7 +79,8 @@ type GameAction =
   | { type: 'CLEAR_MOVE_ERROR' }
   | { type: 'RESET_GAME' }
   | { type: 'LEAVE_GAME' }
-  | { type: 'SET_SOCKET'; payload: Socket | null };
+  | { type: 'SET_SOCKET'; payload: Socket | null }
+  | { type: 'UPDATE_PLAYER_TIME'; payload: { playerId: string; color: StoneColor; timeRemaining: number } };
 
 // Reducer function
 const gameReducer = (state: GameContextState, action: GameAction): GameContextState => {
@@ -92,7 +93,10 @@ const gameReducer = (state: GameContextState, action: GameAction): GameContextSt
     case 'JOIN_GAME_SUCCESS':
       return {
         ...state,
-        gameState: action.payload.gameState,
+        gameState: {
+          ...action.payload.gameState,
+          socket: state.socket
+        },
         currentPlayer: action.payload.player,
         loading: false,
         error: null,
@@ -102,7 +106,10 @@ const gameReducer = (state: GameContextState, action: GameAction): GameContextSt
     case 'UPDATE_GAME_STATE':
       return {
         ...state,
-        gameState: action.payload,
+        gameState: {
+          ...action.payload,
+          socket: state.socket
+        },
         loading: false,
         error: null,
       };
@@ -139,6 +146,20 @@ const gameReducer = (state: GameContextState, action: GameAction): GameContextSt
       return {
         ...state,
         socket: action.payload,
+      };
+      
+    case 'UPDATE_PLAYER_TIME':
+      // Only update if gameState exists
+      if (!state.gameState) return state;
+      
+      return {
+        ...state,
+        gameState: {
+          ...state.gameState,
+          players: state.gameState.players.map(player =>
+            player.id === action.payload.playerId ? { ...player, timeRemaining: action.payload.timeRemaining } : player
+          )
+        },
       };
       
     default:
@@ -300,13 +321,30 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         // Handle timer updates
         newSocket.on('timeUpdate', (timeData) => {
           console.log(`Time update for player ${timeData.playerId}: ${timeData.timeRemaining}s remaining`);
-          // We're receiving time updates from the server, but we don't need to update the state
-          // as the full gameState will include this information
+          // Add more detailed timer debugging
+          console.log(`Timer debug: Received timeUpdate event`, {
+            playerId: timeData.playerId,
+            color: timeData.color,
+            timeRemaining: timeData.timeRemaining,
+            currentServerTime: new Date().toISOString(),
+            currentClientTime: Date.now()
+          });
+          
+          // Update the player's time in the game state directly
+          dispatch({ 
+            type: 'UPDATE_PLAYER_TIME', 
+            payload: {
+              playerId: timeData.playerId,
+              color: timeData.color,
+              timeRemaining: timeData.timeRemaining
+            }
+          });
         });
         
         // Handle player timeout
         newSocket.on('playerTimeout', (timeoutData) => {
           console.log(`Player ${timeoutData.playerId} (${timeoutData.color}) has run out of time`);
+          console.log(`Timer debug: Received playerTimeout event`, timeoutData);
           // Alert the user that time has run out
           if (timeoutData.color === state.currentPlayer?.color) {
             dispatch({ 
@@ -326,12 +364,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             timerInterval = null;
           }
           
-          if (gameState && gameState.status === 'playing' && gameState.timePerMove && gameState.timePerMove > 0) {
+          if (gameState && gameState.status === 'playing' && gameState.timeControl && gameState.timeControl.timePerMove > 0) {
+            console.log('Timer debug: Starting timer polling interval');
             timerInterval = setInterval(() => {
               if (newSocket && gameState.id) {
+                console.log('Timer debug: Sending timerTick event to server');
                 newSocket.emit('timerTick', { gameId: gameState.id });
               }
-            }, 1000); // Poll every second
+            }, 1000);
           }
         };
         
@@ -566,12 +606,16 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     const playerId = uuidv4(); // Generate a unique ID for this player
     
     // Set default options if not provided
-    const boardSize = options.boardSize || 19;
-    const handicap = options.handicap || 0;
-    const scoringRule = options.scoringRule || 'japanese';
+    const { boardSize = 19, handicap = 0, scoringRule = 'japanese', timeControlOptions } = options;
+    const {
+      timeControl = 30,
+      timePerMove = 0,
+      byoYomiPeriods = 0,
+      byoYomiTime = 30,
+      fischerTime = 0
+    } = timeControlOptions || {};
     const playerName = options.playerName || 'Player 1';
     const colorPreference = options.colorPreference || 'random';
-    const timePerMove = options.timePerMove || 0;
     
     // Determine player color based on preference and handicap
     let playerColor: 'black' | 'white';
@@ -612,10 +656,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       code: gameCode,
       board: {
         size: boardSize,
-        stones: handicapStones // Initialize with handicap stones if any
+        stones: handicapStones
       },
       players: [player],
-      currentTurn: handicap > 0 ? 'white' : 'black', // Force white to play first in handicap games
+      currentTurn: handicap > 0 ? 'white' : 'black',
       history: [],
       capturedStones: {
         black: 0,
@@ -624,8 +668,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       status: 'waiting',
       winner: null,
       scoringRule: scoringRule,
-      timePerMove: timePerMove,
-      komi: adjustedKomi, // Use adjusted komi for handicap games
+      timeControl: {
+        timeControl,
+        timePerMove,
+        byoYomiPeriods,
+        byoYomiTime,
+        fischerTime
+      },
+      komi: adjustedKomi,
       gameType: handicap > 0 ? 'handicap' : 'even',
       handicap: handicap
     };
@@ -767,7 +817,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
           id: playerId,
           username,
           color: playerColor,
-          timeRemaining: foundGame.timePerMove || undefined
+          timeRemaining: foundGame.timeControl.timePerMove || undefined
         };
         updatedPlayers.push(player);
       }
@@ -840,6 +890,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     
     const { gameState, currentPlayer } = state;
     
+    // Debug logs for handicap games
+    if (gameState.gameType === 'handicap') {
+      console.log(`Handicap game - current turn: ${gameState.currentTurn}, player color: ${currentPlayer.color}`);
+      console.log(`Handicap stones on board: ${gameState.board.stones.filter(s => s.color === 'black').length}`);
+    }
+    
     // Prevent playing if game status is not 'playing' (still waiting for opponent)
     if (gameState.status !== 'playing') {
       console.log("Cannot play - waiting for opponent to join");
@@ -849,7 +905,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     
     // Check if it's the player's turn
     if (currentPlayer.color !== gameState.currentTurn) {
-      console.log("Not your turn");
+      console.log(`Not your turn - current turn: ${gameState.currentTurn}, player color: ${currentPlayer.color}`);
       dispatch({ type: 'MOVE_ERROR', payload: `Not your turn - waiting for ${gameState.currentTurn} to play` });
       return;
     }

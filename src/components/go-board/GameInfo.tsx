@@ -1,5 +1,6 @@
 import React from 'react';
 import { GameState, Player, GameMove, Position, StoneColor, GameType } from '../../types/go';
+import TimeControl from '../TimeControl';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -18,10 +19,23 @@ function formatTime(seconds: number | undefined): string {
 interface GameInfoProps {
   gameState: GameState;
   currentPlayer?: Player;
+  onResign?: () => void;
+  onRequestUndo?: () => void;
+  onAcceptUndo?: () => void;
+  onRejectUndo?: () => void;
+  onPassTurn?: () => void;
 }
 
-const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
-  const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest, timePerMove } = gameState;
+const GameInfo: React.FC<GameInfoProps> = ({ 
+  gameState, 
+  currentPlayer,
+  onResign,
+  onRequestUndo,
+  onAcceptUndo,
+  onRejectUndo,
+  onPassTurn
+}) => {
+  const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest } = gameState;
   
   // Find black and white players
   const blackPlayer = players.find(player => player.color === 'black');
@@ -58,8 +72,9 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
       case 'even': return 'Even Game';
       case 'handicap': return 'Handicap Game';
       case 'blitz': return 'Blitz Go';
-      case 'teaching': return 'Teaching Game';
-      case 'rengo': return 'Rengo (Pair Go)';
+      case 'teaching': 
+      case 'rengo': 
+        return 'Custom Game'; // Simplify teaching and rengo to just "Custom Game"
       default: return 'Standard Game';
     }
   };
@@ -80,15 +95,11 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
           </svg>
         );
       case 'teaching':
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        );
       case 'rengo':
+        // Generic icon for custom games
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         );
       case 'even':
@@ -297,18 +308,12 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
           color: '#9a3412',
         };
       case 'teaching':
-        return {
-          ...baseStyle,
-          borderColor: '#bfdbfe',
-          backgroundColor: '#eff6ff',
-          color: '#1e40af',
-        };
       case 'rengo':
         return {
           ...baseStyle,
-          borderColor: '#e9d5ff',
-          backgroundColor: '#faf5ff',
-          color: '#6b21a8',
+          borderColor: '#c7d2fe',
+          backgroundColor: '#eef2ff',
+          color: '#3730a3',
         };
       case 'even':
       default:
@@ -329,13 +334,68 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
       case 'blitz':
         return 'Fast-paced game with shorter time controls. Quick moves are essential!';
       case 'teaching':
-        return 'A game focused on learning, with one player guiding the other.';
+        return 'A custom game with special settings.';
       case 'rengo':
-        return 'Team play with alternating moves between partners.';
+        return 'A custom game with special settings.';
       case 'even':
       default:
         return 'Standard game between evenly matched players.';
     }
+  };
+  
+  // Updated player clock style
+  const playerClockStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0.75rem',
+    backgroundColor: '#f9fafb',
+    borderRadius: '0.375rem',
+    marginBottom: '1rem',
+  };
+
+  const playerInfoStyle = {
+    display: 'flex',
+    alignItems: 'center',
+  };
+
+  const stoneAndTimeStyle = {
+    fontSize: '1.125rem',
+    fontWeight: '600',
+  };
+  
+  // Game controls styles
+  const gameControlsStyle = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.5rem',
+    marginTop: '1rem',
+    marginBottom: '1rem',
+  };
+
+  const buttonStyle = {
+    padding: '0.5rem 1rem',
+    borderRadius: '0.375rem',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    cursor: 'pointer',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+  };
+
+  const primaryButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#e0e7ff',
+    color: '#4338ca',
+  };
+
+  const dangerButtonStyle = {
+    ...buttonStyle,
+    backgroundColor: '#fee2e2',
+    color: '#b91c1c',
   };
   
   return (
@@ -350,126 +410,129 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
         )}
       </h2>
       
-      {/* Game Type Info Panel - displayed when game type is specified */}
-      {gameState.gameType && (
+      {/* Game Type Info Panel - display only for handicap games */}
+      {gameState.gameType === 'handicap' && (
         <div style={getGameTypeInfoStyle()}>
           <div className="flex-1">
-            <h3 className="font-medium">{gameState.gameType?.charAt(0).toUpperCase() + gameState.gameType?.slice(1)} Game</h3>
-            <p className="text-sm mt-1">{getGameTypeDescription()}</p>
+            <h3 className="font-medium">Handicap Game</h3>
+            <ul className="mt-2 text-sm space-y-1">
+              <li>• Black places {gameState.handicap} stones at the start</li>
+              <li>• White plays first after handicap stones</li>
+              <li>• Komi is reduced to {gameState.komi} points</li>
+              <li>• Scoring: {getScoringRuleName()} rules</li>
+              <li>• Moves played: {totalStones}</li>
+            </ul>
           </div>
         </div>
       )}
 
-      {/* Handicap-specific info */}
-      {gameState.gameType === 'handicap' && (
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-900">Handicap Rules</h4>
-          <ul className="mt-2 text-sm text-gray-600 space-y-1">
-            <li>• Black places {gameState.handicap} stones at the start</li>
-            <li>• White plays first after handicap stones</li>
-            <li>• Komi is reduced to {gameState.komi} points</li>
-          </ul>
+      {/* For non-handicap games, add a small info section */}
+      {gameState.gameType !== 'handicap' && (
+        <div style={{
+          marginBottom: '1rem',
+          padding: '0.5rem 0.75rem',
+          backgroundColor: '#f9fafb',
+          borderRadius: '0.375rem',
+          fontSize: '0.75rem',
+          color: '#4b5563',
+        }}>
+          <span>Scoring: {getScoringRuleName()} • Moves: {totalStones}</span>
         </div>
       )}
 
-      <div style={playerGridStyle}>
-        <div style={playerCardStyle(currentTurn === 'black')}>
-          <div style={playerNameStyle}>
-            <div style={stoneStyle('black')}></div>
-            <span style={nameTextStyle}>{blackPlayer?.username || 'Black'}</span>
+      {/* Clock display with player info */}
+      <div className="mt-4">
+        {/* Black player clock */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '0.75rem',
+          backgroundColor: '#f9fafb',
+          borderRadius: '0.375rem 0.375rem 0 0',
+          borderLeft: currentTurn === 'black' ? '3px solid #000' : '3px solid transparent',
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{
+              width: '1rem',
+              height: '1rem',
+              borderRadius: '50%',
+              background: '#000',
+              marginRight: '0.5rem',
+            }}></div>
+            <div>
+              <div style={{ fontWeight: '500' }}>{blackPlayer?.username || 'Black'}</div>
+              <div style={{ fontSize: '0.75rem' }}>Captured: {capturedStones.black}</div>
+            </div>
           </div>
-          <div style={capturedStyle}>
-            <p>Captured: {capturedStones.black}</p>
-            {score && <p style={{ fontWeight: 'bold' }}>Score: {score.black}</p>}
-            
-            {/* Timer display for black */}
-            {timePerMove && timePerMove > 0 && blackPlayer?.timeRemaining !== undefined && (
-              <p style={{
-                ...timerStyle,
-                ...(blackPlayer.timeRemaining < 10 && currentTurn === 'black' ? lowTimeStyle : {}),
-              }}>
-                Time: {formatTime(blackPlayer.timeRemaining)}
-              </p>
-            )}
+          <div style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            color: currentTurn === 'black' && blackPlayer?.timeRemaining !== undefined && blackPlayer.timeRemaining < 30 ? '#dc2626' : 'inherit'
+          }}>
+            {blackPlayer?.timeRemaining !== undefined ? formatTime(blackPlayer.timeRemaining) : ''}
           </div>
         </div>
         
-        <div style={playerCardStyle(currentTurn === 'white')}>
-          <div style={playerNameStyle}>
-            <div style={stoneStyle('white')}></div>
-            <span style={nameTextStyle}>{whitePlayer?.username || 'White'}</span>
+        {/* White player clock */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '0.75rem',
+          backgroundColor: '#f9fafb',
+          borderRadius: '0 0 0.375rem 0.375rem',
+          borderLeft: currentTurn === 'white' ? '3px solid #000' : '3px solid transparent'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{
+              width: '1rem',
+              height: '1rem',
+              borderRadius: '50%',
+              background: '#fff',
+              border: '1px solid #000',
+              marginRight: '0.5rem',
+            }}></div>
+            <div>
+              <div style={{ fontWeight: '500' }}>{whitePlayer?.username || 'White'}</div>
+              <div style={{ fontSize: '0.75rem' }}>Captured: {capturedStones.white}</div>
+            </div>
           </div>
-          <div style={capturedStyle}>
-            <p>Captured: {capturedStones.white}</p>
-            {score && <p style={{ fontWeight: 'bold' }}>Score: {score.white}</p>}
-            
-            {/* Timer display for white */}
-            {timePerMove && timePerMove > 0 && whitePlayer?.timeRemaining !== undefined && (
-              <p style={{
-                ...timerStyle,
-                ...(whitePlayer.timeRemaining < 10 && currentTurn === 'white' ? lowTimeStyle : {}),
-              }}>
-                Time: {formatTime(whitePlayer.timeRemaining)}
-              </p>
-            )}
+          <div style={{
+            fontSize: '1.5rem',
+            fontWeight: '600',
+            color: currentTurn === 'white' && whitePlayer?.timeRemaining !== undefined && whitePlayer.timeRemaining < 30 ? '#dc2626' : 'inherit'
+          }}>
+            {whitePlayer?.timeRemaining !== undefined ? formatTime(whitePlayer.timeRemaining) : ''}
           </div>
         </div>
       </div>
-      
+
+      {/* Your turn indicator */}
+      {status === 'playing' && (
+        <div style={{
+          marginTop: '0.5rem',
+          padding: '0.5rem',
+          textAlign: 'center',
+          backgroundColor: isPlayerTurn ? '#f0fdf4' : '#f9fafb',
+          borderRadius: '0.25rem',
+          fontWeight: isPlayerTurn ? '600' : '400',
+          color: isPlayerTurn ? '#166534' : '#4b5563'
+        }}>
+          {isPlayerTurn ? 'Your turn' : `Waiting for ${currentTurn === 'black' ? 'Black' : 'White'}`}
+        </div>
+      )}
+
+      {/* Game status indicator */}
       <div style={statusContainerStyle}>
         <div style={statusStyle}>
-          {status === 'waiting' && (
-            <p style={{color: '#d97706'}}>Waiting for opponent to join...</p>
-          )}
-          {status === 'playing' && (
-            <p>
-              {isPlayerTurn 
-                ? <span style={{color: '#059669', fontWeight: '500'}}>Your turn</span> 
-                : <span style={{color: '#2563eb'}}>Opponent's turn</span>}
-            </p>
-          )}
-          {status === 'scoring' && (
-            <p style={{color: '#9333ea', fontWeight: '500'}}>
-              <span style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
-                </svg>
-                Scoring Mode - Mark dead stones
-              </span>
-            </p>
-          )}
-          {status === 'finished' && (
-            <p style={{color: '#7c3aed', fontWeight: '500'}}>
-              <span style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Game over - {gameState.winner === null ? "Draw" : `${gameState.winner === 'black' ? 'Black' : 'White'} wins`}
-              </span>
-            </p>
-          )}
-        </div>
-        
-        {status === 'playing' && undoRequest && (
-          <div style={{
-            backgroundColor: '#fee2e2', 
-            color: '#b91c1c', 
-            padding: '0.75rem',
-            borderRadius: '0.375rem',
-            marginBottom: '1rem',
-          }}>
-            <p style={{fontWeight: '500'}}>Opponent has requested to undo a move</p>
-          </div>
-        )}
-        
-        <div style={gameInfoStyle}>
-          <p>Board size: {gameState.board.size}×{gameState.board.size}</p>
-          <p>Scoring rule: {getScoringRuleName()}</p>
-          {gameState.gameType && <p>Game type: {getGameTypeName()}</p>}
-          <p>Moves played: {totalStones}</p>
-          {timePerMove && timePerMove > 0 && (
-            <p>Time per move: {timePerMove} seconds</p>
-          )}
+          {status === 'waiting' && 'Waiting for players...'}
+          {status === 'playing' && !lastMoveWasPass && 'Game in progress'}
+          {status === 'playing' && lastMoveWasPass && !consecutivePasses && 'Last move: Pass'}
+          {status === 'playing' && consecutivePasses && 'Two consecutive passes - game ending'}
+          {status === 'scoring' && 'Scoring phase - mark dead stones'}
+          {status === 'finished' && 'Game is finished'}
         </div>
         
         {/* Scoring information when game is in scoring or finished state */}
@@ -509,103 +572,138 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
               <>
                 <div style={scoreRowStyle}>
                   <span>Black captures:</span>
-                  <span>{score.blackCaptures || capturedStones.black || 0}</span>
+                  <span>{capturedStones.black || 0}</span>
                 </div>
                 <div style={scoreRowStyle}>
                   <span>White captures:</span>
-                  <span>{score.whiteCaptures || capturedStones.white || 0}</span>
-                </div>
-              </>
-            )}
-            
-            {/* Korean rules scoring display (similar to Chinese) */}
-            {gameState.scoringRule === 'korean' && (
-              <>
-                <div style={scoreRowStyle}>
-                  <span>Black stones:</span>
-                  <span>{score.blackStones || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>White stones:</span>
-                  <span>{score.whiteStones || 0}</span>
-                </div>
-              </>
-            )}
-            
-            {/* AGA rules scoring display */}
-            {gameState.scoringRule === 'aga' && (
-              <>
-                <div style={scoreRowStyle}>
-                  <span>Black stones:</span>
-                  <span>{score.blackStones || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>White stones:</span>
-                  <span>{score.whiteStones || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>Black captures:</span>
-                  <span>{score.blackCaptures || capturedStones.black || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>White captures:</span>
-                  <span>{score.whiteCaptures || capturedStones.white || 0}</span>
-                </div>
-              </>
-            )}
-            
-            {/* Ing rules scoring display */}
-            {gameState.scoringRule === 'ing' && (
-              <>
-                <div style={scoreRowStyle}>
-                  <span>Black stones:</span>
-                  <span>{score.blackStones || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>White stones:</span>
-                  <span>{score.whiteStones || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>Black prisoners:</span>
-                  <span>{score.blackCaptures || capturedStones.black || 0}</span>
-                </div>
-                <div style={scoreRowStyle}>
-                  <span>White prisoners:</span>
-                  <span>{score.whiteCaptures || capturedStones.white || 0}</span>
+                  <span>{capturedStones.white || 0}</span>
                 </div>
               </>
             )}
             
             <div style={scoreRowStyle}>
               <span>Komi:</span>
-              <span>{score.komi || 6.5}</span>
+              <span>{gameState.komi}</span>
             </div>
             
-            <div style={dividerStyle}></div>
-            
-            <div style={scoreRowStyle}>
-              <span style={{fontWeight: '600'}}>Black total:</span>
-              <span style={{fontWeight: '600'}}>{score.black}</span>
+            <div style={{ ...scoreRowStyle, fontWeight: '600' }}>
+              <span>Final score:</span>
+              <span>B {score.black} : W {score.white}</span>
             </div>
             
-            <div style={scoreRowStyle}>
-              <span style={{fontWeight: '600'}}>White total:</span>
-              <span style={{fontWeight: '600'}}>{score.white}</span>
-            </div>
-            
-            <div style={{
-              marginTop: '0.75rem',
-              fontWeight: '600',
-              textAlign: 'center' as const,
-              color: gameState.winner === 'black' ? '#000' : 
-                     gameState.winner === 'white' ? '#4b5563' : '#6b7280'
-            }}>
-              {gameState.winner === null ? "Draw" : 
-                `${gameState.winner === 'black' ? 'Black' : 'White'} wins by ${Math.abs(score.black - score.white)} points`}
+            <div style={{ ...scoreRowStyle, fontWeight: '600', marginTop: '0.5rem' }}>
+              <span>Result:</span>
+              <span>
+                {gameState.winner === 'black' && `Black wins by ${Math.abs(score.white ? score.black - score.white : 0)} points`}
+                {gameState.winner === 'white' && `White wins by ${Math.abs(score.black ? score.white - score.black : 0)} points`}
+                {!gameState.winner && 'Draw'}
+              </span>
             </div>
           </div>
         )}
       </div>
+      
+      {/* TimeControl Component - Only shown when not using in-player clocks */}
+      {status === 'playing' && gameState.timeControl && (
+        <TimeControl
+          timeControl={gameState.timeControl.timeControl}
+          timePerMove={gameState.timeControl.timePerMove}
+          byoYomiPeriods={gameState.timeControl.byoYomiPeriods}
+          byoYomiTime={gameState.timeControl.byoYomiTime}
+          fischerTime={gameState.timeControl.fischerTime}
+          currentTurn={currentTurn}
+          onTimeout={(color) => {
+            // Handle timeout - this will be handled by the server
+            console.log(`Player ${color} has run out of time`);
+          }}
+          isPlaying={status === 'playing'}
+        />
+      )}
+
+      {/* Game Controls Section */}
+      {status === 'playing' && currentPlayer && (
+        <div style={gameControlsStyle}>
+          <div style={{ marginBottom: '0.5rem', fontWeight: '500' }}>Game Controls</div>
+          
+          {/* Pass Button - only available when it's the player's turn */}
+          {currentPlayer.color === currentTurn && (
+            <button 
+              onClick={onPassTurn}
+              style={{
+                ...buttonStyle,
+                backgroundColor: '#f3f4f6',
+                color: '#4b5563',
+                marginBottom: '0.75rem'
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+              </svg>
+              Pass Turn
+            </button>
+          )}
+          
+          {/* Undo Section */}
+          {undoRequest ? (
+            // Another player requested undo
+            undoRequest.requestedBy !== currentPlayer.id ? (
+              <div style={{ padding: '0.75rem', backgroundColor: '#fff7ed', borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontWeight: '500', marginBottom: '0.5rem' }}>Undo Request</div>
+                <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                  Your opponent wants to undo the last move. Do you accept?
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    onClick={onAcceptUndo} 
+                    style={{ ...buttonStyle, backgroundColor: '#d1fae5', color: '#047857', flex: 1 }}
+                  >
+                    Accept
+                  </button>
+                  <button 
+                    onClick={onRejectUndo} 
+                    style={{ ...buttonStyle, backgroundColor: '#fee2e2', color: '#b91c1c', flex: 1 }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // You requested undo
+              <div style={{ padding: '0.75rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem' }}>
+                  Waiting for opponent to respond to your undo request...
+                </div>
+              </div>
+            )
+          ) : (
+            // No undo request active
+            <button 
+              onClick={onRequestUndo}
+              style={primaryButtonStyle}
+              disabled={history.length === 0}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path fillRule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+              </svg>
+              Request Undo
+            </button>
+          )}
+          
+          {/* Resign Button */}
+          <button 
+            onClick={onResign}
+            style={dangerButtonStyle}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+            Resign Game
+          </button>
+        </div>
+      )}
     </div>
   );
 };

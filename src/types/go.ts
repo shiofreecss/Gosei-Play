@@ -1,3 +1,5 @@
+import { Socket } from 'socket.io-client';
+
 export type StoneColor = 'black' | 'white' | null;
 
 export interface Position {
@@ -36,9 +38,33 @@ export interface Territory {
 // Add new type for color preference
 export type ColorPreference = 'black' | 'white' | 'random';
 
+export interface TimeControlOptions {
+  timeControl: number; // minutes per player
+  timePerMove?: number; // seconds per move
+  byoYomiPeriods?: number; // number of byo-yomi periods
+  byoYomiTime?: number; // seconds per byo-yomi period
+  fischerTime?: number; // seconds added after each move
+}
+
+export interface GameOptions {
+  boardSize: number;
+  timeControlOptions: TimeControlOptions;
+  // These direct time control properties are kept for backward compatibility
+  // They are synchronized with timeControlOptions in the UI
+  timeControl?: number; // minutes per player (direct property for backward compatibility)
+  timePerMove?: number; // seconds per move (direct property for backward compatibility)
+  handicap: number;
+  scoringRule: ScoringRule;
+  gameType?: GameType;
+  colorPreference?: ColorPreference;
+  isTeachingMode?: boolean;
+  teamPlayers?: string[];
+  playerName?: string; // Player name when creating a game
+}
+
 export interface GameState {
   id: string;
-  code: string; // Short, shareable game code
+  code: string;
   board: Board;
   players: Player[];
   currentTurn: StoneColor;
@@ -49,42 +75,31 @@ export interface GameState {
   history: GameMove[];
   status: 'waiting' | 'playing' | 'finished' | 'scoring';
   winner: StoneColor | null;
-  deadStones?: Position[]; // Stones marked as dead during scoring
-  territory?: Territory[]; // Territory ownership for scoring
-  scoringRule: ScoringRule; // Selected scoring rule (Chinese or Japanese)
-  gameType?: GameType; // Type of game being played
-  timePerMove?: number; // Time per move in seconds
-  lastMoveTime?: number; // Timestamp of last move
+  deadStones?: Position[];
+  territory?: Territory[];
+  scoringRule: ScoringRule;
+  gameType?: GameType;
+  timeControl: Required<TimeControlOptions>;
+  timePerMove?: number;
+  lastMoveTime?: number;
   score?: {
     black: number;
     white: number;
-    blackTerritory?: number; // Number of points from territory
-    whiteTerritory?: number; // Number of points from territory
-    blackStones?: number; // Number of points from stones (Chinese rules)
-    whiteStones?: number; // Number of points from stones (Chinese rules)
-    blackCaptures?: number; // Number of points from captures (Japanese rules)
-    whiteCaptures?: number; // Number of points from captures (Japanese rules)
-    komi?: number; // Komi value
+    blackTerritory?: number;
+    whiteTerritory?: number;
+    blackStones?: number;
+    whiteStones?: number;
+    blackCaptures?: number;
+    whiteCaptures?: number;
+    komi?: number;
   };
   undoRequest?: {
-    requestedBy: string; // Player ID who requested undo
-    moveIndex: number;   // Index in history to undo to
+    requestedBy: string;
+    moveIndex: number;
   };
   komi: number;
   handicap: number;
+  socket?: Socket | null;
 }
 
-export type GameMove = Position | { pass: true };
-
-export interface GameOptions {
-  boardSize: number;
-  timeControl: number; // minutes per player
-  timePerMove?: number; // seconds per move
-  handicap: number;
-  scoringRule: ScoringRule; // Scoring rule to use for the game
-  gameType?: GameType; // Type of game to be played
-  colorPreference?: ColorPreference; // Owner's preferred color
-  // Additional options for specific game types
-  isTeachingMode?: boolean; // For teaching games - allows comments and variations
-  teamPlayers?: string[]; // For Rengo games - list of team member IDs
-} 
+export type GameMove = Position | { pass: true }; 

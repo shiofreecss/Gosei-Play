@@ -129,6 +129,9 @@ io.on('connection', (socket) => {
             // Only set to 'black' for non-handicap games
             if (gameState.gameType !== 'handicap') {
               gameState.currentTurn = 'black';
+            } else {
+              log(`This is a handicap game. Current turn remains: ${gameState.currentTurn}`);
+              log(`Handicap stones on board: ${gameState.board.stones.filter(s => s.color === 'black').length}`);
             }
             
             log(`Game's currentTurn is set to: ${gameState.currentTurn}`);
@@ -297,6 +300,9 @@ io.on('connection', (socket) => {
         const elapsedTime = Math.floor((Date.now() - gameState.lastMoveTime) / 1000);
         const remainingTime = Math.max(0, currentPlayer.timeRemaining - elapsedTime);
         
+        // Update the timeRemaining in the game state to ensure it's accurate
+        currentPlayer.timeRemaining = remainingTime;
+        
         if (remainingTime <= 0 && currentPlayer.timeRemaining > 0) {
           // Player has just run out of time
           log(`Player ${currentPlayer.id} has run out of time`);
@@ -316,13 +322,37 @@ io.on('connection', (socket) => {
           // Broadcast updated game state
           io.to(gameId).emit('gameState', gameState);
         } else {
-          // Just update time
-          io.to(gameId).emit('timeUpdate', {
-            gameId,
-            playerId: currentPlayer.id,
-            color: currentPlayer.color,
-            timeRemaining: remainingTime
-          });
+          // Always update time for both players for better synchronization
+          const blackPlayer = gameState.players.find(p => p.color === 'black');
+          const whitePlayer = gameState.players.find(p => p.color === 'white');
+          
+          // Send time updates for both players
+          if (blackPlayer && blackPlayer.timeRemaining !== undefined) {
+            io.to(gameId).emit('timeUpdate', {
+              gameId,
+              playerId: blackPlayer.id,
+              color: 'black',
+              timeRemaining: blackPlayer.color === gameState.currentTurn ? 
+                remainingTime : blackPlayer.timeRemaining
+            });
+          }
+          
+          if (whitePlayer && whitePlayer.timeRemaining !== undefined) {
+            io.to(gameId).emit('timeUpdate', {
+              gameId,
+              playerId: whitePlayer.id,
+              color: 'white',
+              timeRemaining: whitePlayer.color === gameState.currentTurn ? 
+                remainingTime : whitePlayer.timeRemaining
+            });
+          }
+          
+          // Also send a full game state update periodically (every 5 seconds) to ensure clients are in sync
+          const now = Date.now();
+          if (!gameState.lastFullStateUpdate || now - gameState.lastFullStateUpdate > 5000) {
+            gameState.lastFullStateUpdate = now;
+            io.to(gameId).emit('gameState', gameState);
+          }
         }
       }
     }
@@ -526,6 +556,27 @@ io.on('connection', (socket) => {
       // Also broadcast the full game state
       io.to(gameId).emit('gameState', gameState);
       log(`Broadcasting updated game state to all clients in room ${gameId}`);
+    }
+  });
+
+  // Handle chat messages
+  socket.on('chatMessage', ({ gameId, playerId, username, message }) => {
+    log(`Chat message from ${username} (${playerId}) in game ${gameId}: ${message}`);
+    
+    // Get the current game state
+    const gameState = activeGames.get(gameId);
+    
+    if (gameState) {
+      // Broadcast the message to all clients in the game room
+      io.to(gameId).emit('chatMessage', {
+        id: Date.now().toString(),
+        playerId,
+        username,
+        message,
+        timestamp: Date.now()
+      });
+      
+      log(`Broadcasting chat message to all clients in room ${gameId}`);
     }
   });
 });

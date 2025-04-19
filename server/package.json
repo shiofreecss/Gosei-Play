@@ -1,6 +1,6 @@
 {
   "name": "gosei-play-server",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Socket server for Gosei Play Go game",
   "main": "server.js",
   "scripts": {

@@ -149,12 +149,19 @@ const HomePage: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
   const [gameOptions, setGameOptions] = useState<GameOptions>({
     boardSize: getStoredValue(STORAGE_KEYS.BOARD_SIZE, 19),
-    timeControl: getStoredValue(STORAGE_KEYS.TIME_CONTROL, 30),
-    timePerMove: getStoredValue(STORAGE_KEYS.TIME_PER_MOVE, 0),
     handicap: getStoredValue(STORAGE_KEYS.HANDICAP, 0),
     scoringRule: getStoredValue(STORAGE_KEYS.SCORING_RULE, 'japanese') as ScoringRule,
     gameType: getStoredValue(STORAGE_KEYS.GAME_TYPE, 'even') as GameType,
     colorPreference: getStoredValue(STORAGE_KEYS.COLOR_PREFERENCE, 'random') as ColorPreference,
+    timeControl: getStoredValue(STORAGE_KEYS.TIME_CONTROL, 30),
+    timePerMove: getStoredValue(STORAGE_KEYS.TIME_PER_MOVE, 0),
+    timeControlOptions: {
+      timeControl: getStoredValue(STORAGE_KEYS.TIME_CONTROL, 30),
+      timePerMove: getStoredValue(STORAGE_KEYS.TIME_PER_MOVE, 0),
+      byoYomiPeriods: getStoredValue((STORAGE_KEYS as any).BYO_YOMI_PERIODS, 0),
+      byoYomiTime: getStoredValue((STORAGE_KEYS as any).BYO_YOMI_TIME, 30),
+      fischerTime: getStoredValue((STORAGE_KEYS as any).FISCHER_TIME, 0)
+    },
   });
 
   // Effect to navigate to game after creation or joining
@@ -182,14 +189,47 @@ const HomePage: React.FC = () => {
     setStoredValue(STORAGE_KEYS.HANDICAP, gameOptions.handicap);
     setStoredValue(STORAGE_KEYS.SCORING_RULE, gameOptions.scoringRule);
     setStoredValue(STORAGE_KEYS.GAME_TYPE, gameOptions.gameType);
+    setStoredValue((STORAGE_KEYS as any).BYO_YOMI_PERIODS, gameOptions.timeControlOptions.byoYomiPeriods);
+    setStoredValue((STORAGE_KEYS as any).BYO_YOMI_TIME, gameOptions.timeControlOptions.byoYomiTime);
+    setStoredValue((STORAGE_KEYS as any).FISCHER_TIME, gameOptions.timeControlOptions.fischerTime);
   }, [gameOptions]);
 
   // Helper function to update a single game option and save it
   const updateGameOption = <K extends keyof GameOptions>(key: K, value: GameOptions[K]) => {
-    setGameOptions(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    setGameOptions(prev => {
+      // Create a new state object
+      const newState = {
+        ...prev,
+        [key]: value
+      };
+      
+      // If updating timeControlOptions, sync the direct timeControl and timePerMove properties
+      if (key === 'timeControlOptions' && typeof value === 'object') {
+        if ('timeControl' in value) {
+          newState.timeControl = value.timeControl;
+        }
+        if ('timePerMove' in value) {
+          newState.timePerMove = value.timePerMove;
+        }
+      }
+      
+      // If updating direct timeControl or timePerMove, sync the timeControlOptions
+      if (key === 'timeControl' && typeof value === 'number') {
+        newState.timeControlOptions = {
+          ...prev.timeControlOptions,
+          timeControl: value
+        };
+      }
+      
+      if (key === 'timePerMove' && typeof value === 'number') {
+        newState.timeControlOptions = {
+          ...prev.timeControlOptions,
+          timePerMove: value
+        };
+      }
+      
+      return newState;
+    });
   };
 
   const handleCreateGame = () => {
@@ -342,19 +382,19 @@ const HomePage: React.FC = () => {
   };
 
   // Game type option component
-  const GameTypeOption = ({ type, name, description }: { type: GameType, name: string, description: string }) => {
+  const GameTypeOption = ({ type, title, description, selected, onClick }: { type: GameType, title: string, description: string, selected: boolean, onClick: () => void }) => {
     return (
       <div 
         className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-          gameOptions.gameType === type 
+          selected 
             ? 'border-primary-500 bg-primary-50 shadow-md' 
             : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30'
         }`}
-        onClick={() => updateGameOption('gameType', type)}
+        onClick={onClick}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="font-bold text-lg">{name}</span>
-          {gameOptions.gameType === type && (
+          <span className="font-bold text-lg">{title}</span>
+          {selected && (
             <span className="text-primary-600">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -496,177 +536,194 @@ const HomePage: React.FC = () => {
                   
                   <div className="mb-6">
                     <label className="block text-lg font-medium text-neutral-700 mb-2">
-                      Time Control (minutes per player)
+                      Time Control Settings
                     </label>
-                    <select
-                      className="form-select text-lg py-3"
-                      value={gameOptions.timeControl}
-                      onChange={(e) => updateGameOption('timeControl', parseInt(e.target.value))}
-                    >
-                      <option value={10}>10 minutes</option>
-                      <option value={30}>30 minutes</option>
-                      <option value={60}>1 hour</option>
-                      <option value={0}>No time limit</option>
-                    </select>
-                  </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-600 mb-1">
+                          Main Time (minutes per player)
+                        </label>
+                        <select
+                          className="form-select text-lg py-3"
+                          value={gameOptions.timeControlOptions.timeControl}
+                          onChange={(e) => updateGameOption('timeControlOptions', {
+                            ...gameOptions.timeControlOptions,
+                            timeControl: parseInt(e.target.value)
+                          })}
+                        >
+                          <option value={10}>10 minutes</option>
+                          <option value={30}>30 minutes</option>
+                          <option value={60}>1 hour</option>
+                          <option value={0}>No time limit</option>
+                        </select>
+                      </div>
 
-                  <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-2">
-                      Time Per Move (seconds)
-                    </label>
-                    <select
-                      className="form-select text-lg py-3"
-                      value={gameOptions.timePerMove}
-                      onChange={(e) => updateGameOption('timePerMove', parseInt(e.target.value))}
-                    >
-                      <option value={0}>No limit per move</option>
-                      <option value={15}>15 seconds</option>
-                      <option value={30}>30 seconds</option>
-                      <option value={60}>1 minute</option>
-                      <option value={120}>2 minutes</option>
-                      <option value={300}>5 minutes</option>
-                    </select>
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-600 mb-1">
+                          Time Per Move (seconds)
+                        </label>
+                        <select
+                          className="form-select text-lg py-3"
+                          value={gameOptions.timeControlOptions.timePerMove || 0}
+                          onChange={(e) => updateGameOption('timeControlOptions', {
+                            ...gameOptions.timeControlOptions,
+                            timePerMove: parseInt(e.target.value)
+                          })}
+                        >
+                          <option value={0}>No limit per move</option>
+                          <option value={15}>15 seconds</option>
+                          <option value={30}>30 seconds</option>
+                          <option value={60}>1 minute</option>
+                          <option value={120}>2 minutes</option>
+                          <option value={300}>5 minutes</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-600 mb-1">
+                          Byo-yomi Periods
+                        </label>
+                        <select
+                          className="form-select text-lg py-3"
+                          value={gameOptions.timeControlOptions.byoYomiPeriods || 0}
+                          onChange={(e) => updateGameOption('timeControlOptions', {
+                            ...gameOptions.timeControlOptions,
+                            byoYomiPeriods: parseInt(e.target.value)
+                          })}
+                        >
+                          <option value={0}>No byo-yomi</option>
+                          <option value={3}>3 periods</option>
+                          <option value={5}>5 periods</option>
+                          <option value={7}>7 periods</option>
+                        </select>
+                      </div>
+
+                      {(gameOptions.timeControlOptions.byoYomiPeriods ?? 0) > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-neutral-600 mb-1">
+                            Byo-yomi Time (seconds per period)
+                          </label>
+                          <select
+                            className="form-select text-lg py-3"
+                            value={gameOptions.timeControlOptions.byoYomiTime || 30}
+                            onChange={(e) => updateGameOption('timeControlOptions', {
+                              ...gameOptions.timeControlOptions,
+                              byoYomiTime: parseInt(e.target.value)
+                            })}
+                          >
+                            <option value={30}>30 seconds</option>
+                            <option value={45}>45 seconds</option>
+                            <option value={60}>60 seconds</option>
+                          </select>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-600 mb-1">
+                          Fischer Increment (seconds)
+                        </label>
+                        <select
+                          className="form-select text-lg py-3"
+                          value={gameOptions.timeControlOptions.fischerTime || 0}
+                          onChange={(e) => updateGameOption('timeControlOptions', {
+                            ...gameOptions.timeControlOptions,
+                            fischerTime: parseInt(e.target.value)
+                          })}
+                        >
+                          <option value={0}>No increment</option>
+                          <option value={5}>5 seconds</option>
+                          <option value={10}>10 seconds</option>
+                          <option value={15}>15 seconds</option>
+                          <option value={30}>30 seconds</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-2">
-                      Handicap (stones)
-                    </label>
-                    <select
-                      className="form-select text-lg py-3"
-                      value={gameOptions.handicap}
-                      onChange={(e) => {
-                        const handicapValue = parseInt(e.target.value);
-                        updateGameOption('handicap', handicapValue);
-                        // Set game type to handicap if handicap is > 0, otherwise even
-                        updateGameOption('gameType', handicapValue > 0 ? 'handicap' : 'even');
-                      }}
-                    >
-                      <option value={0}>No handicap</option>
-                      <option value={2}>2 stones</option>
-                      <option value={3}>3 stones</option>
-                      <option value={4}>4 stones</option>
-                      <option value={5}>5 stones</option>
-                      <option value={6}>6 stones</option>
-                      <option value={7}>7 stones</option>
-                      <option value={8}>8 stones</option>
-                      <option value={9}>9 stones</option>
-                    </select>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-2">
-                      Game Type
-                    </label>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <GameTypeOption 
-                        type="even" 
-                        name="Even Game" 
-                        description="Standard game with no handicap" 
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-2 text-gray-700">Game Type</h3>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <GameTypeOption
+                        type="even"
+                        title="Even Game"
+                        description="Standard game between evenly matched players"
+                        selected={gameOptions.gameType === 'even'}
+                        onClick={() => updateGameOption('gameType', 'even')}
                       />
-                      <GameTypeOption 
-                        type="handicap" 
-                        name="Handicap Game" 
-                        description="Game with handicap stones for balancing skill difference" 
+                      <GameTypeOption
+                        type="handicap"
+                        title="Handicap Game"
+                        description="Black receives extra stones to balance different skill levels"
+                        selected={gameOptions.gameType === 'handicap'}
+                        onClick={() => updateGameOption('gameType', 'handicap')}
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <GameTypeOption 
-                        type="blitz" 
-                        name="Blitz Go" 
-                        description="Fast-paced game with shorter time controls" 
-                      />
-                      <GameTypeOption 
-                        type="teaching" 
-                        name="Teaching Game" 
-                        description="Game with features to help instruction" 
-                      />
-                      <GameTypeOption 
-                        type="rengo" 
-                        name="Rengo (Pair Go)" 
-                        description="Team play with alternating turns" 
+                    
+                    <div className="mt-2">
+                      <GameTypeOption
+                        type="blitz"
+                        title="Blitz Go"
+                        description="Fast-paced game with shorter time controls"
+                        selected={gameOptions.gameType === 'blitz'}
+                        onClick={() => updateGameOption('gameType', 'blitz')}
                       />
                     </div>
                   </div>
                   
                   <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-2">
+                    <label className="block text-lg font-medium text-neutral-700 mb-3">
                       Scoring Rules
                     </label>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex gap-4">
                       <RulesetOption 
                         rule="japanese" 
                         name="Japanese" 
-                        description="Territory + captured stones + komi" 
+                        description="Territory scoring" 
                       />
                       <RulesetOption 
                         rule="chinese" 
                         name="Chinese" 
-                        description="Territory + stones on board + komi" 
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <RulesetOption 
-                        rule="korean" 
-                        name="Korean" 
-                        description="Similar to Chinese with variations" 
-                      />
-                      <RulesetOption 
-                        rule="aga" 
-                        name="AGA" 
-                        description="American Go Association rules" 
-                      />
-                      <RulesetOption 
-                        rule="ing" 
-                        name="Ing" 
-                        description="Complex rules with special ko handling" 
+                        description="Area scoring" 
                       />
                     </div>
                   </div>
-                  
-                  <div className="flex space-x-4 mt-10">
-                    <button
-                      onClick={handleCreateGame}
-                      className="flex-1 btn btn-primary text-lg py-4"
-                    >
-                      Start Game
-                    </button>
+
+                  {gameOptions.gameType === 'handicap' && (
+                    <div className="mb-6">
+                      <label className="block text-lg font-medium text-neutral-700 mb-2">
+                        Handicap Stones
+                      </label>
+                      <select
+                        className="form-select text-lg py-3"
+                        value={gameOptions.handicap}
+                        onChange={(e) => updateGameOption('handicap', parseInt(e.target.value))}
+                      >
+                        <option value={0}>0 (Even game)</option>
+                        <option value={2}>2 stones</option>
+                        <option value={3}>3 stones</option>
+                        <option value={4}>4 stones</option>
+                        <option value={5}>5 stones</option>
+                        <option value={6}>6 stones</option>
+                        <option value={7}>7 stones</option>
+                        <option value={8}>8 stones</option>
+                        <option value={9}>9 stones</option>
+                      </select>
+                    </div>
+                  )}
+                   
+                  <div className="mt-8 grid grid-cols-2 gap-6">
                     <button
                       onClick={() => setIsCreatingGame(false)}
-                      className="flex-1 btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400 text-lg py-4"
+                      className="btn btn-secondary text-lg py-3"
                     >
                       Cancel
                     </button>
-                  </div>
-                  
-                  {/* Reset Preferences Button */}
-                  <div className="mt-6 text-center">
                     <button
-                      onClick={() => {
-                        // Clear all game preferences from localStorage
-                        Object.values(STORAGE_KEYS).forEach(key => {
-                          if (key !== STORAGE_KEYS.USERNAME) { // Keep the username
-                            localStorage.removeItem(key);
-                          }
-                        });
-                        
-                        // Reset game options to defaults
-                        setGameOptions({
-                          boardSize: 19,
-                          timeControl: 30,
-                          timePerMove: 0,
-                          handicap: 0,
-                          scoringRule: 'japanese',
-                          gameType: 'even',
-                          colorPreference: 'random',
-                        });
-                        
-                        // Display feedback message
-                        alert('Game preferences have been reset to defaults');
-                      }}
-                      className="text-sm text-neutral-500 hover:text-primary-600 underline"
+                      onClick={handleCreateGame}
+                      className="btn btn-primary text-lg py-3"
+                      disabled={!username.trim()}
                     >
-                      Reset Preferences to Defaults
+                      Create Game
                     </button>
                   </div>
                 </div>

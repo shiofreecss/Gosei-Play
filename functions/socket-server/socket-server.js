@@ -103,6 +103,15 @@ const setupSocketIO = (io) => {
           status: gameState.status
         });
         
+        // Send chat history if available
+        if (gameState.chatMessages && gameState.chatMessages.length > 0) {
+          log(`Sending ${gameState.chatMessages.length} chat messages to player ${playerId}`);
+          socket.emit('chatHistory', {
+            gameId,
+            messages: gameState.chatMessages
+          });
+        }
+        
         log(`Game ${gameId} now has ${gameState.players.length} players, status: ${gameState.status}`);
       } else {
         log(`Game ${gameId} not found in active games`);
@@ -213,6 +222,63 @@ const setupSocketIO = (io) => {
           color
         });
       }
+    });
+
+    // Handle chat messages
+    socket.on('chatMessage', ({ gameId, playerId, username, message }) => {
+      log(`Chat message from ${username} (${playerId}) in game ${gameId}: ${message}`);
+      
+      // Validate incoming message data
+      if (!gameId || !playerId || !username || !message) {
+        log(`Invalid chat message data received from ${socket.id}`);
+        socket.emit('error', 'Invalid chat message: Missing required fields');
+        return;
+      }
+      
+      // Check if the game exists
+      const gameState = activeGames.get(gameId);
+      if (!gameState) {
+        log(`Chat message for non-existent game ${gameId}`);
+        socket.emit('error', `Cannot send chat: Game ${gameId} not found`);
+        return;
+      }
+      
+      // Check if user is part of this game
+      const isPlayerInGame = gameState.players.some(p => p.id === playerId);
+      if (!isPlayerInGame) {
+        log(`Unauthorized chat message from ${playerId} who is not in game ${gameId}`);
+        socket.emit('error', 'Cannot send chat: You are not a participant in this game');
+        return;
+      }
+      
+      // Create message object with timestamp
+      const messageData = {
+        gameId,
+        playerId,
+        username,
+        message,
+        timestamp: Date.now()
+      };
+      
+      // Store chat messages with the game state (optional, limited to recent 50 messages)
+      if (!gameState.chatMessages) {
+        gameState.chatMessages = [];
+      }
+      gameState.chatMessages.push(messageData);
+      
+      // Limit stored chat history to 50 most recent messages
+      if (gameState.chatMessages.length > 50) {
+        gameState.chatMessages = gameState.chatMessages.slice(-50);
+      }
+      
+      // Save updated game state
+      activeGames.set(gameId, gameState);
+      
+      // Broadcast the message to all clients in the game room
+      io.to(gameId).emit('chatMessageReceived', messageData);
+      
+      // Log success
+      log(`Successfully broadcast chat message to all clients in room ${gameId}`);
     });
 
     // Player disconnection

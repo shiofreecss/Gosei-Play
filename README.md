@@ -2,16 +2,22 @@
 
 A modern, responsive real-time Go (Baduk/Weiqi) game application built with React, TypeScript, and Socket.io.
 
+## Current Version
+v1.0.2 - See [VERSION.md](VERSION.md) for complete version history and change details.
+
 ## Features
 
 - **Real-time multiplayer Go game** with socket-based communication
 - **Multiple board sizes** (9×9, 13×13, 19×19) suitable for players of all levels
+- **Real-time in-game chat** for communication between players
 - **Responsive design** that works across desktop, tablet, and mobile devices
 - **Modern UI** with intuitive controls and visual feedback
 - **Game sharing** via shareable game links
+- **Multiple scoring rules** including Japanese, Chinese, Korean, AGA, and Ing systems
 - **Time control options** to manage game duration
 - **Handicap settings** for balanced gameplay between players of different skill levels
 - **Game state synchronization** to handle connection issues
+- **Clean, organized interface** with game controls in a single location
 
 ## Prerequisites
 
@@ -96,11 +102,16 @@ The socket server will run on http://localhost:3001
 3. **During gameplay:**
    - Black plays first (unless handicap is set)
    - Click on an intersection to place a stone during your turn
-   - Use the "Pass Turn" button when you have no good moves
+   - Use the "Pass Turn" button in the Game Controls section when you have no good moves
    - The game ends after both players pass consecutively
    - Territory is counted manually at the end of the game
 
-4. **Game sharing:**
+4. **Game controls:**
+   - All game controls are located in the Game Information panel
+   - Pass turn, request undo, and resign options are available during gameplay
+   - Use the chat feature to communicate with your opponent
+
+5. **Game sharing:**
    - Use the "Copy Game Link" button to share the game with your opponent
 
 ## Board Sizes
@@ -139,6 +150,8 @@ gosei-play/
 ├── server/               # Socket.io server
 ├── src/
 │   ├── components/       # React components
+│   │   ├── go-board/     # Go board related components
+│   │   └── ...           # Other UI components
 │   ├── context/          # React context for state management
 │   ├── pages/            # Page components
 │   ├── types/            # TypeScript type definitions

@@ -1,5 +1,23 @@
 # Gosei Play Version History
 
+## v1.0.2 (2025-04-20)
+
+### Features
+- Improved UI layout and controls organization
+- Added chat functionality for in-game communication
+- Enhanced game control panel with integrated Pass, Resign, and Undo buttons
+- Streamlined interface with cleaner board view
+
+### Improvements
+- Moved game controls to a dedicated section in the Game Information panel
+- Reorganized game information display for better readability
+- Added responsive layout for chat panel on different screen sizes
+- Improved visual feedback for game actions
+
+### Bug Fixes
+- Fixed synchronization issues in time control display
+- Fixed timer discrepancies between players in Blitz Go games
+
 ## v1.0.1 build2 (2025-04-19)
 
 ### Bug Fixes
