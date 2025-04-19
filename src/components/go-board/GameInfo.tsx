@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameState, Player, GameMove, Position, StoneColor } from '../../types/go';
+import { GameState, Player, GameMove, Position, StoneColor, GameType } from '../../types/go';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -42,7 +42,110 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
 
   // Get scoring rule display name
   const getScoringRuleName = () => {
-    return gameState.scoringRule === 'chinese' ? 'Chinese' : 'Japanese';
+    switch (gameState.scoringRule) {
+      case 'chinese': return 'Chinese';
+      case 'japanese': return 'Japanese';
+      case 'korean': return 'Korean';
+      case 'aga': return 'AGA';
+      case 'ing': return 'Ing';
+      default: return 'Japanese';
+    }
+  };
+  
+  // Get game type display name
+  const getGameTypeName = () => {
+    switch (gameState.gameType) {
+      case 'even': return 'Even Game';
+      case 'handicap': return 'Handicap Game';
+      case 'blitz': return 'Blitz Go';
+      case 'teaching': return 'Teaching Game';
+      case 'rengo': return 'Rengo (Pair Go)';
+      default: return 'Standard Game';
+    }
+  };
+
+  // Get game type icon based on type
+  const getGameTypeIcon = () => {
+    switch (gameState.gameType) {
+      case 'handicap':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        );
+      case 'blitz':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+      case 'teaching':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        );
+      case 'rengo':
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        );
+      case 'even':
+      default:
+        return (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        );
+    }
+  };
+
+  // Get styles for game type badge
+  const getGameTypeBadgeStyle = () => {
+    const baseStyle = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '0.25rem 0.5rem',
+      borderRadius: '0.25rem',
+      fontSize: '0.75rem',
+      fontWeight: '500',
+      marginLeft: '0.5rem',
+    };
+
+    switch (gameState.gameType) {
+      case 'handicap':
+        return {
+          ...baseStyle,
+          backgroundColor: '#fee2e2',
+          color: '#b91c1c',
+        };
+      case 'blitz':
+        return {
+          ...baseStyle,
+          backgroundColor: '#fef3c7',
+          color: '#b45309',
+        };
+      case 'teaching':
+        return {
+          ...baseStyle,
+          backgroundColor: '#dbeafe',
+          color: '#1e40af',
+        };
+      case 'rengo':
+        return {
+          ...baseStyle,
+          backgroundColor: '#f3e8ff',
+          color: '#6b21a8',
+        };
+      case 'even':
+      default:
+        return {
+          ...baseStyle,
+          backgroundColor: '#e0e7ff',
+          color: '#4338ca',
+        };
+    }
   };
   
   // Styles for the component
@@ -57,6 +160,9 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
     fontSize: '1.25rem',
     fontWeight: '600',
     marginBottom: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap' as const,
   };
   
   const playerGridStyle = {
@@ -160,11 +266,98 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
   const lowTimeStyle = {
     color: '#dc2626',
   };
+
+  const gameTypeInfoStyle = {
+    borderRadius: '0.375rem',
+    padding: '0.75rem',
+    marginBottom: '1rem',
+    border: '1px solid',
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '0.875rem',
+  };
+
+  // Get game type info panel style based on type
+  const getGameTypeInfoStyle = () => {
+    const baseStyle = { ...gameTypeInfoStyle };
+    
+    switch (gameState.gameType) {
+      case 'handicap':
+        return {
+          ...baseStyle,
+          borderColor: '#fecaca',
+          backgroundColor: '#fef2f2',
+          color: '#991b1b',
+        };
+      case 'blitz':
+        return {
+          ...baseStyle,
+          borderColor: '#fed7aa',
+          backgroundColor: '#fff7ed',
+          color: '#9a3412',
+        };
+      case 'teaching':
+        return {
+          ...baseStyle,
+          borderColor: '#bfdbfe',
+          backgroundColor: '#eff6ff',
+          color: '#1e40af',
+        };
+      case 'rengo':
+        return {
+          ...baseStyle,
+          borderColor: '#e9d5ff',
+          backgroundColor: '#faf5ff',
+          color: '#6b21a8',
+        };
+      case 'even':
+      default:
+        return {
+          ...baseStyle,
+          borderColor: '#c7d2fe',
+          backgroundColor: '#eef2ff',
+          color: '#3730a3',
+        };
+    }
+  };
+  
+  // Get game type description
+  const getGameTypeDescription = () => {
+    switch (gameState.gameType) {
+      case 'handicap':
+        return 'Handicap stones give the weaker player an advantage at the start.';
+      case 'blitz':
+        return 'Fast-paced game with shorter time controls. Quick moves are essential!';
+      case 'teaching':
+        return 'A game focused on learning, with one player guiding the other.';
+      case 'rengo':
+        return 'Team play with alternating moves between partners.';
+      case 'even':
+      default:
+        return 'Standard game between evenly matched players.';
+    }
+  };
   
   return (
     <div style={containerStyle}>
-      <h2 style={titleStyle}>Game Information</h2>
+      <h2 style={titleStyle}>
+        Game Information
+        {gameState.gameType && (
+          <span style={getGameTypeBadgeStyle()}>
+            {getGameTypeIcon()}
+            {getGameTypeName()}
+          </span>
+        )}
+      </h2>
       
+      {/* Game Type Info Panel - displayed when game type is specified */}
+      {gameState.gameType && (
+        <div style={getGameTypeInfoStyle()}>
+          {getGameTypeIcon()}
+          <span style={{ marginLeft: '0.5rem' }}>{getGameTypeDescription()}</span>
+        </div>
+      )}
+
       <div style={playerGridStyle}>
         <div style={playerCardStyle(currentTurn === 'black')}>
           <div style={playerNameStyle}>
@@ -258,6 +451,7 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
         <div style={gameInfoStyle}>
           <p>Board size: {gameState.board.size}×{gameState.board.size}</p>
           <p>Scoring rule: {getScoringRuleName()}</p>
+          {gameState.gameType && <p>Game type: {getGameTypeName()}</p>}
           <p>Moves played: {totalStones}</p>
           {timePerMove && timePerMove > 0 && (
             <p>Time per move: {timePerMove} seconds</p>
@@ -282,6 +476,7 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
               <span>{score.whiteTerritory || 0}</span>
             </div>
             
+            {/* Chinese rules scoring display */}
             {gameState.scoringRule === 'chinese' && (
               <>
                 <div style={scoreRowStyle}>
@@ -295,6 +490,7 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
               </>
             )}
             
+            {/* Japanese rules scoring display */}
             {gameState.scoringRule === 'japanese' && (
               <>
                 <div style={scoreRowStyle}>
@@ -303,6 +499,64 @@ const GameInfo: React.FC<GameInfoProps> = ({ gameState, currentPlayer }) => {
                 </div>
                 <div style={scoreRowStyle}>
                   <span>White captures:</span>
+                  <span>{score.whiteCaptures || capturedStones.white || 0}</span>
+                </div>
+              </>
+            )}
+            
+            {/* Korean rules scoring display (similar to Chinese) */}
+            {gameState.scoringRule === 'korean' && (
+              <>
+                <div style={scoreRowStyle}>
+                  <span>Black stones:</span>
+                  <span>{score.blackStones || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>White stones:</span>
+                  <span>{score.whiteStones || 0}</span>
+                </div>
+              </>
+            )}
+            
+            {/* AGA rules scoring display */}
+            {gameState.scoringRule === 'aga' && (
+              <>
+                <div style={scoreRowStyle}>
+                  <span>Black stones:</span>
+                  <span>{score.blackStones || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>White stones:</span>
+                  <span>{score.whiteStones || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>Black captures:</span>
+                  <span>{score.blackCaptures || capturedStones.black || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>White captures:</span>
+                  <span>{score.whiteCaptures || capturedStones.white || 0}</span>
+                </div>
+              </>
+            )}
+            
+            {/* Ing rules scoring display */}
+            {gameState.scoringRule === 'ing' && (
+              <>
+                <div style={scoreRowStyle}>
+                  <span>Black stones:</span>
+                  <span>{score.blackStones || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>White stones:</span>
+                  <span>{score.whiteStones || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>Black prisoners:</span>
+                  <span>{score.blackCaptures || capturedStones.black || 0}</span>
+                </div>
+                <div style={scoreRowStyle}>
+                  <span>White prisoners:</span>
                   <span>{score.whiteCaptures || capturedStones.white || 0}</span>
                 </div>
               </>

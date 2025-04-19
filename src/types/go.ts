@@ -22,7 +22,11 @@ export interface Player {
   timeRemaining?: number; // Time remaining in seconds
 }
 
-export type ScoringRule = 'chinese' | 'japanese';
+// Update ScoringRule to include new rule types
+export type ScoringRule = 'chinese' | 'japanese' | 'korean' | 'aga' | 'ing';
+
+// Add GameType for different game modes
+export type GameType = 'even' | 'handicap' | 'blitz' | 'teaching' | 'rengo';
 
 export interface Territory {
   position: Position;
@@ -48,6 +52,7 @@ export interface GameState {
   deadStones?: Position[]; // Stones marked as dead during scoring
   territory?: Territory[]; // Territory ownership for scoring
   scoringRule?: ScoringRule; // Selected scoring rule (Chinese or Japanese)
+  gameType?: GameType; // Type of game being played
   timePerMove?: number; // Time per move in seconds
   lastMoveTime?: number; // Timestamp of last move
   score?: {
@@ -75,5 +80,9 @@ export interface GameOptions {
   timePerMove?: number; // seconds per move
   handicap: number;
   scoringRule: ScoringRule; // Scoring rule to use for the game
+  gameType?: GameType; // Type of game to be played
   colorPreference?: ColorPreference; // Owner's preferred color
+  // Additional options for specific game types
+  isTeachingMode?: boolean; // For teaching games - allows comments and variations
+  teamPlayers?: string[]; // For Rengo games - list of team member IDs
 } 

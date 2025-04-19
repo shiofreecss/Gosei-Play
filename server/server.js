@@ -411,6 +411,18 @@ io.on('connection', (socket) => {
       gameId,
       playerId
     });
+    
+    // Check if there are any players left in the game room
+    const room = io.sockets.adapter.rooms.get(gameId);
+    const clientsCount = room ? room.size : 0;
+    
+    log(`Game ${gameId} has ${clientsCount} clients remaining after player left`);
+    
+    // If no players left in the room, remove the game immediately
+    if (!room || clientsCount === 0) {
+      log(`No players remaining in game ${gameId}, removing it immediately`);
+      activeGames.delete(gameId);
+    }
   });
 
   // Handle disconnection

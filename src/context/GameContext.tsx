@@ -6,7 +6,10 @@ import { applyGoRules } from '../utils/goGameLogic';
 import { SOCKET_URL } from '../config';
 import { 
   calculateChineseScore, 
-  calculateJapaneseScore 
+  calculateJapaneseScore,
+  calculateKoreanScore,
+  calculateAGAScore,
+  calculateIngScore
 } from '../utils/scoringUtils';
 
 // Helper function to check if a move is a pass
@@ -507,54 +510,118 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     }
   };
 
-  // Add a function to find a game by code
-  const findGameByCode = (code: string): GameState | null => {
+  // Add a function to clean up old games from localStorage
+  const cleanupOldGames = () => {
     try {
-      // Try to find exact match first with the key pattern
-      const gameData = safelyGetItem(`gosei-game-${code}`);
-      if (gameData) {
-        const game = JSON.parse(gameData);
-        return game;
-      }
+      const allKeys = Object.keys(localStorage);
+      const gameKeys = allKeys.filter(key => key.startsWith('gosei-game-'));
       
-      // Try direct ID match
-      let allKeys: string[] = [];
-      try {
-        allKeys = Object.keys(localStorage);
-      } catch (e) {
-        console.error('Error accessing localStorage keys:', e);
-        return null;
-      }
+      // Remove games older than 24 hours
+      const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
       
-      for (const key of allKeys) {
-        if (key.startsWith('gosei-game-')) {
-          try {
-            const gameData = safelyGetItem(key);
-            if (!gameData) continue;
-            
-            const game = JSON.parse(gameData);
-            
-            // Check if the game ID matches
-            if (game.id === code) {
-              return game;
-            }
-            
-            // Check if the code matches case-insensitive
-            if (typeof game.code === 'string' && 
-                game.code.toLowerCase() === code.toLowerCase()) {
-              return game;
-            }
-          } catch (e) {
-            console.error('Error parsing game data:', e);
+      gameKeys.forEach(key => {
+        try {
+          const gameData = JSON.parse(localStorage.getItem(key) || '');
+          if (gameData.savedAt && new Date(gameData.savedAt).getTime() < twentyFourHoursAgo) {
+            localStorage.removeItem(key);
           }
+        } catch (e) {
+          // If the game data is invalid, remove it
+          localStorage.removeItem(key);
         }
+      });
+    } catch (e) {
+      console.error('Error cleaning up old games:', e);
+    }
+  };
+
+  // Modify findGameByCode function signature to return Promise
+  const findGameByCode = async (code: string): Promise<GameState | null> => {
+    try {
+      // Clean up old games first
+      cleanupOldGames();
+      
+      // Check if we have a socket connection and the game exists on the server
+      if (state.socket?.connected) {
+        return new Promise<GameState | null>((resolve) => {
+          // Request game state from server
+          state.socket!.emit('getGameState', { gameId: code });
+          
+          // Wait for response
+          const timeout = setTimeout(() => {
+            resolve(findGameInLocalStorage(code));
+          }, 3000);
+          
+          state.socket!.once('gameState', (serverGameState) => {
+            clearTimeout(timeout);
+            if (serverGameState) {
+              // Update localStorage with server state
+              try {
+                safelySetItem(`gosei-game-${serverGameState.id}`, JSON.stringify({
+                  ...serverGameState,
+                  savedAt: new Date().toISOString()
+                }));
+              } catch (e) {
+                console.warn('Failed to update localStorage with server state:', e);
+              }
+              resolve(serverGameState);
+            } else {
+              resolve(findGameInLocalStorage(code));
+            }
+          });
+        });
       }
       
-      return null;
+      return findGameInLocalStorage(code);
     } catch (e) {
       console.error('Error in findGameByCode:', e);
       return null;
     }
+  };
+
+  // Helper function to find game in localStorage
+  const findGameInLocalStorage = (code: string): GameState | null => {
+    // Try to find exact match first with the key pattern
+    const gameData = safelyGetItem(`gosei-game-${code}`);
+    if (gameData) {
+      const game = JSON.parse(gameData);
+      return game;
+    }
+    
+    // Try direct ID match from all games in localStorage
+    let allKeys: string[] = [];
+    try {
+      allKeys = Object.keys(localStorage);
+    } catch (e) {
+      console.error('Error accessing localStorage keys:', e);
+      return null;
+    }
+    
+    for (const key of allKeys) {
+      if (key.startsWith('gosei-game-')) {
+        try {
+          const gameData = safelyGetItem(key);
+          if (!gameData) continue;
+          
+          const game = JSON.parse(gameData);
+          
+          // Check if the game ID matches
+          if (game.id === code) {
+            return game;
+          }
+          
+          // Check if the code matches case-insensitive
+          if (typeof game.code === 'string' && 
+              game.code.toLowerCase() === code.toLowerCase()) {
+            return game;
+          }
+        } catch (e) {
+          console.error('Error parsing game data:', e);
+        }
+      }
+    }
+    
+    return null;
   };
 
   // Create a new game
@@ -652,7 +719,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
   };
   
   // Join an existing game
-  const joinGame = (gameIdOrCode: string, username: string) => {
+  const joinGame = async (gameIdOrCode: string, username: string) => {
     if (!gameIdOrCode || !username) {
       dispatch({ type: 'GAME_ERROR', payload: 'Game ID/link and username are required.' });
       return;
@@ -674,7 +741,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       }
       
       // Try to find the game by ID or code
-      let foundGame = findGameByCode(gameId);
+      let foundGame = await findGameByCode(gameId);
       
       // If not found by code or ID, check if it's the current game's ID
       if (!foundGame && state.gameState?.id === gameId) {
@@ -771,7 +838,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       
       // Update the game in localStorage
       try {
-        const stored = safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
+        const stored = safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify({
+          ...updatedGameState,
+          savedAt: new Date().toISOString()
+        }));
         if (!stored) {
           throw new Error('Failed to save game state');
         }
@@ -943,9 +1013,18 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         
         try {
           // Get territories for visual feedback
-          const scoringUtils = scoringRule === 'chinese' 
-            ? calculateChineseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones)
-            : calculateJapaneseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          let scoringUtils;
+          if (scoringRule === 'chinese') {
+            scoringUtils = calculateChineseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          } else if (scoringRule === 'korean') {
+            scoringUtils = calculateKoreanScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          } else if (scoringRule === 'aga') {
+            scoringUtils = calculateAGAScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          } else if (scoringRule === 'ing') {
+            scoringUtils = calculateIngScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          } else {
+            scoringUtils = calculateJapaneseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+          }
           
           updatedGameState.territory = scoringUtils.territories;
         } catch (e) {
@@ -1172,6 +1251,27 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     if (scoringRule === 'chinese') {
       // Use Chinese scoring rules
       scoringResult = calculateChineseScore(
+        gameState.board,
+        deadStonePositions,
+        gameState.capturedStones
+      );
+    } else if (scoringRule === 'korean') {
+      // Use Korean scoring rules
+      scoringResult = calculateKoreanScore(
+        gameState.board,
+        deadStonePositions,
+        gameState.capturedStones
+      );
+    } else if (scoringRule === 'aga') {
+      // Use AGA scoring rules
+      scoringResult = calculateAGAScore(
+        gameState.board,
+        deadStonePositions,
+        gameState.capturedStones
+      );
+    } else if (scoringRule === 'ing') {
+      // Use Ing scoring rules
+      scoringResult = calculateIngScore(
         gameState.board,
         deadStonePositions,
         gameState.capturedStones

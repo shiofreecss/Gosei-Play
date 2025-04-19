@@ -291,4 +291,170 @@ export const calculateJapaneseScore = (
     },
     winner: blackScore > whiteScore ? 'black' : blackScore < whiteScore ? 'white' : null as StoneColor
   };
+};
+
+/**
+ * Calculates score using Korean rules: 
+ * - Area scoring similar to Chinese rules but with some procedural differences
+ * - Territory points + living stones on the board + komi
+ * - Default komi is 6.5 (different from Chinese rules)
+ * - Captures don't affect the final score
+ */
+export const calculateKoreanScore = (
+  board: Board,
+  deadStonePositions: Set<string>,
+  capturedStones: { black: number, white: number },
+  komi: number = 6.5
+) => {
+  // Calculate territories
+  const territories = calculateTerritories(board, deadStonePositions);
+  const territoryPoints = countTerritoryPoints(territories);
+  
+  // Count stones on the board
+  const liveStones = countLiveStones(board, deadStonePositions);
+  
+  // Calculate final scores
+  const blackScore = territoryPoints.black + liveStones.black;
+  const whiteScore = territoryPoints.white + liveStones.white + komi;
+  
+  return {
+    territories,
+    score: {
+      black: blackScore,
+      white: whiteScore,
+      blackTerritory: territoryPoints.black,
+      whiteTerritory: territoryPoints.white,
+      blackStones: liveStones.black,
+      whiteStones: liveStones.white,
+      komi
+    },
+    winner: blackScore > whiteScore ? 'black' : blackScore < whiteScore ? 'white' : null as StoneColor
+  };
+};
+
+/**
+ * Calculates score using AGA (American Go Association) rules: 
+ * - Hybrid approach combining area scoring with Japanese-style handling
+ * - Territory points + living stones on the board + komi
+ * - Empty points in seki are not counted as territory
+ * - Captures are counted in the final score
+ * - Default komi is 7.5
+ */
+export const calculateAGAScore = (
+  board: Board,
+  deadStonePositions: Set<string>,
+  capturedStones: { black: number, white: number },
+  komi: number = 7.5
+) => {
+  // Calculate territories
+  const territories = calculateTerritories(board, deadStonePositions);
+  const territoryPoints = countTerritoryPoints(territories);
+  
+  // Count stones on the board
+  const liveStones = countLiveStones(board, deadStonePositions);
+  
+  // Count dead stones (they count as captures)
+  let blackCaptures = capturedStones.black;
+  let whiteCaptures = capturedStones.white;
+  
+  // Add dead stones to captures
+  board.stones.forEach(stone => {
+    const posKey = `${stone.position.x},${stone.position.y}`;
+    if (deadStonePositions.has(posKey)) {
+      if (stone.color === 'black') {
+        whiteCaptures++;
+      } else if (stone.color === 'white') {
+        blackCaptures++;
+      }
+    }
+  });
+  
+  // Calculate final scores - AGA combines area scoring with captures
+  const blackScore = territoryPoints.black + liveStones.black + blackCaptures;
+  const whiteScore = territoryPoints.white + liveStones.white + whiteCaptures + komi;
+  
+  return {
+    territories,
+    score: {
+      black: blackScore,
+      white: whiteScore,
+      blackTerritory: territoryPoints.black,
+      whiteTerritory: territoryPoints.white,
+      blackStones: liveStones.black,
+      whiteStones: liveStones.white,
+      blackCaptures,
+      whiteCaptures,
+      komi
+    },
+    winner: blackScore > whiteScore ? 'black' : blackScore < whiteScore ? 'white' : null as StoneColor
+  };
+};
+
+/**
+ * Calculates score using Ing (SST) rules: 
+ * - Area scoring with special prisoner handling
+ * - Each player counts their stones on the board plus territory
+ * - Each player has a fixed number of stones (180 for 19x19)
+ * - Prisoners affect the final count of each player's stones
+ * - Default komi is 8 points (called "compensation points")
+ */
+export const calculateIngScore = (
+  board: Board,
+  deadStonePositions: Set<string>,
+  capturedStones: { black: number, white: number },
+  komi: number = 8
+) => {
+  // Calculate territories
+  const territories = calculateTerritories(board, deadStonePositions);
+  const territoryPoints = countTerritoryPoints(territories);
+  
+  // Count stones on the board
+  const liveStones = countLiveStones(board, deadStonePositions);
+  
+  // Count dead stones as prisoners
+  let blackPrisoners = capturedStones.black;
+  let whitePrisoners = capturedStones.white;
+  
+  // Add dead stones to prisoners
+  board.stones.forEach(stone => {
+    const posKey = `${stone.position.x},${stone.position.y}`;
+    if (deadStonePositions.has(posKey)) {
+      if (stone.color === 'black') {
+        whitePrisoners++;
+      } else if (stone.color === 'white') {
+        blackPrisoners++;
+      }
+    }
+  });
+  
+  // In Ing rules, the total number of stones is fixed
+  // We use 180 for 19x19 board, or less for smaller boards
+  const totalStones = board.size === 19 ? 180 : 
+                     board.size === 13 ? 85 : 
+                     board.size === 9 ? 40 : 180;
+  
+  // Calculate adjusted stone counts (stones on board + prisoners)
+  const adjustedBlackStones = liveStones.black + blackPrisoners;
+  const adjustedWhiteStones = liveStones.white + whitePrisoners;
+  
+  // Calculate territory score (unconditionally occupied intersections)
+  // and add adjusted stone count
+  const blackScore = territoryPoints.black + adjustedBlackStones;
+  const whiteScore = territoryPoints.white + adjustedWhiteStones + komi;
+  
+  return {
+    territories,
+    score: {
+      black: blackScore,
+      white: whiteScore,
+      blackTerritory: territoryPoints.black,
+      whiteTerritory: territoryPoints.white,
+      blackStones: liveStones.black,
+      whiteStones: liveStones.white,
+      blackCaptures: blackPrisoners,
+      whiteCaptures: whitePrisoners,
+      komi
+    },
+    winner: blackScore > whiteScore ? 'black' : blackScore < whiteScore ? 'white' : null as StoneColor
+  };
 }; 

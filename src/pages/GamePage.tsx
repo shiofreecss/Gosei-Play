@@ -14,6 +14,13 @@ const GamePage: React.FC = () => {
   const [showJoinForm, setShowJoinForm] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(() => {
+    // Initialize from localStorage if available
+    const savedPref = localStorage.getItem('gosei-auto-save-enabled');
+    return savedPref ? JSON.parse(savedPref) : false;
+  });
+  const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
+  const [showDevTools, setShowDevTools] = useState(false);
 
   // Check if there's a gameId in the URL and try to load that game
   useEffect(() => {
@@ -27,6 +34,82 @@ const GamePage: React.FC = () => {
       setShowJoinForm(true);
     }
   }, [gameId, gameState, showJoinForm, loading]);
+
+  // Set up or clear autosave interval based on autoSaveEnabled state
+  useEffect(() => {
+    // Save preference to localStorage
+    localStorage.setItem('gosei-auto-save-enabled', JSON.stringify(autoSaveEnabled));
+
+    // Clear any existing interval
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval);
+      setAutoSaveInterval(null);
+    }
+
+    // Set up new interval if enabled
+    if (autoSaveEnabled && gameState && gameState.id) {
+      const interval = setInterval(() => {
+        // Save current game state to localStorage with a custom key
+        try {
+          localStorage.setItem(`gosei-offline-game-${gameState.id}`, JSON.stringify({
+            gameState,
+            savedAt: new Date().toISOString(),
+            currentPlayer
+          }));
+          console.log('Game auto-saved to local storage');
+        } catch (error) {
+          console.error('Failed to auto-save game:', error);
+          // If storage is full, disable auto-save
+          if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+            setAutoSaveEnabled(false);
+            alert('Auto-save has been disabled because your device storage is full.');
+          }
+        }
+      }, 30000); // Save every 30 seconds
+      
+      setAutoSaveInterval(interval);
+    }
+
+    // Clean up interval on component unmount
+    return () => {
+      if (autoSaveInterval) {
+        clearInterval(autoSaveInterval);
+      }
+    };
+  }, [autoSaveEnabled, gameState, currentPlayer]);
+
+  // Effect to set up keyboard shortcut for developer tools
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle dev tools with Ctrl+Shift+D
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        setShowDevTools(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled(prev => !prev);
+  };
+
+  const saveGameNow = () => {
+    if (gameState && gameState.id) {
+      try {
+        localStorage.setItem(`gosei-offline-game-${gameState.id}`, JSON.stringify({
+          gameState,
+          savedAt: new Date().toISOString(),
+          currentPlayer
+        }));
+        alert('Game saved successfully for offline access!');
+      } catch (error) {
+        console.error('Failed to save game:', error);
+        alert('Failed to save game. Your device storage might be full.');
+      }
+    }
+  };
 
   const handleStonePlace = (position: Position) => {
     placeStone(position);
@@ -206,15 +289,39 @@ const GamePage: React.FC = () => {
             >
               {copied ? 'Copied!' : 'Copy Game Link'}
             </button>
+            {/* Only show Sync Game button when developer tools are enabled */}
+            {showDevTools && (
+              <button
+                onClick={handleSyncGame}
+                className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
+                disabled={syncing}
+              >
+                {syncing ? 'Syncing...' : 'Sync Game'}
+              </button>
+            )}
             <button
-              onClick={handleSyncGame}
-              className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
-              disabled={syncing}
+              onClick={toggleAutoSave}
+              className={`btn ${autoSaveEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'} focus:ring-neutral-400`}
             >
-              {syncing ? 'Syncing...' : 'Sync Game'}
+              {autoSaveEnabled ? 'Auto-Save: ON' : 'Auto-Save: OFF'}
             </button>
+            {!autoSaveEnabled && (
+              <button
+                onClick={saveGameNow}
+                className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 focus:ring-blue-400"
+              >
+                Save Now
+              </button>
+            )}
           </div>
         </div>
+        
+        {/* Add a small indicator when dev tools are enabled */}
+        {showDevTools && (
+          <div className="text-xs text-neutral-500 text-center mb-2">
+            Developer Tools Enabled (Ctrl+Shift+D to toggle)
+          </div>
+        )}
         
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           <div className="xl:col-span-3 flex flex-col items-center">
