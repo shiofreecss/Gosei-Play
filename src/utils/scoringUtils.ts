@@ -429,9 +429,12 @@ export const calculateIngScore = (
   
   // In Ing rules, the total number of stones is fixed
   // We use 180 for 19x19 board, or less for smaller boards
+  // Keeping this comment for reference - not currently used in calculations
+  /* 
   const totalStones = board.size === 19 ? 180 : 
                      board.size === 13 ? 85 : 
                      board.size === 9 ? 40 : 180;
+  */
   
   // Calculate adjusted stone counts (stones on board + prisoners)
   const adjustedBlackStones = liveStones.black + blackPrisoners;
