@@ -26,7 +26,7 @@ This document outlines how to deploy Gosei Play using Heroku for the Socket.IO s
    cd heroku-server
    ```
 
-3. **Initialize Git (if needed)**
+3. **Initialize Git repository**
    ```bash
    git init
    git add .
@@ -37,23 +37,49 @@ This document outlines how to deploy Gosei Play using Heroku for the Socket.IO s
    ```bash
    heroku create gosei-play-server
    ```
+   Note: If this name is taken, Heroku will assign an alternative name.
 
-5. **Push to Heroku**
+5. **Set environment variables**
+   ```bash
+   heroku config:set NODE_ENV=production
+   ```
+
+6. **Push to Heroku**
+
+   Check your current branch name first:
+   ```bash
+   git branch
+   ```
+
+   Then push to Heroku using the appropriate command:
+
+   If your branch is named "main":
    ```bash
    git push heroku main
    ```
 
-6. **Ensure at least one instance is running**
+   If your branch is named "master":
+   ```bash
+   git push heroku master:main
+   ```
+
+   If you're on a different branch:
+   ```bash
+   git push heroku your-branch-name:main
+   ```
+
+7. **Ensure at least one instance is running**
    ```bash
    heroku ps:scale web=1
    ```
 
-7. **Check that the server is running**
+8. **Check that the server is running**
    ```bash
    heroku open
    ```
+   You should see a JSON response like: `{"status":"ok","timestamp":"..."}`
 
-8. **Get your Heroku app URL**
+9. **Get your Heroku app URL**
    This should be something like `https://gosei-play-server.herokuapp.com`
 
 ## 2. Deploying the Frontend to Netlify
@@ -127,22 +153,34 @@ The local frontend will connect to your local Socket.IO server running on port 3
 
 ## 5. Troubleshooting
 
+### Git and Deployment Issues
+
+- **"No such app" error**: Make sure you're in the correct directory with the git repository
+- **Branch name issues**: Use `git branch` to check your current branch, then use the correct push command
+- **Permission denied**: Make sure you're logged in with `heroku login`
+- **Git remote issues**: Add Heroku as a remote with `heroku git:remote -a your-app-name`
+- **Deployment fails**: Check logs with `heroku logs --tail`
+
 ### Connection Issues
 
 - Check the browser console for connection errors
 - Verify that CORS is correctly configured on the Heroku server
 - Make sure the Socket.IO client version matches the server version
+- If connections work locally but not on Heroku, check network settings with `heroku features:enable http-routing`
 
 ### Game Sync Problems
 
 - Check that both players have proper WebSocket connections
 - Verify that game state is being transmitted correctly
 - Check server logs for any errors in game state management
+- If players can't see each other's moves, verify that room-based broadcasting is working
 
 ### Heroku-specific Issues
 
 - Remember that Heroku dynos go to sleep after 30 minutes of inactivity on free tier
 - Consider upgrading to a hobby dyno ($7/month) to avoid sleep issues
+- If your app crashes, check memory usage with `heroku logs --tail`
+- Add error handling to prevent crashes due to unexpected input
 
 ## 6. Maintenance
 
@@ -160,4 +198,13 @@ The local frontend will connect to your local Socket.IO server running on port 3
   ```bash
   npm run build
   netlify deploy --prod
-  ``` 
+  ```
+
+## 7. Common Heroku Commands
+
+- **View logs**: `heroku logs --tail`
+- **Access Bash console**: `heroku run bash`
+- **Restart dyno**: `heroku restart`
+- **View app info**: `heroku info`
+- **Add collaborator**: `heroku access:add email@example.com`
+- **Add custom domain**: `heroku domains:add www.yourdomain.com` 
