@@ -25,7 +25,7 @@ const io = socketIo(server, {
   cors: {
     // Allow connections from any origin in development, but restrict in production
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://gosei-play.netlify.app', 'https://*.netlify.app'] 
+      ? ['https://gosei-play.netlify.app', 'https://*.netlify.app', 'https://svr-01.gosei.xyz', 'https://*.gosei.xyz'] 
       : '*',
     methods: ['GET', 'POST'],
     credentials: true

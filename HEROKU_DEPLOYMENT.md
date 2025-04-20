@@ -5,7 +5,7 @@ This document outlines how to deploy Gosei Play using Heroku for the Socket.IO s
 ## Architecture Overview
 
 - **Frontend**: React app deployed on Netlify
-- **Backend**: Socket.IO server deployed on Heroku
+- **Backend**: Socket.IO server deployed on Heroku with custom domain (svr-01.gosei.xyz)
 
 ## 1. Deploying the Socket.IO Server to Heroku
 
@@ -79,8 +79,28 @@ This document outlines how to deploy Gosei Play using Heroku for the Socket.IO s
    ```
    You should see a JSON response like: `{"status":"ok","timestamp":"..."}`
 
-9. **Get your Heroku app URL**
-   This should be something like `https://gosei-play-server.herokuapp.com`
+9. **Set up a custom domain (Optional)**
+   
+   a. Add the domain to your Heroku app:
+   ```bash
+   heroku domains:add svr-01.gosei.xyz
+   ```
+   
+   b. Get the DNS target from Heroku:
+   ```bash
+   heroku domains
+   ```
+   
+   c. Configure your DNS provider to point your domain to the Heroku DNS target.
+   
+   d. If you need SSL (recommended):
+   ```bash
+   heroku certs:auto:enable
+   ```
+
+10. **Get your server URL**
+    This will be either your Heroku URL (e.g., `https://gosei-play-server.herokuapp.com`) 
+    or your custom domain (e.g., `https://svr-01.gosei.xyz`)
 
 ## 2. Deploying the Frontend to Netlify
 
@@ -115,7 +135,7 @@ This document outlines how to deploy Gosei Play using Heroku for the Socket.IO s
    - Go to Site settings → Build & deploy → Environment
    - Add the following variable:
      - Key: `REACT_APP_SOCKET_URL`
-     - Value: `https://gosei-play-server.herokuapp.com` (your Heroku app URL)
+     - Value: `https://svr-01.gosei.xyz` (your custom domain)
 
 4. **Trigger a new build**
    ```bash
@@ -167,6 +187,7 @@ The local frontend will connect to your local Socket.IO server running on port 3
 - Verify that CORS is correctly configured on the Heroku server
 - Make sure the Socket.IO client version matches the server version
 - If connections work locally but not on Heroku, check network settings with `heroku features:enable http-routing`
+- For custom domain issues, verify DNS is properly configured with `dig svr-01.gosei.xyz`
 
 ### Game Sync Problems
 
@@ -181,6 +202,13 @@ The local frontend will connect to your local Socket.IO server running on port 3
 - Consider upgrading to a hobby dyno ($7/month) to avoid sleep issues
 - If your app crashes, check memory usage with `heroku logs --tail`
 - Add error handling to prevent crashes due to unexpected input
+
+### Custom Domain Issues
+
+- Check DNS propagation with `dig svr-01.gosei.xyz` or an online DNS checker
+- Verify Heroku's SSL certificate is correctly set up with `heroku certs:auto`
+- Make sure your browser is not blocking mixed content if using HTTPS
+- Check for SSL/TLS handshake errors in the browser console
 
 ## 6. Maintenance
 
@@ -207,4 +235,6 @@ The local frontend will connect to your local Socket.IO server running on port 3
 - **Restart dyno**: `heroku restart`
 - **View app info**: `heroku info`
 - **Add collaborator**: `heroku access:add email@example.com`
-- **Add custom domain**: `heroku domains:add www.yourdomain.com` 
+- **Add custom domain**: `heroku domains:add www.yourdomain.com`
+- **Check SSL certificates**: `heroku certs:auto`
+- **Check domains**: `heroku domains` 
