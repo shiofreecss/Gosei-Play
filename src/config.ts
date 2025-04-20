@@ -6,7 +6,7 @@ const isDev = process.env.NODE_ENV === 'development';
 // Socket server URL
 export const SOCKET_URL = isDev 
   ? 'http://localhost:3001' 
-  : process.env.REACT_APP_SOCKET_URL || '/.netlify/functions/socket-server';
+  : process.env.REACT_APP_SOCKET_URL || 'https://gosei-play-server.herokuapp.com';
 
 // API base URL
 export const API_BASE_URL = isDev
