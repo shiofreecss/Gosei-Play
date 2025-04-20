@@ -1,5 +1,14 @@
 // Configuration for environment-specific settings
 
+// Define types for environment
+declare const process: {
+  env: {
+    NODE_ENV: string;
+    REACT_APP_SOCKET_URL?: string;
+    REACT_APP_API_URL?: string;
+  }
+}
+
 // Get the current environment
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -11,7 +20,7 @@ export const SOCKET_URL = isDev
 // API base URL
 export const API_BASE_URL = isDev
   ? 'http://localhost:3001/api'
-  : '/.netlify/functions/api';
+  : process.env.REACT_APP_API_URL || 'https://api.gosei.xyz/api';
 
 // Game configuration
 export const DEFAULT_BOARD_SIZE = 19;

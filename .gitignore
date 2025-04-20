@@ -59,31 +59,11 @@ logs
 .chrome/
 debug.log
 
-# Local Netlify folder
-.netlify
-
-# Netlify Functions build artifacts
-/functions-build
-/lambda
-/build/socket-server
-/build/functions
-
 # serverless directory
 .serverless
 
 # FuseBox cache
 .fusebox/
-
-# Deployment files
-HEROKU_DEPLOYMENT.md
-NETLIFY_SETUP.md
-heroku-server/
-netlify-build.sh
-netlify.toml
-**/*.pem
-**/*.key
-**/*.crt
-**/*.cert
 
 # Sensitive configuration
 **/config.prod.ts
@@ -92,3 +72,9 @@ netlify.toml
 **/*-secrets.json
 **/*_secrets.json
 **/*.secret.*
+
+# Certificate files
+**/*.pem
+**/*.key
+**/*.crt
+**/*.cert
