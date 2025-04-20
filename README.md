@@ -5,6 +5,10 @@ A modern, responsive real-time Go (Baduk/Weiqi) game application built with Reac
 ## Current Version
 v1.0.2 - See [VERSION.md](VERSION.md) for complete version history and change details.
 
+## Production
+- **Gosei Play**: [https://play.gosei.xyz](https://play.gosei.xyz)
+- **Kifu Reader**: [https://kifu.gosei.xyz](https://kifu.gosei.xyz)
+
 ## Features
 
 - **Real-time multiplayer Go game** with socket-based communication
