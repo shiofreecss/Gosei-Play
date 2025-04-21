@@ -416,9 +416,12 @@ const HomePage: React.FC = () => {
           <p className="text-xl text-neutral-600">
             Play Go online with friends around the world
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex justify-center space-x-6">
             <Link to="/board-demo" className="text-primary-600 underline hover:text-primary-800 transition-colors">
               View board size comparison
+            </Link>
+            <Link to="/board-demo" className="text-primary-600 underline hover:text-primary-800 transition-colors">
+              Try board themes
             </Link>
           </div>
         </header>

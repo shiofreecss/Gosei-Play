@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Board, Position, Stone, StoneColor, Territory } from '../../types/go';
 import { isHandicapPoint } from '../../utils/handicapUtils';
 import { playStoneSound } from '../../utils/soundUtils';
+import { useBoardTheme } from '../../context/BoardThemeContext';
 
 interface GoBoardProps {
   board: Board;
@@ -31,6 +32,7 @@ const GoBoard: React.FC<GoBoardProps> = ({
   isHandicapPlacement = false,
 }) => {
   const [hoverPosition, setHoverPosition] = useState<Position | null>(null);
+  const { currentTheme } = useBoardTheme();
 
   // Get star point positions based on board size
   const getStarPoints = (size: number): Position[] => {
@@ -147,7 +149,7 @@ const GoBoard: React.FC<GoBoardProps> = ({
 
   return (
     <div className="relative">
-      <div className={`board board-${board.size}`}>
+      <div className={`board board-${board.size} board-theme-${currentTheme}`}>
         {Array.from({ length: board.size * board.size }).map((_, index) => {
           const x = index % board.size;
           const y = Math.floor(index / board.size);

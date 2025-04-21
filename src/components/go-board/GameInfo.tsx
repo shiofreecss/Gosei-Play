@@ -2,6 +2,7 @@ import React from 'react';
 import { GameState, Player, GameMove, Position, StoneColor, GameType } from '../../types/go';
 import TimeControl from '../TimeControl';
 import SoundSettings from '../SoundSettings';
+import { useBoardTheme } from '../../context/BoardThemeContext';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true, color: StoneColor } {
@@ -406,6 +407,8 @@ const GameInfo: React.FC<GameInfoProps> = ({
     color: '#4b5563',
   };
 
+  const { currentTheme, setTheme, availableThemes } = useBoardTheme();
+
   return (
     <div style={containerStyle}>
       <h2 style={titleStyle}>
@@ -710,6 +713,44 @@ const GameInfo: React.FC<GameInfoProps> = ({
             </svg>
             Resign Game
           </button>
+
+          {/* Theme Selection */}
+          <div className="mt-2 border-t border-gray-200 pt-2">
+            <div className="text-sm font-medium mb-2 text-neutral-700">Board Theme</div>
+            <div className="grid grid-cols-3 gap-2">
+              {availableThemes.map(theme => (
+                <button
+                  key={theme.id}
+                  onClick={() => setTheme(theme.id)}
+                  className={`p-2 rounded transition-all ${
+                    currentTheme === theme.id 
+                      ? 'bg-primary-100 border border-primary-300' 
+                      : 'bg-white border border-gray-200 hover:border-primary-200'
+                  }`}
+                  title={theme.description}
+                >
+                  <div 
+                    className={`w-full aspect-square rounded border board-theme-${theme.id}`}
+                    style={{ position: 'relative' }}
+                  >
+                    <div 
+                      className={`stone stone-black absolute`}
+                      style={{ width: '35%', height: '35%', top: '25%', left: '25%' }} 
+                    />
+                    <div 
+                      className={`stone stone-white absolute`}
+                      style={{ width: '35%', height: '35%', top: '45%', left: '45%' }} 
+                    />
+                  </div>
+                  <div className="text-xs mt-1 truncate">
+                    {theme.id === 'default' ? 'Default' : 
+                     theme.id === 'wood-3d' ? 'Wood 3D' : 
+                     theme.id === 'universe' ? 'Universe' : theme.name}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

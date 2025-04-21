@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import GoBoard from '../components/go-board/GoBoard';
 import GameInfo from '../components/go-board/GameInfo';
 import GameError from '../components/GameError';
+import BoardThemeButton from '../components/BoardThemeButton';
 import { useGame } from '../context/GameContext';
 import { Position, GameMove } from '../types/go';
 import ChatBox from '../components/ChatBox';
@@ -489,6 +490,11 @@ const GamePage: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           <div className="xl:col-span-3 flex flex-col items-center">
             <div className="w-full max-w-[90vw] md:max-w-[80vw] xl:max-w-full">
+              {/* Board theme selector button */}
+              <div className="flex justify-end mb-2">
+                <BoardThemeButton />
+              </div>
+              
               <GoBoard
                 board={gameState.board}
                 currentTurn={gameState.currentTurn}

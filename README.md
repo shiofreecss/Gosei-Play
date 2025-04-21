@@ -3,12 +3,13 @@
 A modern, responsive real-time Go (Baduk/Weiqi) game application built with React, TypeScript, and Socket.io.
 
 ## Current Version
-v1.0.2 - See [VERSION.md](VERSION.md) for complete version history and change details.
+v1.0.3 - See [VERSION.md](VERSION.md) for complete version history and change details.
 
 ## Features
 
 - **Real-time multiplayer Go game** with socket-based communication
 - **Multiple board sizes** (9×9, 13×13, 19×19) suitable for players of all levels
+- **Customizable board themes** including Default, Dark Wood 3D, Light Wood 3D, and Universe themes
 - **Authentic stone placement sounds** with toggle option in game settings
 - **Zen background music player** with multiple traditional tracks and volume control
 - **Real-time in-game chat** for communication between players
@@ -138,6 +139,15 @@ The socket server will run on http://localhost:3001
 - **9×9**: Great for beginners and quick games (15-30 minutes)
 - **13×13**: Good for intermediate players looking for more strategic depth
 - **19×19**: Traditional full-size board used in professional play
+
+## Board Themes
+
+- **Default Board**: Standard wooden go board with flat stones
+- **Dark Wood 3D**: Realistic dark wooden board with 3D stone rendering
+- **Light Wood 3D**: Realistic light wooden board with 3D stone rendering
+- **Universe**: Cosmic-themed board with black holes and white holes
+
+Board themes can be changed during gameplay from the Game Information panel. Your theme preference is saved between games.
 
 ## Technology Stack
 

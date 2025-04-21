@@ -1,5 +1,31 @@
 # Gosei Play Version History
 
+## v1.0.3 (2025-04-21)
+
+### Features
+- Added comprehensive board theme system with multiple options:
+  - Default Board: Standard wooden go board with flat stones
+  - Dark Wood 3D: Realistic dark wooden board with 3D stone rendering
+  - Light Wood 3D: Realistic light wooden board with 3D stone rendering
+  - Universe: Cosmic-themed board with black holes and white holes
+- Enhanced theme selector UI in game information panel
+- Improved wood grain textures for both default and 3D themes
+- Fixed theme icon display to ensure proper square proportions
+
+### Improvements
+- Made grid lines more visible on wooden themes for better gameplay clarity
+- Refined stone designs across all themes for consistent styling
+- Added theme preview in selection dropdown
+- Enhanced star point styling for each theme
+- Board theme preferences now saved between sessions
+- More realistic wood textures with SVG-based grain patterns
+- Consistent board size indicators across all themes
+
+### Bug Fixes
+- Fixed theme icon display in dropdown selectors
+- Fixed grid line visibility issues on dark themes
+- Fixed inconsistent styling of control buttons between themes
+
 ## v1.0.2 (2025-04-19)
 
 ### Features
