@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GameProvider } from './context/GameContext';
 import { BoardThemeProvider } from './context/BoardThemeContext';
+import { AppThemeProvider } from './context/AppThemeContext';
 import HomePage from './pages/HomePage';
 import GamePage from './pages/GamePage';
 import BoardDemoPage from './pages/BoardDemoPage';
@@ -17,16 +18,18 @@ function App() {
 
   return (
     <Router>
-      <GameProvider>
-        <BoardThemeProvider>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/game/:gameId" element={<GamePage />} />
-            <Route path="/board-demo" element={<BoardDemoPage />} />
-          </Routes>
-          <MusicPlayer />
-        </BoardThemeProvider>
-      </GameProvider>
+      <AppThemeProvider>
+        <GameProvider>
+          <BoardThemeProvider>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/game/:gameId" element={<GamePage />} />
+              <Route path="/board-demo" element={<BoardDemoPage />} />
+            </Routes>
+            <MusicPlayer />
+          </BoardThemeProvider>
+        </GameProvider>
+      </AppThemeProvider>
     </Router>
   );
 }

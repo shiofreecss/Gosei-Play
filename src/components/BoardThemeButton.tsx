@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useBoardTheme, BoardTheme } from '../context/BoardThemeContext';
+import { useAppTheme } from '../context/AppThemeContext';
 
 const BoardThemeButton: React.FC = () => {
   const { currentTheme, setTheme, availableThemes } = useBoardTheme();
+  const { currentTheme: appTheme } = useAppTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -25,11 +27,31 @@ const BoardThemeButton: React.FC = () => {
     return theme.charAt(0).toUpperCase() + theme.slice(1).replace('-', ' ');
   };
 
+  // Determine if we're using traditional theme
+  const isTraditionalTheme = appTheme === 'traditional';
+
+  // Custom styles for the dropdown
+  const dropdownStyle = {
+    position: 'absolute' as const,
+    top: '100%',
+    right: 0,
+    zIndex: 9999,
+    maxHeight: '80vh',
+    overflowY: 'auto' as const,
+    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+  };
+
+  // Additional styles for fixing the traditional theme issues
+  const containerStyle = isTraditionalTheme ? {
+    position: 'relative' as const,
+    zIndex: 100,
+  } : {};
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative board-theme-selector" ref={dropdownRef} style={containerStyle}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white rounded-md shadow border border-neutral-200 hover:border-primary-300 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 bg-white rounded-md shadow border border-neutral-200 hover:border-primary-300 transition-colors board-theme-button"
       >
         <div 
           className={`w-6 h-6 aspect-square flex-shrink-0 rounded border border-neutral-400 board-theme-${currentTheme}`}
@@ -52,7 +74,10 @@ const BoardThemeButton: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-neutral-200 z-50">
+        <div 
+          className="board-theme-dropdown bg-white rounded-lg shadow-lg border border-neutral-200" 
+          style={dropdownStyle}
+        >
           <div className="p-2">
             <div className="text-sm font-medium text-neutral-700 px-3 py-2">
               Select Theme
@@ -64,9 +89,9 @@ const BoardThemeButton: React.FC = () => {
                   setTheme(theme.id);
                   setIsOpen(false);
                 }}
-                className={`flex items-center gap-3 w-full px-3 py-2 text-left rounded-md transition-colors ${
+                className={`flex items-center gap-3 w-full px-3 py-2 text-left rounded-md transition-colors board-theme-option ${
                   currentTheme === theme.id
-                    ? 'bg-primary-50 text-primary-800'
+                    ? 'bg-primary-50 text-primary-800 selected'
                     : 'hover:bg-neutral-100'
                 }`}
               >
@@ -86,7 +111,7 @@ const BoardThemeButton: React.FC = () => {
                 </div>
                 <div>
                   <div className="font-medium">{formatThemeName(theme.id)}</div>
-                  <div className="text-xs text-neutral-500">{theme.description}</div>
+                  <div className="text-xs text-neutral-500 board-theme-option-description">{theme.description}</div>
                 </div>
               </button>
             ))}

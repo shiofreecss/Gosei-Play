@@ -214,3 +214,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Special thanks to all contributors and the Go community
 - UI design inspired by modern web applications and traditional Go aesthetics
+- Powered by [Beaver Foundation](https://beaver.foundation) - [ShioDev](https://hello.shiodev.com)

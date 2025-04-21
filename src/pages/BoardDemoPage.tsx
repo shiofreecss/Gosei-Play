@@ -4,6 +4,7 @@ import GoBoard from '../components/go-board/GoBoard';
 import { Board, Position, StoneColor } from '../types/go';
 import { useBoardTheme } from '../context/BoardThemeContext';
 import BoardThemeSelector from '../components/BoardThemeSelector';
+import AppThemeSelector from '../components/AppThemeSelector';
 
 const BoardDemoPage: React.FC = () => {
   const { currentTheme } = useBoardTheme();
@@ -58,9 +59,12 @@ const BoardDemoPage: React.FC = () => {
       <header className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">Board Themes Demo</h1>
-          <Link to="/" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-            Back to Home
-          </Link>
+          <div className="flex items-center space-x-4">
+            <AppThemeSelector />
+            <Link to="/" className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+              Back to Home
+            </Link>
+          </div>
         </div>
         <p className="text-neutral-600">
           Select a board theme below and try placing stones to see how it looks. Your theme choice will be saved for your games.
@@ -90,6 +94,10 @@ const BoardDemoPage: React.FC = () => {
           <div className="bg-white p-4 rounded-xl shadow">
             <h2 className="text-xl font-semibold mb-4">Theme Selection</h2>
             <BoardThemeSelector />
+            <div className="mt-4 pt-4 border-t">
+              <h3 className="text-lg font-medium mb-2">App Theme</h3>
+              <AppThemeSelector />
+            </div>
           </div>
           
           <div className="bg-white p-4 rounded-xl shadow">
@@ -100,6 +108,7 @@ const BoardDemoPage: React.FC = () => {
               <li>Your selection will be saved for all games</li>
               <li>The "Wood 3D" theme has more realistic stones with depth</li>
               <li>The "Universe" theme represents stones as black holes and white holes</li>
+              <li>Change the app theme to customize the overall style</li>
             </ul>
           </div>
         </div>

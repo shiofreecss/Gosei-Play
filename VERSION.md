@@ -11,6 +11,9 @@
 - Enhanced theme selector UI in game information panel
 - Improved wood grain textures for both default and 3D themes
 - Fixed theme icon display to ensure proper square proportions
+- Added application-wide themes to customize the entire UI experience:
+  - Modern: Clean, contemporary interface with light colors (default)
+  - Traditional: Classic East Asian style inspired by traditional Go artwork with reddish-brown accent colors
 
 ### Improvements
 - Made grid lines more visible on wooden themes for better gameplay clarity
@@ -20,11 +23,27 @@
 - Board theme preferences now saved between sessions
 - More realistic wood textures with SVG-based grain patterns
 - Consistent board size indicators across all themes
+- Application theme settings persist between sessions
+- Added traditional paper texture to traditional theme
+- Enhanced styling for buttons, cards, and UI elements in each theme
+- Traditional theme features brush stroke styling and authentic East Asian aesthetic elements
+- Added subtle ink-wash painting style decorative elements to the traditional theme
+- Improved button design in traditional theme with reddish-brown color scheme matching historical Go paintings
+- Fixed board theme selection dropdown styling in traditional theme
+- Simplified theme selection to focus on Modern and Traditional options for better user experience
+- Maintained consistent server status panel positioning across all themes
+- Enhanced server status panel styling to match theme aesthetics
+- Improved connection status panel with consistent positioning and styling across devices and themes
+- Added responsive design for connection status panel on mobile devices
 
 ### Bug Fixes
 - Fixed theme icon display in dropdown selectors
 - Fixed grid line visibility issues on dark themes
 - Fixed inconsistent styling of control buttons between themes
+- Fixed board theme dropdown styling in traditional theme to maintain consistent look with Modern theme
+- Fixed server status panel positioning in Traditional theme to match Modern theme layout
+- Fixed z-index and visibility issues with connection status panel to ensure it's always properly displayed
+- Resolved styling conflicts in Traditional theme for server connection status
 
 ## v1.0.2 (2025-04-19)
 
@@ -124,3 +143,6 @@
 
 ### Bug Fixes
 - Initial release - no recorded fixes 
+
+## Credits
+Powered by [Beaver Foundation](https://beaver.foundation) - [ShioDev](https://hello.shiodev.com) 

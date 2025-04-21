@@ -4,6 +4,8 @@ import GoBoard from '../components/go-board/GoBoard';
 import GameInfo from '../components/go-board/GameInfo';
 import GameError from '../components/GameError';
 import BoardThemeButton from '../components/BoardThemeButton';
+import AppThemeSelector from '../components/AppThemeSelector';
+import ConnectionStatus from '../components/ConnectionStatus';
 import { useGame } from '../context/GameContext';
 import { Position, GameMove } from '../types/go';
 import ChatBox from '../components/ChatBox';
@@ -440,43 +442,51 @@ const GamePage: React.FC = () => {
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold text-primary-700">Gosei Play</h1>
-          <div className="flex gap-2 flex-wrap justify-center">
+          <div className="flex items-center space-x-4">
+            <AppThemeSelector />
+          </div>
+        </div>
+        
+        <div className="flex gap-2 flex-wrap justify-center mb-4">
+          <button
+            onClick={handleLeaveGame}
+            className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
+          >
+            Leave Game
+          </button>
+          <button
+            onClick={copyGameLink}
+            className="btn btn-primary"
+          >
+            {copied ? 'Copied!' : 'Copy Game Link'}
+          </button>
+          {/* Only show Sync Game button when developer tools are enabled */}
+          {showDevTools && (
             <button
-              onClick={handleLeaveGame}
+              onClick={handleSyncGame}
               className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
+              disabled={syncing}
             >
-              Leave Game
+              {syncing ? 'Syncing...' : 'Sync Game'}
             </button>
+          )}
+          <button
+            onClick={toggleAutoSave}
+            className={`btn ${autoSaveEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'} focus:ring-neutral-400`}
+          >
+            {autoSaveEnabled ? 'Auto-Save: ON' : 'Auto-Save: OFF'}
+          </button>
+          {!autoSaveEnabled && (
             <button
-              onClick={copyGameLink}
-              className="btn btn-primary"
+              onClick={saveGameNow}
+              className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 focus:ring-blue-400"
             >
-              {copied ? 'Copied!' : 'Copy Game Link'}
+              Save Now
             </button>
-            {/* Only show Sync Game button when developer tools are enabled */}
-            {showDevTools && (
-              <button
-                onClick={handleSyncGame}
-                className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
-                disabled={syncing}
-              >
-                {syncing ? 'Syncing...' : 'Sync Game'}
-              </button>
-            )}
-            <button
-              onClick={toggleAutoSave}
-              className={`btn ${autoSaveEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'} focus:ring-neutral-400`}
-            >
-              {autoSaveEnabled ? 'Auto-Save: ON' : 'Auto-Save: OFF'}
-            </button>
-            {!autoSaveEnabled && (
-              <button
-                onClick={saveGameNow}
-                className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 focus:ring-blue-400"
-              >
-                Save Now
-              </button>
-            )}
+          )}
+          {/* Board theme selector button */}
+          <div className="board-theme-container">
+            <BoardThemeButton />
           </div>
         </div>
         
@@ -490,11 +500,6 @@ const GamePage: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           <div className="xl:col-span-3 flex flex-col items-center">
             <div className="w-full max-w-[90vw] md:max-w-[80vw] xl:max-w-full">
-              {/* Board theme selector button */}
-              <div className="flex justify-end mb-2">
-                <BoardThemeButton />
-              </div>
-              
               <GoBoard
                 board={gameState.board}
                 currentTurn={gameState.currentTurn}
@@ -692,6 +697,9 @@ const GamePage: React.FC = () => {
           </p>
         </div>
       )}
+      
+      {/* Add connection status component */}
+      <ConnectionStatus />
     </div>
   );
 };

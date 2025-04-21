@@ -1,3 +1,326 @@
+/* App Theme Styles */
+/* Modern Theme (Default) */
+.theme-modern {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #333333;
+  --text-secondary: #6c757d;
+  --accent-color: #0284c7;
+  --border-color: #e2e8f0;
+  --header-bg: #ffffff;
+  --card-bg: #ffffff;
+  --button-bg: #0284c7;
+  --button-text: #ffffff;
+  --button-hover: #0369a1;
+  --font-main: 'Inter', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+}
+
+/* Traditional East Asian Theme */
+.theme-traditional {
+  --bg-primary: #f5f0e6;
+  --bg-secondary: #eae3d6;
+  --text-primary: #483826;
+  --text-secondary: #725a3a;
+  --accent-color: #a34730;
+  --border-color: #c9b18d;
+  --header-bg: #eae3d6;
+  --card-bg: #f9f5eb;
+  --button-bg: #a34730;
+  --button-text: #f9f5eb;
+  --button-hover: #8a3a28;
+  --font-main: 'Noto Serif', 'Times New Roman', serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper)' opacity='0.05'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg width='400' height='400' viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30,20 Q50,10 70,30 T100,40' stroke='%23c9b18d' stroke-width='0.5' fill='none' opacity='0.1' transform='rotate(10)'/%3E%3Cpath d='M300,100 Q330,80 360,120' stroke='%23a34730' stroke-width='0.3' fill='none' opacity='0.05' transform='rotate(-5)'/%3E%3C/svg%3E");
+  position: relative;
+}
+
+/* Traditional ink-wash painting decoration - only visible on large screens */
+.theme-traditional::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 400px;
+  height: 350px;
+  background-image: url("data:image/svg+xml,%3Csvg width='400' height='350' viewBox='0 0 400 350' xmlns='http://www.w3.org/2000/svg'%3E%3C!-- Bamboo trunk --%3E%3Cpath d='M330,350 C330,280 325,250 335,200 C345,150 355,100 350,30' stroke='%23483826' stroke-width='8' fill='none' opacity='0.07'/%3E%3C!-- Bamboo sections --%3E%3Cpath d='M328,310 L357,307' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3Cpath d='M325,270 L360,265' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3Cpath d='M330,230 L362,228' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3Cpath d='M335,190 L365,185' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3Cpath d='M340,150 L368,145' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3Cpath d='M345,110 L370,105' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3Cpath d='M350,70 L372,65' stroke='%23483826' stroke-width='2' fill='none' opacity='0.07'/%3E%3C!-- Bamboo leaves --%3E%3Cpath d='M340,70 C320,60 310,40 315,30 C330,35 345,50 340,70' stroke='%23483826' stroke-width='1' fill='none' opacity='0.07'/%3E%3Cpath d='M355,90 C375,80 395,85 400,75 C390,65 370,70 355,90' stroke='%23483826' stroke-width='1' fill='none' opacity='0.07'/%3E%3Cpath d='M325,140 C305,135 290,145 280,140 C290,125 310,125 325,140' stroke='%23483826' stroke-width='1' fill='none' opacity='0.07'/%3E%3Cpath d='M370,160 C390,155 400,140 395,130 C380,135 365,150 370,160' stroke='%23483826' stroke-width='1' fill='none' opacity='0.07'/%3E%3Cpath d='M330,200 C310,195 300,175 305,165 C320,170 335,185 330,200' stroke='%23483826' stroke-width='1' fill='none' opacity='0.07'/%3E%3C!-- Mountains in background --%3E%3Cpath d='M20,350 C60,320 100,330 150,310 C200,290 250,300 300,330 C350,360 380,350 400,340' stroke='%23483826' stroke-width='1' fill='none' opacity='0.04'/%3E%3Cpath d='M0,350 C40,330 80,300 120,310 C180,320 250,340 320,330 C370,325 390,340 400,350' stroke='%23483826' stroke-width='1' fill='none' opacity='0.05'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+/* Hide decoration on small screens */
+@media (max-width: 768px) {
+  .theme-traditional::after {
+    display: none;
+  }
+}
+
+/* Traditional theme specific elements */
+.theme-traditional .app-card {
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-texture'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23paper-texture)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* Connection status panel - base styling for all themes */
+.connection-status-panel {
+  z-index: 9999 !important; /* Ensure it's always on top */
+  position: fixed !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+  background-color: #ffffff !important; /* Explicit background */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.75rem !important;
+  font-size: 0.875rem !important;
+  width: auto !important;
+  min-width: 200px !important;
+  max-width: 300px !important;
+}
+
+/* Mobile adjustments for connection status panel */
+@media (max-width: 640px) {
+  .connection-status-panel {
+    bottom: 0.5rem !important;
+    right: 0.5rem !important;
+    padding: 0.5rem !important;
+    font-size: 0.75rem !important;
+    max-width: 200px;
+  }
+  
+  .connection-status-panel button {
+    font-size: 0.75rem !important;
+  }
+  
+  .connection-status-timestamp {
+    font-size: 0.65rem !important;
+  }
+}
+
+/* Connection status panel in traditional theme */
+.theme-traditional .connection-status-panel {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-traditional .connection-status-text {
+  color: var(--text-primary) !important;
+}
+
+.theme-traditional .connection-status-refresh {
+  color: var(--accent-color) !important;
+}
+
+.theme-traditional .connection-status-refresh:hover {
+  color: var(--button-hover) !important;
+}
+
+.theme-traditional .connection-status-timestamp {
+  color: var(--text-secondary) !important;
+}
+
+/* Fix Board Theme dropdown in traditional theme */
+.theme-traditional .board-theme-button {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.theme-traditional .board-theme-dropdown {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-traditional .board-theme-option {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-traditional .board-theme-option:hover,
+.theme-traditional .board-theme-option.selected {
+  background-color: var(--bg-secondary);
+}
+
+.theme-traditional .board-theme-option-description {
+  color: var(--text-secondary);
+}
+
+/* Traditional theme buttons */
+.theme-traditional .btn,
+.theme-traditional button {
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+  letter-spacing: 0.3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-traditional .btn-primary,
+.theme-traditional .btn-success,
+.theme-traditional .bg-primary-600 {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid #93402b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='brushed'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23brushed)' opacity='0.1'/%3E%3C/svg%3E");
+}
+
+.theme-traditional .btn-primary:hover,
+.theme-traditional .btn-success:hover, 
+.theme-traditional .bg-primary-600:hover {
+  background-color: var(--button-hover);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.theme-traditional .btn-primary:active,
+.theme-traditional .btn-success:active,
+.theme-traditional .bg-primary-600:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.theme-traditional .btn-secondary {
+  background-color: #e8dcc8;
+  color: #483826;
+  border: 1px solid #c9b18d;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='brushed-light'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23brushed-light)' opacity='0.07'/%3E%3C/svg%3E");
+}
+
+.theme-traditional .btn-secondary:hover {
+  background-color: #ded0b6;
+}
+
+.theme-traditional .btn-secondary:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.theme-traditional h1, 
+.theme-traditional h2, 
+.theme-traditional h3 {
+  color: #3a2e1f;
+  letter-spacing: 0.3px;
+}
+
+.theme-traditional h1.text-primary-700 {
+  color: #483826;
+}
+
+.theme-traditional .app-header {
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='20' viewBox='0 0 200 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,0 L200,0 L200,5 C150,15 50,15 0,5 L0,0 Z' fill='%23c9b18d' opacity='0.2'/%3E%3C/svg%3E");
+  background-position: bottom;
+  background-repeat: repeat-x;
+  border-bottom: 1px solid #c9b18d;
+}
+
+/* Theme-traditional form elements */
+.theme-traditional .form-input,
+.theme-traditional .form-select {
+  border: 1px solid #c9b18d;
+  background-color: #f9f5eb;
+  color: #483826;
+  border-radius: 4px;
+}
+
+.theme-traditional .form-input:focus,
+.theme-traditional .form-select:focus {
+  border-color: #a34730;
+  box-shadow: 0 0 0 3px rgba(163, 71, 48, 0.2);
+  outline: none;
+}
+
+/* Links in traditional theme */
+.theme-traditional a {
+  color: #a34730;
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  border-bottom: 1px solid transparent;
+}
+
+.theme-traditional a:hover {
+  color: #8a3a28;
+  border-bottom-color: #8a3a28;
+}
+
+.theme-traditional a.underline {
+  text-decoration: none;
+  border-bottom: 1px solid rgba(163, 71, 48, 0.3);
+}
+
+.theme-traditional a.underline:hover {
+  border-bottom-color: #a34730;
+}
+
+.theme-traditional .bg-white,
+.theme-traditional .bg-neutral-50,
+.theme-traditional .bg-neutral-100 {
+  background-color: var(--bg-primary);
+}
+
+.theme-traditional .rounded-xl,
+.theme-traditional .rounded-lg {
+  position: relative;
+}
+
+.theme-traditional .rounded-xl::after,
+.theme-traditional .rounded-lg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper-texture'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23paper-texture)' opacity='0.02'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* App Theme Selector */
+.app-theme-selector {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0.5rem 1rem;
+}
+
+.theme-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.theme-select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.theme-traditional .theme-select {
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  border: 1px solid #c9b18d;
+}
+
 /* Keep only the Go board specific styles, UI styles are now in Tailwind */
 
 /* Board styles */
@@ -17,7 +340,7 @@
     linear-gradient(90deg, rgba(200, 160, 90, 0.07) 1px, transparent 1px),
     linear-gradient(0deg, rgba(150, 110, 60, 0.07) 1px, transparent 1px),
     linear-gradient(135deg, #E6BE7E, #D6A75E);
-  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.2);
   border: 1px solid #C9A36D;
 }
 
@@ -440,4 +763,141 @@
 .board-theme-light-wood-3d .control-button:active {
   background: linear-gradient(to bottom, #D6A75E, #E6BE7E);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Traditional theme with enhanced board elements */
+.theme-traditional .board-bg {
+  border: 1px solid #c9b18d;
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-traditional .board-theme-light-wood-3d {
+  background-color: #E1BB76;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='5' stitchTiles='stitch' seed='15'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23wood)' opacity='0.12'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8 0.1' numOctaves='3' seed='8'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23grain)' opacity='0.06'/%3E%3C/svg%3E"),
+    linear-gradient(90deg, rgba(200, 160, 90, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(180, 140, 70, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, #E1BB76, #D6A75E);
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.25), 0 4px 8px -2px rgba(0, 0, 0, 0.15), inset 0 0 20px rgba(255, 248, 230, 0.2);
+  border: 1px solid #C9A36D;
+}
+
+/* Traditional Go stones */
+.theme-traditional .board-theme-light-wood-3d .stone-black {
+  background: radial-gradient(circle at 35% 35%, #333, #000);
+  color: white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), inset 0 0 5px rgba(100, 100, 100, 0.3);
+  border: 1px solid #222;
+}
+
+.theme-traditional .board-theme-light-wood-3d .stone-white {
+  background: radial-gradient(circle at 35% 35%, #fff, #e9e9e9);
+  color: black;
+  border: 1px solid #aaa;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.theme-traditional .board-theme-light-wood-3d .board-intersection::before,
+.theme-traditional .board-theme-light-wood-3d .board-intersection::after {
+  background-color: rgba(30, 15, 5, 0.8);
+  opacity: 0.85;
+}
+
+.theme-traditional .board-theme-light-wood-3d .star-point {
+  background-color: #111;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.7);
+}
+
+/* Traditional theme board controls */
+.theme-traditional .board-theme-light-wood-3d .control-button {
+  background: linear-gradient(to bottom, #a34730, #8a3a28);
+  color: rgba(255, 245, 235, 0.95);
+  border: 1px solid #93402b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease-in-out;
+  border-radius: 4px;
+}
+
+.theme-traditional .board-theme-light-wood-3d .control-button:hover {
+  background: linear-gradient(to bottom, #b55941, #a34730);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.theme-traditional .board-theme-light-wood-3d .control-button:active {
+  background: linear-gradient(to bottom, #8a3a28, #a34730);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Additional board theme styles */
+.theme-traditional .board-theme-default {
+  background-color: #E1BB76;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.15' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"),
+    linear-gradient(90deg, rgba(200, 160, 90, 0.07) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(150, 110, 60, 0.07) 1px, transparent 1px),
+    linear-gradient(135deg, #E1BB76, #D6A75E);
+  box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.2);
+  border: 1px solid #C9A36D;
+}
+
+/* Theme-aware component styles */
+.app-header {
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.app-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.app-button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+.app-button:hover {
+  background-color: var(--button-hover);
+}
+
+/* Board theme container in toolbar */
+.board-theme-container {
+  position: relative;
+  z-index: 100;
+}
+
+.board-theme-container .board-theme-dropdown {
+  position: absolute;
+  width: 300px;
+  right: 0;
+  z-index: 9999;
+}
+
+/* Make the button match other buttons in the toolbar */
+.board-theme-container .board-theme-button {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+/* Specific style for traditional theme */
+.theme-traditional .board-theme-container .board-theme-button {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  letter-spacing: 0.3px;
+}
+
+.theme-traditional .board-theme-container .board-theme-dropdown {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { SOCKET_URL } from '../config';
+import { useAppTheme } from '../context/AppThemeContext';
 
 const ConnectionStatus: React.FC = () => {
   const { error } = useGame();
+  const { currentTheme } = useAppTheme();
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [lastChecked, setLastChecked] = useState<string>('');
 
@@ -44,27 +46,27 @@ const ConnectionStatus: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 p-3 bg-white shadow-md rounded-lg text-sm">
+    <div className="fixed bottom-4 right-4 p-3 bg-white shadow-md rounded-lg text-sm connection-status-panel">
       <div className="flex items-center">
         <div 
           className={`w-3 h-3 rounded-full mr-2 ${
             isConnected ? 'bg-green-500' : 'bg-red-500'
           }`} 
         />
-        <span className="text-gray-700">
+        <span className="text-gray-700 connection-status-text">
           Server: {isConnected ? 'Connected' : 'Disconnected'}
         </span>
         <button 
           onClick={checkConnection}
-          className="ml-2 text-primary-600 hover:text-primary-800"
+          className="ml-2 text-primary-600 hover:text-primary-800 connection-status-refresh"
         >
           Refresh
         </button>
       </div>
       {error && (
-        <div className="mt-1 text-red-600 max-w-xs">{error}</div>
+        <div className="mt-1 text-red-600 max-w-xs connection-status-error">{error}</div>
       )}
-      <div className="mt-1 text-gray-500 text-xs">
+      <div className="mt-1 text-gray-500 text-xs connection-status-timestamp">
         Last checked: {lastChecked}
       </div>
     </div>

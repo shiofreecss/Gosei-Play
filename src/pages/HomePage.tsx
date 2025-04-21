@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { GameOptions, ColorPreference, ScoringRule, GameType } from '../types/go';
 import ConnectionStatus from '../components/ConnectionStatus';
+import AppThemeSelector from '../components/AppThemeSelector';
 
 // Define keys for localStorage
 const STORAGE_KEYS = {
@@ -412,6 +413,9 @@ const HomePage: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-12">
+          <div className="flex justify-end mb-2">
+            <AppThemeSelector />
+          </div>
           <h1 className="text-4xl font-bold text-primary-700 mb-2">Gosei Play</h1>
           <p className="text-xl text-neutral-600">
             Play Go online with friends around the world
