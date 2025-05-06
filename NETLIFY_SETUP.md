@@ -23,7 +23,46 @@ This document outlines the deployment setup for Gosei Play on Netlify, including
 
 You may need to set these in the Netlify UI under Site settings > Build & deploy > Environment:
 
-- `REACT_APP_SOCKET_URL` (optional) - Override the socket server URL if needed
+- `REACT_APP_SOCKET_URL` (optional) - Override the socket server URL if needed. **Important:** Set this to your Heroku app URL (e.g., `https://your-app-name.herokuapp.com`) to connect the Netlify frontend to your Heroku backend
+
+## Connecting to Heroku Backend
+
+To connect your Netlify frontend with a Heroku backend:
+
+1. Deploy your server to Heroku:
+   ```
+   cd server
+   # Initialize Git if not already done
+   git init
+   # Create Heroku app
+   heroku create your-app-name
+   # Add and commit your changes
+   git add .
+   git commit -m "Server code for Heroku deployment"
+   # Push to Heroku
+   git push heroku master
+   ```
+
+2. Get your Heroku app URL (e.g., `https://your-app-name.herokuapp.com`)
+
+3. In Netlify dashboard:
+   - Go to Site settings > Build & deploy > Environment
+   - Add environment variable:
+     - Key: `REACT_APP_SOCKET_URL`
+     - Value: `https://your-app-name.herokuapp.com` (your Heroku app URL)
+
+4. Deploy your Netlify site:
+   - If using Git integration, just push to your main branch
+   - If deploying manually:
+     ```
+     npm run build:netlify
+     netlify deploy --prod
+     ```
+
+5. Test the connection by:
+   - Opening your Netlify app URL
+   - Using browser console to verify socket connection to Heroku
+   - Creating a game and checking real-time functionality
 
 ## Local Development
 
