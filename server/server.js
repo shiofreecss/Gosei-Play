@@ -579,6 +579,84 @@ io.on('connection', (socket) => {
       log(`Broadcasting chat message to all clients in room ${gameId}`);
     }
   });
+
+  // Handle undo request
+  socket.on('requestUndo', ({ gameId, playerId, moveIndex }) => {
+    log(`Player ${playerId} requested undo to move ${moveIndex} in game ${gameId}`);
+    
+    const gameState = activeGames.get(gameId);
+    if (gameState) {
+      // Add undo request to game state
+      gameState.undoRequest = {
+        requestedBy: playerId,
+        moveIndex
+      };
+      
+      // Store updated game state
+      activeGames.set(gameId, gameState);
+      
+      // Broadcast updated game state to all clients in the room
+      io.to(gameId).emit('gameState', gameState);
+      log(`Broadcasting undo request to all clients in room ${gameId}`);
+    }
+  });
+
+  // Handle undo response
+  socket.on('respondToUndoRequest', ({ gameId, playerId, accepted, moveIndex }) => {
+    log(`Player ${playerId} ${accepted ? 'accepted' : 'rejected'} undo request in game ${gameId}`);
+    
+    const gameState = activeGames.get(gameId);
+    if (gameState) {
+      if (accepted) {
+        // Revert to the requested move index
+        const historyToKeep = gameState.history.slice(0, moveIndex);
+        
+        // Reset board state
+        let stones = [];
+        
+        // Add handicap stones first if any
+        if (historyToKeep.length === 0 && gameState.currentTurn === 'white' && 
+            gameState.board.stones.some(s => s.color === 'black')) {
+          stones = gameState.board.stones.filter(s => s.color === 'black');
+        } else {
+          // Replay history to create the board state
+          let currentTurn = 'black';
+          
+          historyToKeep.forEach(move => {
+            if (!move.pass) {
+              stones.push({
+                position: move,
+                color: currentTurn
+              });
+              currentTurn = currentTurn === 'black' ? 'white' : 'black';
+            } else {
+              currentTurn = currentTurn === 'black' ? 'white' : 'black';
+            }
+          });
+        }
+        
+        // Calculate next turn
+        const nextTurn = historyToKeep.length === 0 ? 
+          (gameState.board.stones.some(s => s.color === 'black') ? 'white' : 'black') :
+          (historyToKeep.length % 2 === 0 ? 'black' : 'white');
+        
+        // Update game state
+        gameState.board.stones = stones;
+        gameState.currentTurn = nextTurn;
+        gameState.history = historyToKeep;
+      }
+      
+      // Clear the undo request
+      gameState.undoRequest = undefined;
+      
+      // Store updated game state
+      activeGames.set(gameId, gameState);
+      
+      // Broadcast updated game state to all clients in the room
+      io.to(gameId).emit('gameState', gameState);
+      log(`Broadcasting updated game state after undo response to all clients in room ${gameId}`);
+    }
+  });
 });
 
 // Route to check server status
