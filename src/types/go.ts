@@ -91,6 +91,8 @@ export interface GameState {
     whiteStones?: number;
     blackCaptures?: number;
     whiteCaptures?: number;
+    deadBlackStones?: number;
+    deadWhiteStones?: number;
     komi?: number;
   };
   undoRequest?: {

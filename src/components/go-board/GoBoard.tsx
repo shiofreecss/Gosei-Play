@@ -216,9 +216,30 @@ const GoBoard: React.FC<GoBoardProps> = ({
                   style={{ 
                     width: stoneSize, 
                     height: stoneSize,
-                    opacity: isDead ? 0.5 : 1 
+                    opacity: isDead ? 0.3 : 1 
                   }}
-                ></div>
+                >
+                  {isDead && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      className="w-4/5 h-4/5 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                      fill="none"
+                      stroke={stone.color === 'black' ? '#ff5555' : '#ff0000'}
+                      strokeWidth="3.5"
+                      style={{
+                        filter: 'drop-shadow(0px 0px 4px rgba(255, 255, 255, 1))',
+                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                        borderRadius: '50%',
+                        padding: '2px',
+                        zIndex: 10,
+                        boxShadow: '0 0 5px rgba(0, 0, 0, 0.3)'
+                      }}
+                    >
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  )}
+                </div>
               )}
 
               {/* Hover indicator */}

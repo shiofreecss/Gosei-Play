@@ -1,21 +1,26 @@
 /* App Theme Styles */
 /* Modern Theme (Default) */
 .theme-modern {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --text-primary: #333333;
-  --text-secondary: #6c757d;
-  --accent-color: #0284c7;
-  --border-color: #e2e8f0;
-  --header-bg: #ffffff;
-  --card-bg: #ffffff;
-  --button-bg: #0284c7;
+  --bg-primary: rgba(245, 245, 245, 0.8);
+  --bg-secondary: rgba(230, 230, 230, 0.6);
+  --text-primary: #222222;
+  --text-secondary: #555555;
+  --accent-color: #000000;
+  --border-color: rgba(200, 200, 200, 0.5);
+  --header-bg: rgba(250, 250, 250, 0.75);
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --button-bg: rgba(50, 50, 50, 0.9);
   --button-text: #ffffff;
-  --button-hover: #0369a1;
+  --button-hover: rgba(0, 0, 0, 1);
+  --button-secondary-bg: rgba(230, 230, 230, 0.7);
+  --button-secondary-text: #333333;
+  --button-secondary-hover: rgba(210, 210, 210, 0.9);
   --font-main: 'Inter', sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-main);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
 }
 
 /* Traditional East Asian Theme */
@@ -85,6 +90,31 @@
   width: auto !important;
   min-width: 200px !important;
   max-width: 300px !important;
+}
+
+/* Add modern connection status styling */
+.theme-modern .connection-status-panel {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--card-shadow) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.theme-modern .connection-status-text {
+  color: var(--text-primary) !important;
+}
+
+.theme-modern .connection-status-refresh {
+  color: var(--accent-color) !important;
+}
+
+.theme-modern .connection-status-refresh:hover {
+  opacity: 0.8 !important;
+}
+
+.theme-modern .connection-status-timestamp {
+  color: var(--text-secondary) !important;
 }
 
 /* Mobile adjustments for connection status panel */
@@ -551,20 +581,6 @@
   position: relative;
 }
 
-.dead-stone::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 60%;
-  height: 60%;
-  transform: translate(-50%, -50%);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2'><path d='M18 6L6 18M6 6l12 12'/></svg>");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-}
-
 /* Responsive board sizes */
 @media (max-width: 480px) {
   .board-grid {
@@ -900,4 +916,356 @@
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Modern theme buttons */
+.theme-modern .btn,
+.theme-modern button {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+  letter-spacing: 0.3px;
+  position: relative;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.theme-modern .btn-primary,
+.theme-modern .btn-success,
+.theme-modern .bg-primary-600 {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.theme-modern .btn-primary:hover,
+.theme-modern .btn-success:hover, 
+.theme-modern .bg-primary-600:hover {
+  background-color: var(--button-hover);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.theme-modern .btn-secondary,
+.theme-modern .bg-neutral-200 {
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.theme-modern .btn-secondary:hover,
+.theme-modern .bg-neutral-200:hover {
+  background-color: var(--button-secondary-hover);
+  transform: translateY(-1px);
+}
+
+/* Modern card styling */
+.theme-modern .card {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-modern .bg-white, 
+.theme-modern .bg-neutral-100 {
+  background-color: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Form elements in modern theme */
+.theme-modern .form-input,
+.theme-modern .form-select {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.theme-modern .form-input:focus,
+.theme-modern .form-select:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+/* Game UI specific elements */
+.theme-modern .game-info-panel {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Improve text styling */
+.theme-modern h1, 
+.theme-modern h2, 
+.theme-modern h3 {
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+}
+
+.theme-modern h1.text-primary-700 {
+  color: var(--text-primary);
+}
+
+/* Fix Board Theme dropdown in modern theme */
+.theme-modern .board-theme-button {
+  background-color: var(--button-secondary-bg);
+  border: 1px solid var(--border-color);
+  color: var(--button-secondary-text);
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.theme-modern .board-theme-dropdown {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-modern .board-theme-option {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.theme-modern .board-theme-option:hover,
+.theme-modern .board-theme-option.selected {
+  background-color: var(--bg-secondary);
+}
+
+.theme-modern .board-theme-option-description {
+  color: var(--text-secondary);
+}
+
+/* Scoring phase styling */
+.theme-modern .bg-yellow-50 {
+  background-color: rgba(255, 252, 232, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-modern .bg-red-50 {
+  background-color: rgba(254, 242, 242, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-modern .bg-green-50 {
+  background-color: rgba(240, 253, 244, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-modern .bg-blue-50 {
+  background-color: rgba(240, 249, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-modern .bg-indigo-50 {
+  background-color: rgba(240, 245, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Links in modern theme */
+.theme-modern a {
+  color: var(--accent-color);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.theme-modern a:hover {
+  border-bottom-color: var(--accent-color);
+}
+
+/* App theme selector styling */
+.theme-modern .app-theme-selector {
+  background-color: var(--button-secondary-bg);
+  border-radius: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.theme-modern .theme-select {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* GameInfo component in modern theme */
+.theme-modern .game-info {
+  background-color: var(--card-bg) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--card-shadow) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.theme-modern .player-card {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+
+.theme-modern .player-card-active {
+  background-color: rgba(240, 240, 240, 0.7) !important;
+  border-left: 3px solid var(--accent-color) !important;
+}
+
+.theme-modern .game-status {
+  background-color: rgba(245, 245, 245, 0.5) !important;
+}
+
+.theme-modern .time-control {
+  background-color: rgba(245, 245, 245, 0.5) !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  margin-top: 8px !important;
+}
+
+.theme-modern .game-type-badge {
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+}
+
+/* Chat bubble in modern theme */
+.theme-modern .floating-chat-bubble {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--card-shadow) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.theme-modern .chat-message {
+  background-color: rgba(245, 245, 245, 0.5) !important;
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+  padding: 8px !important;
+}
+
+.theme-modern .chat-input {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+}
+
+.theme-modern .chat-send-button {
+  background-color: var(--button-bg) !important;
+  color: var(--button-text) !important;
+  border-radius: 8px !important;
+}
+
+/* Game board in modern theme */
+.theme-modern .board-bg {
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+/* Style adjustments for different board sizes */
+.theme-modern .board-theme-button {
+  padding: 8px 12px;
+}
+
+/* Main app container background - add noise and gradient */
+.theme-modern .min-h-screen {
+  background-color: #f5f5f5;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, rgba(245, 245, 245, 0.9), rgba(235, 235, 235, 0.8), rgba(250, 250, 250, 0.9));
+  min-height: 100vh;
+}
+
+/* Add subtle shadow to theme toggle */
+.theme-modern .app-theme-selector {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Enhanced game board styling */
+.theme-modern .board-bg {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(220, 220, 220, 0.5);
+}
+
+/* Enhance hover effects on buttons */
+.theme-modern .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-modern .btn:active {
+  transform: translateY(0);
+}
+
+/* Add subtle animations to cards */
+.theme-modern .card,
+.theme-modern .game-info {
+  transition: all 0.3s ease;
+}
+
+.theme-modern .card:hover,
+.theme-modern .game-info:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Go stone visualization enhancements */
+.theme-modern .stone-black {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.theme-modern .stone-white {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Notification banners */
+.theme-modern .bg-yellow-50,
+.theme-modern .bg-red-50,
+.theme-modern .bg-green-50,
+.theme-modern .bg-blue-50,
+.theme-modern .bg-indigo-50 {
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Loading and error screens */
+.theme-modern .flex.flex-col.items-center.justify-center.min-h-screen {
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, rgba(245, 245, 245, 0.9), rgba(235, 235, 235, 0.8), rgba(250, 250, 250, 0.9));
+}
+
+/* Improve mobile responsiveness */
+@media (max-width: 640px) {
+  .theme-modern .card,
+  .theme-modern .game-info {
+    padding: 1rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+  
+  .theme-modern .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
 }

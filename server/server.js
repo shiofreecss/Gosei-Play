@@ -530,6 +530,40 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle cancel scoring phase
+  socket.on('cancelScoring', ({ gameId }) => {
+    log(`Canceling scoring phase for game ${gameId}`);
+    
+    // Update the game state if it exists in memory
+    const gameState = activeGames.get(gameId);
+    if (gameState) {
+      // Only allow cancellation if in scoring mode
+      if (gameState.status !== 'scoring') {
+        log(`Cannot cancel scoring: game ${gameId} not in scoring mode`);
+        socket.emit('error', 'Cannot cancel scoring: game not in scoring mode');
+        return;
+      }
+      
+      // Return to playing state
+      gameState.status = 'playing';
+      gameState.deadStones = []; // Clear dead stones
+      gameState.territory = undefined; // Clear territory visualization
+      
+      // Store updated game state
+      activeGames.set(gameId, gameState);
+      
+      // Broadcast the cancel to ALL clients in the room
+      io.to(gameId).emit('scoringCanceled', {
+        gameId
+      });
+      log(`Broadcasting scoring cancellation to all clients in room ${gameId}`);
+      
+      // Also broadcast the full game state
+      io.to(gameId).emit('gameState', gameState);
+      log(`Broadcasting updated game state to all clients in room ${gameId}`);
+    }
+  });
+
   // Handle player resignation
   socket.on('resignGame', ({ gameId, playerId, color }) => {
     log(`Player ${playerId} (${color}) resigned from game ${gameId}`);

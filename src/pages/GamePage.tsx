@@ -7,15 +7,39 @@ import BoardThemeButton from '../components/BoardThemeButton';
 import AppThemeSelector from '../components/AppThemeSelector';
 import ConnectionStatus from '../components/ConnectionStatus';
 import { useGame } from '../context/GameContext';
-import { Position, GameMove } from '../types/go';
+import { Position, GameMove, GameState } from '../types/go';
 import ChatBox from '../components/ChatBox';
+import FloatingChatBubble from '../components/FloatingChatBubble';
+
+// Helper function to check game status safely
+const hasStatus = (gameState: GameState, status: 'waiting' | 'playing' | 'finished' | 'scoring'): boolean => {
+  return gameState.status === status;
+};
 
 const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
-  const { gameState, loading, currentPlayer, error, placeStone, passTurn, leaveGame, joinGame, syncGameState, resignGame, toggleDeadStone, confirmScore, requestUndo, respondToUndoRequest, resetGame } = useGame();
-  const [username, setUsername] = useState<string>('');
-  const [showJoinForm, setShowJoinForm] = useState<boolean>(false);
+  const { 
+    gameState, 
+    loading, 
+    currentPlayer, 
+    error, 
+    placeStone, 
+    passTurn, 
+    leaveGame, 
+    joinGame, 
+    syncGameState, 
+    resignGame,
+    toggleDeadStone,
+    confirmScore,
+    requestUndo,
+    respondToUndoRequest,
+    cancelScoring,
+    resetGame,
+    syncDeadStones
+  } = useGame();
+  const [username, setUsername] = useState<string>(() => localStorage.getItem('gosei-player-name') || '');
+  const [showJoinForm, setShowJoinForm] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{
@@ -35,6 +59,7 @@ const GamePage: React.FC = () => {
   });
   const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
   const [showDevTools, setShowDevTools] = useState(false);
+  const [confirmingScore, setConfirmingScore] = useState<boolean>(false);
 
   // Check if there's a gameId in the URL and try to load that game
   useEffect(() => {
@@ -232,7 +257,41 @@ const GamePage: React.FC = () => {
   };
 
   const handleConfirmScore = () => {
+    // First, count dead stones by color for the confirmation message
+    if (!gameState) return;
+    
+    const deadBlackStones = gameState.board.stones.filter(stone => 
+      stone.color === 'black' && 
+      gameState.deadStones?.some(dead => 
+        dead.x === stone.position.x && dead.y === stone.position.y
+      )
+    ).length;
+    
+    const deadWhiteStones = gameState.board.stones.filter(stone => 
+      stone.color === 'white' && 
+      gameState.deadStones?.some(dead => 
+        dead.x === stone.position.x && dead.y === stone.position.y
+      )
+    ).length;
+    
+    // Set confirming score state
+    setConfirmingScore(true);
+    
+    // Show confirmation toast or alert
+    const totalDeadStones = deadBlackStones + deadWhiteStones;
+    alert(`Score confirmed with ${totalDeadStones} dead stones (${deadBlackStones} black, ${deadWhiteStones} white)`);
+    
+    // Call the confirmScore function from context
     confirmScore();
+    
+    // Reset confirming state after a delay
+    setTimeout(() => {
+      setConfirmingScore(false);
+    }, 3000);
+  };
+
+  const handleCancelScoring = () => {
+    cancelScoring();
   };
 
   const handleJoinGame = (e: React.FormEvent) => {
@@ -254,9 +313,18 @@ const GamePage: React.FC = () => {
   };
   
   const handleSyncGame = () => {
+    console.log('Manually syncing game state and dead stones');
     setSyncing(true);
+    
+    // Call both sync functions to ensure complete synchronization
     syncGameState();
-    setTimeout(() => setSyncing(false), 2000);
+    
+    if (gameState && hasStatus(gameState, 'scoring')) {
+      syncDeadStones();
+    }
+    
+    // Show a visual feedback that sync was attempted
+    setTimeout(() => setSyncing(false), 1000);
   };
 
   const handleRequestUndo = () => {
@@ -447,49 +515,6 @@ const GamePage: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex gap-2 flex-wrap justify-center mb-4">
-          <button
-            onClick={handleLeaveGame}
-            className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
-          >
-            Leave Game
-          </button>
-          <button
-            onClick={copyGameLink}
-            className="btn btn-primary"
-          >
-            {copied ? 'Copied!' : 'Copy Game Link'}
-          </button>
-          {/* Only show Sync Game button when developer tools are enabled */}
-          {showDevTools && (
-            <button
-              onClick={handleSyncGame}
-              className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
-              disabled={syncing}
-            >
-              {syncing ? 'Syncing...' : 'Sync Game'}
-            </button>
-          )}
-          <button
-            onClick={toggleAutoSave}
-            className={`btn ${autoSaveEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'} focus:ring-neutral-400`}
-          >
-            {autoSaveEnabled ? 'Auto-Save: ON' : 'Auto-Save: OFF'}
-          </button>
-          {!autoSaveEnabled && (
-            <button
-              onClick={saveGameNow}
-              className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 focus:ring-blue-400"
-            >
-              Save Now
-            </button>
-          )}
-          {/* Board theme selector button */}
-          <div className="board-theme-container">
-            <BoardThemeButton />
-          </div>
-        </div>
-        
         {/* Add a small indicator when dev tools are enabled */}
         {showDevTools && (
           <div className="text-xs text-neutral-500 text-center mb-2">
@@ -523,6 +548,50 @@ const GamePage: React.FC = () => {
                 territory={gameState.territory}
                 showTerritory={gameState.status === 'finished' || gameState.status === 'scoring'}
               />
+            </div>
+            
+            {/* Game controls moved below the board */}
+            <div className="flex gap-2 flex-wrap justify-center mt-4 mb-4">
+              <button
+                onClick={handleLeaveGame}
+                className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
+              >
+                Leave Game
+              </button>
+              <button
+                onClick={copyGameLink}
+                className="btn btn-primary"
+              >
+                {copied ? 'Copied!' : 'Copy Game Link'}
+              </button>
+              {/* Only show Sync Game button when developer tools are enabled */}
+              {showDevTools && (
+                <button
+                  onClick={handleSyncGame}
+                  className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
+                  disabled={syncing}
+                >
+                  {syncing ? 'Syncing...' : 'Sync Game'}
+                </button>
+              )}
+              <button
+                onClick={toggleAutoSave}
+                className={`btn ${autoSaveEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'} focus:ring-neutral-400`}
+              >
+                {autoSaveEnabled ? 'Auto-Save: ON' : 'Auto-Save: OFF'}
+              </button>
+              {!autoSaveEnabled && (
+                <button
+                  onClick={saveGameNow}
+                  className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 focus:ring-blue-400"
+                >
+                  Save Now
+                </button>
+              )}
+              {/* Board theme selector button */}
+              <div className="board-theme-container">
+                <BoardThemeButton />
+              </div>
             </div>
             
             {/* Undo Request Notification */}
@@ -576,23 +645,60 @@ const GamePage: React.FC = () => {
                   <button
                     onClick={handleConfirmScore}
                     className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2 text-base font-medium flex items-center gap-2"
+                    disabled={confirmingScore}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Confirm Score
+                    {confirmingScore ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Confirming...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Confirm Score
+                      </>
+                    )}
                   </button>
                   
-                  <div className="bg-white p-3 rounded-lg border border-yellow-200 flex items-center">
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium text-yellow-800">Dead Stones: 
-                        <span className="font-bold ml-1 text-yellow-900">{gameState.deadStones?.length || 0}</span>
-                      </span>
-                      <span className="text-xs text-yellow-600">
-                        Current scoring rule: {gameState.scoringRule || 'Japanese'}
-                      </span>
-                    </div>
-                  </div>
+                  <button
+                    onClick={handleCancelScoring}
+                    className="btn bg-red-100 text-red-800 hover:bg-red-200 px-6 py-2 text-base font-medium flex items-center gap-2"
+                    disabled={confirmingScore}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Cancel Scoring
+                  </button>
+                  
+                  <button
+                    onClick={handleSyncGame}
+                    className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 px-6 py-2 text-base font-medium flex items-center gap-2"
+                    title="Sync dead stones with other players"
+                    disabled={syncing}
+                  >
+                    {syncing ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-blue-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                        </svg>
+                        Sync Dead Stones
+                      </>
+                    )}
+                  </button>
                 </div>
                 
                 {/* Territory visualization key */}
@@ -610,37 +716,79 @@ const GamePage: React.FC = () => {
                     <span className="text-sm">Dead Stones</span>
                   </div>
                 </div>
+
+                {/* Dead Stones Counter Card */}
+                <div className="mt-4 bg-white rounded-lg border border-red-200 shadow-sm max-w-md mx-auto p-4">
+                  <h4 className="text-red-800 font-semibold text-center mb-2">
+                    Dead Stones Summary
+                    {confirmingScore && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Confirming...
+                      </span>
+                    )}
+                    {hasStatus(gameState, 'finished') && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Confirmed
+                      </span>
+                    )}
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-4 h-4 bg-black rounded-full"></div>
+                        <span className="text-sm font-medium">Black</span>
+                      </div>
+                      <span className="text-2xl font-bold text-red-800">
+                        {hasStatus(gameState, 'finished') && gameState.score?.deadBlackStones !== undefined
+                          ? gameState.score.deadBlackStones
+                          : gameState.board.stones.filter(stone => 
+                              stone.color === 'black' && 
+                              gameState.deadStones?.some(dead => 
+                                dead.x === stone.position.x && dead.y === stone.position.y
+                              )
+                            ).length}
+                      </span>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-4 h-4 bg-white border border-gray-300 rounded-full"></div>
+                        <span className="text-sm font-medium">White</span>
+                      </div>
+                      <span className="text-2xl font-bold text-red-800">
+                        {hasStatus(gameState, 'finished') && gameState.score?.deadWhiteStones !== undefined
+                          ? gameState.score.deadWhiteStones
+                          : gameState.board.stones.filter(stone => 
+                              stone.color === 'white' && 
+                              gameState.deadStones?.some(dead => 
+                                dead.x === stone.position.x && dead.y === stone.position.y
+                              )
+                            ).length}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center mt-3 text-sm text-gray-600">
+                    {/* Consider memoizing this for efficiency */}
+                    Total: <span className="font-bold">{gameState.deadStones?.length || 0}</span> stones marked
+                  </div>
+                </div>
               </div>
             )}
           </div>
           
-          {/* Right sidebar - Game Info and Chat */}
+          {/* Right sidebar - Game Info */}
           <div className="xl:col-span-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
-              <div>
-                <GameInfo 
-                  gameState={gameState}
-                  currentPlayer={currentPlayer || undefined}
-                  onResign={handleResignGame}
-                  onRequestUndo={handleRequestUndo}
-                  onAcceptUndo={handleAcceptUndo}
-                  onRejectUndo={handleRejectUndo}
-                  onPassTurn={handlePassTurn}
-                />
-              </div>
-              
-              <div>
-                {currentPlayer && (
-                  <ChatBox 
-                    gameId={gameState.id}
-                    currentPlayerId={currentPlayer.id}
-                    currentPlayerUsername={currentPlayer.username}
-                    socket={gameState.socket}
-                    messages={chatMessages}
-                  />
-                )}
-              </div>
-            </div>
+            <GameInfo 
+              gameState={gameState}
+              currentPlayer={currentPlayer || undefined}
+              onResign={handleResignGame}
+              onRequestUndo={handleRequestUndo}
+              onAcceptUndo={handleAcceptUndo}
+              onRejectUndo={handleRejectUndo}
+              onPassTurn={handlePassTurn}
+            />
           </div>
         </div>
       </div>
@@ -700,6 +848,17 @@ const GamePage: React.FC = () => {
       
       {/* Add connection status component */}
       <ConnectionStatus />
+      
+      {/* Floating Chat Bubble */}
+      {currentPlayer && (
+        <FloatingChatBubble
+          gameId={gameState.id}
+          currentPlayerId={currentPlayer.id}
+          currentPlayerUsername={currentPlayer.username}
+          socket={gameState.socket}
+          messages={chatMessages}
+        />
+      )}
     </div>
   );
 };

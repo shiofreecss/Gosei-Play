@@ -6,7 +6,7 @@ import { AppThemeProvider } from './context/AppThemeContext';
 import HomePage from './pages/HomePage';
 import GamePage from './pages/GamePage';
 import BoardDemoPage from './pages/BoardDemoPage';
-import MusicPlayer from './components/MusicPlayer';
+import FloatingMusicPlayer from './components/FloatingMusicPlayer';
 import { initializeSoundPreferences } from './utils/soundUtils';
 import './App.css';
 
@@ -26,7 +26,7 @@ function App() {
               <Route path="/game/:gameId" element={<GamePage />} />
               <Route path="/board-demo" element={<BoardDemoPage />} />
             </Routes>
-            <MusicPlayer />
+            <FloatingMusicPlayer />
           </BoardThemeProvider>
         </GameProvider>
       </AppThemeProvider>

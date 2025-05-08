@@ -209,6 +209,138 @@ export const getConnectedGroup = (position: Position, stones: Stone[], boardSize
   return group;
 };
 
+// Advanced dead stone group detection with eye counting
+export const getDeadStoneGroup = (position: Position, stones: Stone[], boardSize: number): Position[] => {
+  const stone = findStoneAt(position, stones);
+  if (!stone) return [];
+  
+  // First, get all connected stones of the same color
+  const connectedGroup = getConnectedGroup(position, stones, boardSize);
+  
+  // For more advanced dead group detection, we could also analyze:
+  // 1. Whether the group has enough eyes to live
+  // 2. Whether the group is completely surrounded
+  // 3. Whether the group has potential to form eyes
+  
+  // For now, this is a basic implementation that returns the connected group
+  // In a full implementation, you would add additional logic here to identify
+  // groups that are definitely dead based on Go theory
+  
+  return connectedGroup;
+};
+
+// Extended function to detect if a stone group is likely dead
+export const isGroupLikelyDead = (group: Position[], stones: Stone[], boardSize: number): boolean => {
+  if (group.length === 0) return false;
+  
+  // Count liberties of the group
+  const liberties = countLiberties(group, stones, boardSize);
+  
+  // If there are no liberties, the group is definitely dead
+  if (liberties === 0) return true;
+  
+  // If there's only one liberty, check if it's an "eye"
+  if (liberties === 1) {
+    // Find the liberty position
+    const eyePosition = findSingleLiberty(group, stones, boardSize);
+    if (!eyePosition) return false; // Should not happen if liberties === 1
+    
+    // Check if this eye is a false eye (surrounded by opponent stones diagonally)
+    if (isFalseEye(eyePosition, stones, boardSize, getStoneSampleColor(group, stones))) {
+      return true; // Group with only a false eye is dead
+    }
+  }
+  
+  // For groups with two liberties, check if they're real eyes or can be reduced to one
+  if (liberties === 2) {
+    const libertyPositions = findLibertyPositions(group, stones, boardSize);
+    // Further analysis of the two liberties would go here
+    // This is a simplification
+    const color = getStoneSampleColor(group, stones);
+    if (color) {
+      const falseEyeCount = libertyPositions.filter(pos => 
+        isFalseEye(pos, stones, boardSize, color)
+      ).length;
+      
+      if (falseEyeCount > 0) {
+        return true; // If any of the eyes are false, the group is likely dead
+      }
+    }
+  }
+  
+  // More advanced dead shape recognition could be added here
+  
+  return false; // Default to not considering groups dead unless clear
+};
+
+// Helper to find a single liberty position when we know there's exactly one
+function findSingleLiberty(group: Position[], stones: Stone[], boardSize: number): Position | null {
+  for (const pos of group) {
+    const adjacentPositions = getAdjacentPositions(pos).filter(p => isWithinBounds(p, boardSize));
+    
+    for (const adjPos of adjacentPositions) {
+      if (isEmpty(adjPos, stones)) {
+        return adjPos; // Return the first empty adjacent position found
+      }
+    }
+  }
+  
+  return null; // Should not reach here if the group has one liberty
+}
+
+// Helper to find all liberty positions for a group
+function findLibertyPositions(group: Position[], stones: Stone[], boardSize: number): Position[] {
+  const libertySet = new Set<string>();
+  const libertyPositions: Position[] = [];
+  
+  group.forEach(pos => {
+    const adjacentPositions = getAdjacentPositions(pos).filter(p => isWithinBounds(p, boardSize));
+    
+    adjacentPositions.forEach(adjPos => {
+      const key = `${adjPos.x},${adjPos.y}`;
+      if (isEmpty(adjPos, stones) && !libertySet.has(key)) {
+        libertySet.add(key);
+        libertyPositions.push(adjPos);
+      }
+    });
+  });
+  
+  return libertyPositions;
+}
+
+// Helper to check if an eye is a false eye
+function isFalseEye(eyePosition: Position, stones: Stone[], boardSize: number, groupColor: StoneColor | null): boolean {
+  if (!groupColor) return false;
+  
+  const oppositeColor = groupColor === 'black' ? 'white' : 'black';
+  
+  // Get diagonal positions
+  const diagonalPositions = [
+    { x: eyePosition.x - 1, y: eyePosition.y - 1 },
+    { x: eyePosition.x + 1, y: eyePosition.y - 1 },
+    { x: eyePosition.x - 1, y: eyePosition.y + 1 },
+    { x: eyePosition.x + 1, y: eyePosition.y + 1 }
+  ].filter(p => isWithinBounds(p, boardSize));
+  
+  // Count opponent stones at diagonal positions
+  const opponentDiagonalCount = diagonalPositions.filter(pos => {
+    const stone = findStoneAt(pos, stones);
+    return stone && stone.color === oppositeColor;
+  }).length;
+  
+  // A false eye has opponent stones on critical diagonal intersections
+  // This is a simplified check - in a real Go engine, more factors would be considered
+  return opponentDiagonalCount >= 2;
+}
+
+// Helper to get the color of a stone in the group
+function getStoneSampleColor(group: Position[], stones: Stone[]): StoneColor | null {
+  if (group.length === 0) return null;
+  
+  const stone = findStoneAt(group[0], stones);
+  return stone ? stone.color : null;
+}
+
 // Count liberties (empty adjacent points) for a group of stones
 export const countLiberties = (group: Position[], stones: Stone[], boardSize: number): number => {
   const liberties = new Set<string>();

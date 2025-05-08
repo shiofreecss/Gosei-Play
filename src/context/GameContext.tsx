@@ -13,6 +13,17 @@ import {
 } from '../utils/scoringUtils';
 import { getHandicapStones, getAdjustedKomi, getStartingColor } from '../utils/handicapUtils';
 import { playStoneSound } from '../utils/soundUtils';
+import { 
+  isWithinBounds, 
+  getStoneAt, 
+  isKoViolation, 
+  isSuicideMove, 
+  captureDeadStones,
+  getDeadStoneGroup,
+  findStoneAt,
+  getConnectedGroup,
+  isGroupLikelyDead
+} from '../utils/goGameLogic';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true } {
@@ -38,12 +49,14 @@ interface GameContextType {
   leaveGame: () => void;
   resetGame: () => void;
   syncGameState: () => void;
+  syncDeadStones: () => void;
   clearMoveError: () => void;
   resignGame: () => void;
   toggleDeadStone: (position: Position) => void;
   confirmScore: () => void;
   requestUndo: () => void;
   respondToUndoRequest: (accept: boolean) => void;
+  cancelScoring: () => void;
 }
 
 // Create context with default values
@@ -60,12 +73,14 @@ const GameContext = createContext<GameContextType>({
   leaveGame: () => {},
   resetGame: () => {},
   syncGameState: () => {},
+  syncDeadStones: () => {},
   clearMoveError: () => {},
   resignGame: () => {},
   toggleDeadStone: () => {},
   confirmScore: () => {},
   requestUndo: () => {},
   respondToUndoRequest: () => {},
+  cancelScoring: () => {},
 });
 
 // Action types
@@ -289,6 +304,41 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             console.log(`Player ${player.username} is ${player.color}`);
           });
           
+          // If game is finished but dead stone counts are missing, add them
+          if (gameState.status === 'finished' && 
+              gameState.deadStones && 
+              gameState.deadStones.length > 0 && 
+              gameState.score && 
+              (gameState.score.deadBlackStones === undefined || 
+               gameState.score.deadWhiteStones === undefined)) {
+            
+            console.log('Fixing missing dead stone counts in finished game');
+            
+            // Convert dead stones to a Set for faster lookups
+            const deadStonePositions = new Set<string>();
+            gameState.deadStones.forEach(pos => {
+              deadStonePositions.add(`${pos.x},${pos.y}`);
+            });
+            
+            // Count dead stones by color
+            const deadBlackStones = gameState.board.stones.filter(stone => 
+              stone.color === 'black' && deadStonePositions.has(`${stone.position.x},${stone.position.y}`)
+            ).length;
+            
+            const deadWhiteStones = gameState.board.stones.filter(stone => 
+              stone.color === 'white' && deadStonePositions.has(`${stone.position.x},${stone.position.y}`)
+            ).length;
+            
+            console.log(`Added dead stone counts: ${deadBlackStones} black, ${deadWhiteStones} white`);
+            
+            // Update the score object with dead stone counts
+            gameState.score = {
+              ...gameState.score,
+              deadBlackStones,
+              deadWhiteStones
+            };
+          }
+          
           dispatch({ type: 'UPDATE_GAME_STATE', payload: gameState });
           
           // Save game state to localStorage for persistence
@@ -361,6 +411,53 @@ export const GameProvider: React.FC<GameProviderProps> = ({
           }
         });
         
+        // Handle dead stone toggle from other players
+        newSocket.on('deadStoneToggled', (deadStoneData) => {
+          console.log(`Dead stone toggled at (${deadStoneData.position.x}, ${deadStoneData.position.y}) by player ${deadStoneData.playerId}`);
+          
+          // Apply dead stone changes from server regardless of which player initiated them
+          if (state.gameState) {
+            console.log(`Updating dead stones from server: ${deadStoneData.deadStones?.length || 0} stones (${deadStoneData.deadBlackStones || '?'} black, ${deadStoneData.deadWhiteStones || '?'} white)`);
+            
+            // Create updated game state with new dead stones list
+            const updatedGameState = {
+              ...state.gameState,
+              deadStones: deadStoneData.deadStones,
+              // Optionally update scoring information if available
+              score: state.gameState.score && deadStoneData.deadBlackStones !== undefined && deadStoneData.deadWhiteStones !== undefined 
+                ? {
+                    ...state.gameState.score,
+                    deadBlackStones: deadStoneData.deadBlackStones,
+                    deadWhiteStones: deadStoneData.deadWhiteStones
+                  }
+                : state.gameState.score
+            };
+            
+            // Update local state
+            dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+            
+            // Update in localStorage as backup
+            try {
+              safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
+            } catch (e) {
+              console.warn('Failed to save updated dead stones to localStorage:', e);
+            }
+          }
+        });
+        
+        // Handle scoring phase cancellation
+        newSocket.on('scoringCanceled', (cancelData) => {
+          console.log(`Scoring phase canceled for game ${cancelData.gameId}`);
+          
+          // Apply the cancellation regardless of which player initiated it
+          if (state.gameState && state.gameState.id === cancelData.gameId) {
+            // We don't need to handle this explicitly as the server will broadcast
+            // an updated gameState after cancellation, which will be processed
+            // by the gameState event handler
+            console.log('Scoring phase has been canceled, returning to play mode');
+          }
+        });
+        
         // Timer tick handler for polling
         let timerInterval: ReturnType<typeof setInterval> | null = null;
         
@@ -387,13 +484,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
           startTimerPolling(state.gameState);
         }
         
-        // Clean up function to remove event listeners and intervals
+        // Clean up effect
         return () => {
-          if (timerInterval) {
-            clearInterval(timerInterval);
-          }
-          
           if (newSocket) {
+            console.log('Cleaning up socket event listeners');
             newSocket.off('connect');
             newSocket.off('connect_error');
             newSocket.off('disconnect');
@@ -408,10 +502,16 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             newSocket.off('playerDisconnected');
             newSocket.off('timeUpdate');
             newSocket.off('playerTimeout');
+            newSocket.off('deadStoneToggled');
+            newSocket.off('scoringCanceled');
             
             if (newSocket.connected) {
-              console.log('Disconnecting from socket server');
+              console.log('Disconnecting socket on cleanup');
               newSocket.disconnect();
+            }
+            
+            if (timerInterval) {
+              clearInterval(timerInterval);
             }
           }
         };
@@ -442,6 +542,41 @@ export const GameProvider: React.FC<GameProviderProps> = ({
           const currentPlayer = state.currentPlayer && updatedGameState.players.find(
             p => p.id === state.currentPlayer?.id
           );
+          
+          // If game is finished but dead stone counts are missing, add them
+          if (updatedGameState.status === 'finished' && 
+              updatedGameState.deadStones && 
+              updatedGameState.deadStones.length > 0 && 
+              updatedGameState.score && 
+              (updatedGameState.score.deadBlackStones === undefined || 
+               updatedGameState.score.deadWhiteStones === undefined)) {
+            
+            console.log('Fixing missing dead stone counts in finished game');
+            
+            // Convert dead stones to a Set for faster lookups
+            const deadStonePositions = new Set<string>();
+            updatedGameState.deadStones.forEach(pos => {
+              deadStonePositions.add(`${pos.x},${pos.y}`);
+            });
+            
+            // Count dead stones by color
+            const deadBlackStones = updatedGameState.board.stones.filter(stone => 
+              stone.color === 'black' && deadStonePositions.has(`${stone.position.x},${stone.position.y}`)
+            ).length;
+            
+            const deadWhiteStones = updatedGameState.board.stones.filter(stone => 
+              stone.color === 'white' && deadStonePositions.has(`${stone.position.x},${stone.position.y}`)
+            ).length;
+            
+            console.log(`Added dead stone counts: ${deadBlackStones} black, ${deadWhiteStones} white`);
+            
+            // Update the score object with dead stone counts
+            updatedGameState.score = {
+              ...updatedGameState.score,
+              deadBlackStones,
+              deadWhiteStones
+            };
+          }
           
           dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
           
@@ -1110,6 +1245,44 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       gameId: state.gameState.id,
       playerId: state.currentPlayer.id
     });
+    
+    // If in scoring mode, also sync dead stones
+    if (state.gameState.status === 'scoring' && state.gameState.deadStones) {
+      console.log(`Syncing ${state.gameState.deadStones.length} dead stones to server`);
+      syncDeadStones();
+    }
+  };
+
+  // Function to sync dead stones with server
+  const syncDeadStones = () => {
+    if (!state.gameState || !state.currentPlayer || !state.socket || state.gameState.status !== 'scoring') {
+      console.log('Cannot sync dead stones: not in scoring mode or missing data');
+      return;
+    }
+    
+    const gameState = state.gameState;
+    const deadStones = gameState.deadStones || [];
+    
+    // Count dead stones by color for better sync
+    const deadBlackStones = gameState.board.stones.filter(stone => 
+      stone.color === 'black' && 
+      deadStones.some(dead => dead.x === stone.position.x && dead.y === stone.position.y)
+    ).length;
+    
+    const deadWhiteStones = gameState.board.stones.filter(stone => 
+      stone.color === 'white' && 
+      deadStones.some(dead => dead.x === stone.position.x && dead.y === stone.position.y)
+    ).length;
+    
+    console.log(`Manually syncing ${deadStones.length} dead stones (${deadBlackStones} black, ${deadWhiteStones} white) with server`);
+    
+    state.socket.emit('syncDeadStones', {
+      gameId: gameState.id,
+      playerId: state.currentPlayer.id,
+      deadStones: deadStones,
+      deadBlackStones,
+      deadWhiteStones
+    });
   };
 
   // Clear move error
@@ -1193,24 +1366,89 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       return;
     }
     
-    // Find if the position already exists in deadStones
+    // Get the board stones
+    const { stones } = gameState.board;
+    
+    // Find the stone at this position
+    const stone = findStoneAt(position, stones);
+    if (!stone) {
+      console.log("No stone at position", position);
+      return;
+    }
+    
+    // Get all stones in the connected group
+    const connectedGroup = getDeadStoneGroup(position, stones, gameState.board.size);
+    
+    // If this is an auto-detection request, scan for other likely dead groups
+    // of the same color that are connected or nearby
+    const autoDetectDeadGroups = connectedGroup.length >= 3; // Only auto-detect for larger groups
+    
+    let allDeadPositions = [...connectedGroup];
+    
+    if (autoDetectDeadGroups) {
+      // The color of the original group
+      const groupColor = stone.color;
+      
+      // Find potential dead groups using cached results when possible
+      const potentialDeadGroups = stones
+        .filter(s => s.color === groupColor)
+        .filter(s => !connectedGroup.some(p => p.x === s.position.x && p.y === s.position.y))
+        .map(s => s.position)
+        .filter(p => {
+          // Use a more efficient check for likely dead groups
+          const group = getConnectedGroup(p, stones, gameState.board.size);
+          return group.length <= 5 && isGroupLikelyDead(group, stones, gameState.board.size);
+        })
+        .map(p => getConnectedGroup(p, stones, gameState.board.size))
+        .flat();
+      
+      // Add the newly found potential dead groups
+      allDeadPositions = [...allDeadPositions, ...potentialDeadGroups];
+      
+      // Log detection information
+      if (potentialDeadGroups.length > 0) {
+        console.log(`Auto-detected ${potentialDeadGroups.length} additional dead stones in likely dead groups`);
+      }
+    }
+    
+    // Use Set for more efficient comparison
     const currentDeadStones = gameState.deadStones || [];
-    const stoneIndex = currentDeadStones.findIndex(
-      stone => stone.x === position.x && stone.y === position.y
-    );
+    const currentDeadStoneSet = new Set(currentDeadStones.map(pos => `${pos.x},${pos.y}`));
+    
+    // Calculate how many stones in the group are already marked
+    const alreadyMarkedCount = connectedGroup.filter(pos => 
+      currentDeadStoneSet.has(`${pos.x},${pos.y}`)
+    ).length;
     
     let updatedDeadStones: Position[];
     
-    if (stoneIndex >= 0) {
-      // Remove from dead stones if already marked
-      updatedDeadStones = [
-        ...currentDeadStones.slice(0, stoneIndex),
-        ...currentDeadStones.slice(stoneIndex + 1)
-      ];
+    // If more than half the group is already marked as dead, remove all of them
+    // Otherwise, add all positions in the group as dead
+    if (alreadyMarkedCount > connectedGroup.length / 2) {
+      // Remove all stones in the group from dead stones
+      updatedDeadStones = currentDeadStones.filter(deadStone => 
+        !allDeadPositions.some(groupStone => groupStone.x === deadStone.x && groupStone.y === deadStone.y)
+      );
     } else {
-      // Add to dead stones
-      updatedDeadStones = [...currentDeadStones, position];
+      // Add all stones in the group to dead stones (avoiding duplicates with Set operations)
+      const allPositionSet = new Set(allDeadPositions.map(pos => `${pos.x},${pos.y}`));
+      const newDeadStones = allDeadPositions.filter(groupStone => 
+        !currentDeadStoneSet.has(`${groupStone.x},${groupStone.y}`)
+      );
+      
+      updatedDeadStones = [...currentDeadStones, ...newDeadStones];
     }
+    
+    // Memoize the dead stone counts for better performance
+    const deadBlackStones = stones.filter(stone => 
+      stone.color === 'black' && 
+      updatedDeadStones.some(dead => dead.x === stone.position.x && dead.y === stone.position.y)
+    ).length;
+    
+    const deadWhiteStones = stones.filter(stone => 
+      stone.color === 'white' && 
+      updatedDeadStones.some(dead => dead.x === stone.position.x && dead.y === stone.position.y)
+    ).length;
     
     const updatedGameState: GameState = {
       ...gameState,
@@ -1220,9 +1458,24 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     // Update local state immediately
     dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
     
+    // Emit changes to the server if socket is available and connected
+    if (state.socket && state.socket.connected && state.currentPlayer) {
+      console.log(`Emitting toggleDeadStone to server with ${updatedDeadStones.length} dead stones (${deadBlackStones} black, ${deadWhiteStones} white)`);
+      state.socket.emit('toggleDeadStone', {
+        gameId: gameState.id,
+        position,
+        playerId: state.currentPlayer.id,
+        deadStones: updatedDeadStones,
+        deadBlackStones,
+        deadWhiteStones
+      });
+    } else {
+      console.warn('Socket not connected, updating dead stone state locally only');
+    }
+    
     // Update in localStorage as backup
     try {
-      const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+      const stored = safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
       if (!stored) {
         console.error('Failed to save game state after toggling dead stone');
       }
@@ -1249,12 +1502,33 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     // Convert dead stones to a Set for faster lookups
     const deadStonePositions = new Set<string>();
     const deadStones = gameState.deadStones || [];
+    
+    // Ensure dead stones are properly included in the set
     deadStones.forEach(pos => {
       deadStonePositions.add(`${pos.x},${pos.y}`);
     });
     
+    // Count dead stones by color first for later use
+    const deadBlackStones = gameState.board.stones.filter(stone => 
+      stone.color === 'black' && deadStonePositions.has(`${stone.position.x},${stone.position.y}`)
+    ).length;
+    
+    const deadWhiteStones = gameState.board.stones.filter(stone => 
+      stone.color === 'white' && deadStonePositions.has(`${stone.position.x},${stone.position.y}`)
+    ).length;
+    
+    console.log(`Scoring with dead stones: ${deadStones.length} (${deadBlackStones} black, ${deadWhiteStones} white)`);
+    console.log(`Dead stone positions set has ${deadStonePositions.size} entries`);
+    
+    // Update captured stones count to include dead stones of opposite color
+    const updatedCapturedStones = {
+      black: (gameState.capturedStones.black || 0) + deadWhiteStones,
+      white: (gameState.capturedStones.white || 0) + deadBlackStones
+    };
+    
     // Calculate score based on selected scoring rule
     const scoringRule = gameState.scoringRule || 'japanese'; // Default to Japanese rules if not specified
+    const komi = gameState.komi || (scoringRule === 'chinese' ? 7.5 : 6.5); // Default komi based on rule set
     
     let scoringResult;
     
@@ -1263,35 +1537,40 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       scoringResult = calculateChineseScore(
         gameState.board,
         deadStonePositions,
-        gameState.capturedStones
+        updatedCapturedStones,
+        komi
       );
     } else if (scoringRule === 'korean') {
       // Use Korean scoring rules
       scoringResult = calculateKoreanScore(
         gameState.board,
         deadStonePositions,
-        gameState.capturedStones
+        updatedCapturedStones,
+        komi
       );
     } else if (scoringRule === 'aga') {
       // Use AGA scoring rules
       scoringResult = calculateAGAScore(
         gameState.board,
         deadStonePositions,
-        gameState.capturedStones
+        updatedCapturedStones,
+        komi
       );
     } else if (scoringRule === 'ing') {
       // Use Ing scoring rules
       scoringResult = calculateIngScore(
         gameState.board,
         deadStonePositions,
-        gameState.capturedStones
+        updatedCapturedStones,
+        komi
       );
     } else {
       // Use Japanese scoring rules
       scoringResult = calculateJapaneseScore(
         gameState.board,
         deadStonePositions,
-        gameState.capturedStones
+        updatedCapturedStones,
+        komi
       );
     }
     
@@ -1299,9 +1578,18 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     const updatedGameState: GameState = {
       ...gameState,
       status: 'finished',
-      score: scoringResult.score,
+      score: {
+        ...scoringResult.score,
+        // Add dead stone counts to established properties in the score object
+        blackCaptures: updatedCapturedStones.black,
+        whiteCaptures: updatedCapturedStones.white,
+        deadBlackStones: deadBlackStones,
+        deadWhiteStones: deadWhiteStones
+      },
       territory: scoringResult.territories,
-      winner: scoringResult.winner
+      winner: scoringResult.winner,
+      capturedStones: updatedCapturedStones,  // Update captured stones to include dead stones
+      deadStones: deadStones  // Ensure dead stones are preserved in the final game state
     };
     
     // Update local state immediately for responsive UI
@@ -1311,12 +1599,16 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     if (state.socket && state.socket.connected) {
       const scoreData = {
         gameId: gameState.id,
-        score: scoringResult.score,
+        score: updatedGameState.score,
         winner: scoringResult.winner,
-        territory: scoringResult.territories
+        territory: scoringResult.territories,
+        capturedStones: updatedCapturedStones,
+        deadStones: deadStones,
+        deadBlackStones: deadBlackStones,
+        deadWhiteStones: deadWhiteStones
       };
       
-      console.log('Emitting game end to server:', scoreData);
+      console.log(`Emitting game end to server with ${deadStones.length} dead stones (${deadBlackStones} black, ${deadWhiteStones} white)`);
       state.socket.emit('gameEnded', scoreData);
     } else {
       console.warn('Socket not connected, updating state locally only');
@@ -1330,7 +1622,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     
     // Update in localStorage as backup
     try {
-      const stored = safelySetItem(`gosei-game-${updatedGameState.code}`, JSON.stringify(updatedGameState));
+      const stored = safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
       if (!stored) {
         console.error('Failed to save game state after scoring');
       }
@@ -1541,6 +1833,61 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     }
   };
 
+  // Cancel scoring phase and return to playing
+  const cancelScoring = () => {
+    if (!state.gameState) {
+      console.log("Cannot cancel scoring: no game state");
+      return;
+    }
+    
+    const { gameState } = state;
+    
+    // Only allow cancellation in scoring mode
+    if (gameState.status !== 'scoring') {
+      console.log("Cannot cancel scoring: not in scoring mode");
+      return;
+    }
+    
+    // Return to playing state
+    const updatedGameState: GameState = {
+      ...gameState,
+      status: 'playing',
+      deadStones: [], // Clear dead stones
+      territory: undefined // Clear territory visualization
+    };
+    
+    // Update local state immediately for responsive UI
+    dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
+    
+    // Emit cancel scoring to server if socket is available
+    if (state.socket && state.socket.connected) {
+      const cancelData = {
+        gameId: gameState.id
+      };
+      
+      console.log('Emitting cancelScoring to server:', cancelData);
+      state.socket.emit('cancelScoring', cancelData);
+    } else {
+      console.warn('Socket not connected, updating state locally only');
+      
+      // Try to reconnect
+      if (state.socket) {
+        console.log('Attempting to reconnect...');
+        state.socket.connect();
+      }
+    }
+    
+    // Update in localStorage as backup
+    try {
+      const stored = safelySetItem(`gosei-game-${updatedGameState.id}`, JSON.stringify(updatedGameState));
+      if (!stored) {
+        console.error('Failed to save game state after canceling scoring');
+      }
+    } catch (e) {
+      console.error('Error saving game state after canceling scoring:', e);
+    }
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -1556,12 +1903,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         leaveGame,
         resetGame,
         syncGameState,
+        syncDeadStones,
         clearMoveError,
         resignGame,
         toggleDeadStone,
         confirmScore,
         requestUndo,
-        respondToUndoRequest
+        respondToUndoRequest,
+        cancelScoring
       }}
     >
       {children}

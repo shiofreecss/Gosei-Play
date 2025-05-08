@@ -352,6 +352,126 @@ const setupSocketIO = (io) => {
         io.to(gameId).emit('gameState', gameState);
       }
     });
+
+    // Handle toggle dead stone in scoring phase
+    socket.on('toggleDeadStone', ({ gameId, position, playerId }) => {
+      log(`Player ${playerId} toggled dead stone at (${position.x}, ${position.y}) in game ${gameId}`);
+      
+      const gameState = activeGames.get(gameId);
+      if (gameState) {
+        // Only allow toggling in scoring mode
+        if (gameState.status !== 'scoring') {
+          log(`Cannot toggle dead stone: game ${gameId} not in scoring mode`);
+          socket.emit('error', 'Cannot toggle dead stone: game not in scoring mode');
+          return;
+        }
+        
+        // Initialize deadStones array if it doesn't exist
+        if (!gameState.deadStones) {
+          gameState.deadStones = [];
+        }
+        
+        // Find the stone at the clicked position
+        const stoneAtPos = findStoneAt(position, gameState.board.stones);
+        if (!stoneAtPos) {
+          log(`No stone found at position (${position.x}, ${position.y})`);
+          socket.emit('error', 'Cannot toggle dead stone: no stone at position');
+          return;
+        }
+        
+        // Get the connected group of stones
+        const connectedGroup = getConnectedGroup(position, gameState.board.stones, gameState.board.size);
+        
+        // Optionally detect likely dead groups nearby
+        const autoDetectDeadGroups = connectedGroup.length >= 3; // Only auto-detect for larger groups
+        
+        let allDeadPositions = [...connectedGroup];
+        
+        if (autoDetectDeadGroups) {
+          // The color of the original group
+          const groupColor = stoneAtPos.color;
+          
+          // Find other groups of the same color that might be dead
+          const potentialDeadGroups = [];
+          
+          // Scan the board for stones of the same color
+          gameState.board.stones.forEach(stone => {
+            if (stone.color === groupColor) {
+              // Skip stones that are already in our selected group
+              const isInSelectedGroup = connectedGroup.some(
+                pos => pos.x === stone.position.x && pos.y === stone.position.y
+              );
+              
+              if (!isInSelectedGroup) {
+                // Check if this stone is in a group with very few liberties (likely dead)
+                const stoneGroup = getConnectedGroup(stone.position, gameState.board.stones, gameState.board.size);
+                
+                // Skip if we've already checked this group
+                const alreadyChecked = potentialDeadGroups.some(group => 
+                  group.some(pos => 
+                    stoneGroup.some(groupPos => groupPos.x === pos.x && groupPos.y === pos.y)
+                  )
+                );
+                
+                if (!alreadyChecked) {
+                  // Count liberties to check if the group is likely dead
+                  const liberties = countLiberties(stoneGroup, gameState.board.stones, gameState.board.size);
+                  
+                  // Groups with 0-1 liberties are almost certainly dead
+                  if (liberties <= 1) {
+                    potentialDeadGroups.push(stoneGroup);
+                  }
+                }
+              }
+            }
+          });
+          
+          // Add all detected dead group positions
+          potentialDeadGroups.forEach(group => {
+            allDeadPositions = [...allDeadPositions, ...group];
+          });
+          
+          if (potentialDeadGroups.length > 0) {
+            log(`Auto-detected ${potentialDeadGroups.length} additional dead groups`);
+          }
+        }
+        
+        // Count how many stones in the group are already marked as dead
+        const alreadyMarkedCount = connectedGroup.filter(pos => 
+          gameState.deadStones.some(dead => dead.x === pos.x && dead.y === pos.y)
+        ).length;
+        
+        // If more than half are already marked, remove them all
+        // Otherwise, add all stones in the group
+        if (alreadyMarkedCount > connectedGroup.length / 2) {
+          // Remove all stones in the group from dead stones
+          gameState.deadStones = gameState.deadStones.filter(deadStone => 
+            !allDeadPositions.some(groupPos => groupPos.x === deadStone.x && groupPos.y === deadStone.y)
+          );
+        } else {
+          // Add all stones in the group to dead stones (avoiding duplicates)
+          const newDeadStones = allDeadPositions.filter(groupPos => 
+            !gameState.deadStones.some(deadStone => deadStone.x === groupPos.x && deadStone.y === groupPos.y)
+          );
+          
+          gameState.deadStones = [...gameState.deadStones, ...newDeadStones];
+        }
+        
+        // Update stored game state
+        activeGames.set(gameId, gameState);
+        
+        // Broadcast dead stone change to all clients
+        io.to(gameId).emit('deadStoneToggled', {
+          gameId,
+          position,
+          playerId,
+          deadStones: gameState.deadStones
+        });
+        
+        // Broadcast updated game state to all clients in the room
+        io.to(gameId).emit('gameState', gameState);
+      }
+    });
   });
 };
 
@@ -399,8 +519,8 @@ function getConnectedGroup(position, stones, boardSize) {
     // If there's no stone or it's a different color, return
     if (!stone || stone.color !== color) return;
     
-    // Add the stone to our group
-    group.push(stone);
+    // Add the position to our group
+    group.push(pos);
     
     // Visit all adjacent positions
     const adjacent = getAdjacentPositions(pos);

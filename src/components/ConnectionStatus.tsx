@@ -46,7 +46,7 @@ const ConnectionStatus: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 p-3 bg-white shadow-md rounded-lg text-sm connection-status-panel">
+    <div className="fixed bottom-4 left-4 p-3 bg-white shadow-md rounded-lg text-sm connection-status-panel z-50">
       <div className="flex items-center">
         <div 
           className={`w-3 h-3 rounded-full mr-2 ${
