@@ -189,7 +189,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
   };
   
   return (
-    <div className="game-info bg-gray-900 text-white p-3 sm:p-4 rounded-lg shadow-lg w-full border border-gray-800">
+    <div className="game-info bg-gray-900 text-white p-3 sm:p-4 rounded-lg shadow-lg w-full md:w-[400px] lg:w-[450px] xl:w-[500px] border border-gray-800">
       <h2 className="flex items-center justify-between text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-200">
         <div className="flex items-center gap-2">
           Game Info
@@ -296,7 +296,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
-            Pass Turn
+            Pass
           </button>
           
           <button
@@ -307,7 +307,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Request Undo
+            Undo
           </button>
         </div>
 
