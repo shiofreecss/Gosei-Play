@@ -147,16 +147,19 @@ const GoBoard: React.FC<GoBoardProps> = ({
 
   // Get stone size based on board size (larger stones for smaller boards)
   const getStoneSize = () => {
-    if (board.size === 9) return '90%';
-    if (board.size === 13) return '85%';
-    return '80%'; // 19x19
+    // Responsive stone sizes based on board size
+    if (board.size === 9) return 'calc(min(90%, 3.5vw))';
+    if (board.size === 13) return 'calc(min(85%, 3vw))';
+    if (board.size === 19) return 'calc(min(80%, 2.5vw))';
+    if (board.size === 21) return 'calc(min(75%, 2.2vw))';
+    return 'calc(min(80%, 2.5vw))'; // default
   };
 
   // Get star point class based on board size
   const getStarPointClass = () => {
     if (board.size === 9) return 'star-point-9';
     if (board.size === 13) return 'star-point-13';
-    return 'star-point-19'; // 19x19
+    return 'star-point-19'; // 19x19 and larger
   };
 
   // Get all star points for the current board size
@@ -168,8 +171,8 @@ const GoBoard: React.FC<GoBoardProps> = ({
   };
 
   return (
-    <div className="relative">
-      <div className={`board board-${board.size} board-theme-${currentTheme}`}>
+    <div className="go-board-container relative max-w-full overflow-auto">
+      <div className={`board board-${board.size} board-theme-${currentTheme} max-w-full`}>
         {Array.from({ length: board.size * board.size }).map((_, index) => {
           const x = index % board.size;
           const y = Math.floor(index / board.size);

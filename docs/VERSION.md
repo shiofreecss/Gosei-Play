@@ -1,5 +1,29 @@
 # Gosei Play Version History
 
+## v1.0.4 (2025-04-25)
+
+### Features
+- Comprehensive mobile responsiveness improvements:
+  - Redesigned Game UI layout for optimal display on mobile devices
+  - Enhanced Go board scaling and touch interaction
+  - Optimized Game Info panel for small screens
+  - Improved player information display on mobile
+  - Added responsive typography and UI elements
+
+### Improvements
+- Removed fixed width constraints causing overflow on mobile
+- Added responsive stone sizing based on viewport width
+- Implemented truncation for long player names on small screens
+- Adjusted padding, margins and spacing for touch-friendly interfaces
+- Optimized the board container to prevent horizontal scrolling
+- Reduced UI element sizes on mobile for better touch targets
+- Added proper breakpoints for layout changes between mobile and desktop
+- Enhanced container handling with overflow controls
+
+### Documentation
+- Added comprehensive mobile responsiveness documentation
+- Updated main documentation with mobile support references
+
 ## v1.0.3 (2025-04-21)
 
 ### Features

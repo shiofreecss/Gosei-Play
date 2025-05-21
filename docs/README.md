@@ -23,6 +23,8 @@ v1.0.4 - See [VERSION.md](VERSION.md) for complete version history and change de
 - **Game state synchronization** to handle connection issues
 - **Clean, organized interface** with game controls in a single location
 
+For detailed information about mobile responsiveness improvements, please see [MOBILE_RESPONSIVENESS.md](MOBILE_RESPONSIVENESS.md).
+
 ## Audio Features
 
 ### Stone Sounds

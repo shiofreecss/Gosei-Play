@@ -189,42 +189,42 @@ const GameInfo: React.FC<GameInfoProps> = ({
   };
   
   return (
-    <div className="game-info bg-gray-900 text-white p-4 rounded-lg shadow-lg min-w-[480px] border border-gray-800">
-      <h2 className="flex items-center justify-between text-xl font-semibold mb-4 text-gray-200">
+    <div className="game-info bg-gray-900 text-white p-3 sm:p-4 rounded-lg shadow-lg w-full border border-gray-800">
+      <h2 className="flex items-center justify-between text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-200">
         <div className="flex items-center gap-2">
           Game Info
-          <span className="text-sm bg-gray-700 px-2 py-1 rounded text-gray-300">
+          <span className="text-xs sm:text-sm bg-gray-700 px-2 py-1 rounded text-gray-300">
             {getGameTypeName()}
           </span>
         </div>
       </h2>
       
       {/* Players Section - Side by Side */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-3 sm:mb-4">
         {/* Black Player */}
-        <div className={`player-card p-5 rounded-lg transition-all duration-200 ${
+        <div className={`player-card p-2 sm:p-5 rounded-lg transition-all duration-200 ${
           currentTurn === 'black' ? 'bg-neutral-800 ring-2 ring-blue-500' : 'bg-neutral-800'
         }`}>
           <div className="flex flex-col items-center">
             {/* Player Avatar */}
             <PlayerAvatar 
               username={blackPlayer?.username || 'Waiting...'} 
-              size={96}
+              size={64}
             />
-            <div className="text-center mt-4">
-              <div className="flex items-center justify-center gap-2.5 mb-2">
-                <div className="w-5 h-5 bg-black rounded-full border-2 border-neutral-700 shadow-inner"></div>
-                <span className="font-semibold text-white text-lg">
+            <div className="text-center mt-2 sm:mt-4">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 mb-1 sm:mb-2">
+                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-black rounded-full border-2 border-neutral-700 shadow-inner"></div>
+                <span className="font-semibold text-white text-sm sm:text-lg truncate max-w-[90px] sm:max-w-full">
                   {blackPlayer?.username || 'Waiting for opponent'}
                 </span>
               </div>
-              <div className="text-base text-white/90 mt-1.5 font-medium bg-neutral-700/50 px-3 py-1 rounded-md">
+              <div className="text-xs sm:text-base text-white/90 mt-0.5 sm:mt-1.5 font-medium bg-neutral-700/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md">
                 Captured: {capturedStones?.white || 0}
               </div>
             </div>
           </div>
-          <div className="mt-4">
-            <div className={`text-xl font-mono font-bold text-center p-2.5 rounded-md ${
+          <div className="mt-2 sm:mt-4">
+            <div className={`text-base sm:text-xl font-mono font-bold text-center p-1 sm:p-2.5 rounded-md ${
               currentTurn === 'black' ? 'bg-blue-600 text-white' : 'bg-neutral-700 text-neutral-200'
             }`}>
               {blackPlayer ? formatTime(blackPlayer.timeRemaining) : '--:--'}
@@ -233,29 +233,29 @@ const GameInfo: React.FC<GameInfoProps> = ({
         </div>
         
         {/* White Player */}
-        <div className={`player-card p-5 rounded-lg transition-all duration-200 ${
+        <div className={`player-card p-2 sm:p-5 rounded-lg transition-all duration-200 ${
           currentTurn === 'white' ? 'bg-neutral-800 ring-2 ring-blue-500' : 'bg-neutral-800'
         }`}>
           <div className="flex flex-col items-center">
             {/* Player Avatar */}
             <PlayerAvatar 
               username={whitePlayer?.username || 'Waiting...'} 
-              size={96}
+              size={64}
             />
-            <div className="text-center mt-4">
-              <div className="flex items-center justify-center gap-2.5 mb-2">
-                <div className="w-5 h-5 bg-white rounded-full border-2 border-neutral-300 shadow-lg"></div>
-                <span className="font-semibold text-white text-lg">
+            <div className="text-center mt-2 sm:mt-4">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 mb-1 sm:mb-2">
+                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full border-2 border-neutral-300 shadow-lg"></div>
+                <span className="font-semibold text-white text-sm sm:text-lg truncate max-w-[90px] sm:max-w-full">
                   {whitePlayer?.username || 'Waiting for opponent'}
                 </span>
               </div>
-              <div className="text-base text-white/90 mt-1.5 font-medium bg-neutral-700/50 px-3 py-1 rounded-md">
+              <div className="text-xs sm:text-base text-white/90 mt-0.5 sm:mt-1.5 font-medium bg-neutral-700/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md">
                 Captured: {capturedStones?.black || 0}
               </div>
             </div>
           </div>
-          <div className="mt-4">
-            <div className={`text-xl font-mono font-bold text-center p-2.5 rounded-md ${
+          <div className="mt-2 sm:mt-4">
+            <div className={`text-base sm:text-xl font-mono font-bold text-center p-1 sm:p-2.5 rounded-md ${
               currentTurn === 'white' ? 'bg-blue-600 text-white' : 'bg-neutral-700 text-neutral-200'
             }`}>
               {whitePlayer ? formatTime(whitePlayer.timeRemaining) : '--:--'}
@@ -285,18 +285,18 @@ const GameInfo: React.FC<GameInfoProps> = ({
       </div>
 
       {/* Game Control Buttons */}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
         {/* Primary Game Controls */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <button
             onClick={onPassTurn}
-            disabled={!isPlayerTurn || status !== 'playing'}
-            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+            disabled={status !== 'playing' || !isPlayerTurn}
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-blue-600 text-white px-2 sm:px-4 py-2 sm:py-2.5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm font-medium"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
-            Pass
+            Pass Turn
           </button>
           
           <button
@@ -337,10 +337,10 @@ const GameInfo: React.FC<GameInfoProps> = ({
       </div>
 
       {/* Game Stats and Settings */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        <div className="p-3 bg-gray-800/80 rounded-md">
-          <h3 className="text-base font-semibold mb-2 text-gray-200">Game Stats</h3>
-          <div className="grid grid-cols-1 gap-1 text-xs text-gray-300">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-3 sm:mt-4">
+        <div className="p-2 sm:p-3 bg-gray-800/80 rounded-md">
+          <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2 text-gray-200">Game Stats</h3>
+          <div className="grid grid-cols-1 gap-0.5 sm:gap-1 text-xs text-gray-300">
             <div>Moves: {totalStones}</div>
             <div>Board: {board.size}×{board.size}</div>
             <div>Komi: {gameState.komi}</div>
@@ -350,9 +350,9 @@ const GameInfo: React.FC<GameInfoProps> = ({
         </div>
 
         {/* Settings */}
-        <div className="p-3 bg-gray-800/80 rounded-md">
-          <h3 className="text-base font-semibold mb-2 text-gray-200">Settings</h3>
-          <div className="space-y-2">
+        <div className="p-2 sm:p-3 bg-gray-800/80 rounded-md">
+          <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2 text-gray-200">Settings</h3>
+          <div className="space-y-1 sm:space-y-2">
             {/* Stone Sound Setting */}
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-300">Stone Sound</span>
@@ -364,7 +364,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
               <span className="text-gray-300">Auto Save</span>
               <button
                 onClick={onToggleAutoSave}
-                className={`px-2 py-1 rounded text-xs ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs ${
                   autoSaveEnabled 
                     ? 'bg-green-600 text-white' 
                     : 'bg-gray-600 text-gray-300'

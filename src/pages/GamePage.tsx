@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import GoBoard from '../components/go-board/GoBoard';
-import GameInfo from '../components/go-board/GameInfo';
+import { GoBoard, GameInfo } from '../components/go-board';
 import GameError from '../components/GameError';
 import BoardThemeButton from '../components/BoardThemeButton';
 import ConnectionStatus from '../components/ConnectionStatus';
@@ -11,6 +10,7 @@ import ChatBox from '../components/ChatBox';
 import FloatingChatBubble from '../components/FloatingChatBubble';
 import Notification from '../components/Notification';
 import GameCompleteModal from '../components/GameCompleteModal';
+import GoseiLogo from '../components/GoseiLogo';
 
 // Helper function to check game status safely
 const hasStatus = (gameState: GameState, status: 'waiting' | 'playing' | 'finished' | 'scoring'): boolean => {
@@ -558,9 +558,12 @@ const GamePage: React.FC = () => {
         />
       ))}
       
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold text-primary-700">Gosei Play</h1>
+      <div className="max-w-7xl mx-auto p-2 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 gap-2 sm:gap-4">
+          <div className="flex items-center gap-3">
+            <GoseiLogo size={40} />
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary-700">Gosei Play</h1>
+          </div>
         </div>
         
         {/* Add a small indicator when dev tools are enabled */}
@@ -570,9 +573,11 @@ const GamePage: React.FC = () => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          <div className="xl:col-span-3 flex flex-col items-center">
-            <div className="w-full max-w-[90vw] md:max-w-[80vw] xl:max-w-full">
+        {/* Mobile-first responsive grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Go Board - adjust to be full width on mobile and take 3/4 on larger screens */}
+          <div className="lg:col-span-3 flex flex-col items-center">
+            <div className="w-full max-w-full overflow-auto">
               <GoBoard
                 board={gameState.board}
                 currentTurn={gameState.currentTurn}
@@ -599,10 +604,10 @@ const GamePage: React.FC = () => {
               
               {/* Game completion buttons below board */}
               {gameState.status === 'finished' && (
-                <div className="mt-6 flex justify-center gap-4">
+                <div className="mt-4 sm:mt-6 flex flex-wrap justify-center gap-2 sm:gap-4">
                   <button
                     onClick={() => navigate('/')}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors font-medium"
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors font-medium"
                   >
                     Return Home
                   </button>
@@ -611,7 +616,7 @@ const GamePage: React.FC = () => {
                       resetGame();
                       navigate('/');
                     }}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors font-medium"
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors font-medium"
                   >
                     Play Again
                   </button>
@@ -620,8 +625,8 @@ const GamePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Game Info Panel */}
-          <div className="xl:col-span-1">
+          {/* Game Info Panel - Make responsive with proper width constraints */}
+          <div className="lg:col-span-1 w-full">
             <GameInfo
               gameState={gameState}
               currentPlayer={currentPlayer || undefined}
@@ -642,7 +647,7 @@ const GamePage: React.FC = () => {
             
             {/* Debug Controls - Only shown when dev tools are enabled */}
             {showDevTools && (
-              <div className="mt-6">
+              <div className="mt-4 sm:mt-6">
                 <button
                   onClick={handleSyncGame}
                   className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400 w-full"
