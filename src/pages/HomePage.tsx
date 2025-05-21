@@ -595,7 +595,7 @@ const HomePage: React.FC = () => {
         {/* Time Control Settings */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-3">Time Control</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Main Time (minutes)
@@ -606,7 +606,12 @@ const HomePage: React.FC = () => {
                   value={gameOptions.timeControl}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
-                    updateGameOption('timeControl', newValue);
+                    const minTime = getMinimumTimeForBoardSize(gameOptions.boardSize);
+                    if (newValue < minTime) {
+                      updateGameOption('timeControl', minTime);
+                    } else {
+                      updateGameOption('timeControl', newValue);
+                    }
                   }}
                   min={getMinimumTimeForBoardSize(gameOptions.boardSize)}
                   className="form-input w-full"
@@ -615,27 +620,126 @@ const HomePage: React.FC = () => {
                   <p className="text-sm text-neutral-500">
                     Minimum {getMinimumTimeForBoardSize(gameOptions.boardSize)} minutes for {gameOptions.boardSize}×{gameOptions.boardSize} board
                   </p>
-                  <p className="text-xs text-primary-600 mt-1">
-                    Time is automatically adjusted based on board size
-                  </p>
                 </div>
               </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Time per Move (seconds)
-              </label>
-              <input
-                type="number"
-                value={gameOptions.timePerMove}
-                onChange={(e) => updateGameOption('timePerMove', parseInt(e.target.value))}
-                min="0"
-                className="form-input w-full"
-              />
-              <p className="mt-1 text-xs text-neutral-500">
-                Optional: Set to 0 to disable time per move
-              </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Byo-yomi Periods
+                </label>
+                <select
+                  value={gameOptions.timeControlOptions?.byoYomiPeriods || 0}
+                  onChange={(e) => {
+                    const newOptions = {
+                      ...gameOptions.timeControlOptions,
+                      byoYomiPeriods: parseInt(e.target.value)
+                    };
+                    updateGameOption('timeControlOptions', newOptions);
+                  }}
+                  className="form-select w-full"
+                >
+                  <option value="0">No byo-yomi</option>
+                  <option value="3">3 periods</option>
+                  <option value="5">5 periods (Standard)</option>
+                  <option value="7">7 periods</option>
+                </select>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Number of extra time periods after main time
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Byo-yomi Time (seconds)
+                </label>
+                <select
+                  value={gameOptions.timeControlOptions?.byoYomiTime || 0}
+                  onChange={(e) => {
+                    const newOptions = {
+                      ...gameOptions.timeControlOptions,
+                      byoYomiTime: parseInt(e.target.value)
+                    };
+                    updateGameOption('timeControlOptions', newOptions);
+                  }}
+                  className="form-select w-full"
+                  disabled={!gameOptions.timeControlOptions?.byoYomiPeriods}
+                >
+                  <option value="0">Not used</option>
+                  <option value="30">30 seconds (Standard)</option>
+                  <option value="40">40 seconds</option>
+                  <option value="60">60 seconds</option>
+                </select>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Time per byo-yomi period
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Fischer Increment (seconds)
+                </label>
+                <select
+                  value={gameOptions.timeControlOptions?.fischerTime || 0}
+                  onChange={(e) => {
+                    const newOptions = {
+                      ...gameOptions.timeControlOptions,
+                      fischerTime: parseInt(e.target.value)
+                    };
+                    updateGameOption('timeControlOptions', newOptions);
+                  }}
+                  className="form-select w-full"
+                >
+                  <option value="0">No increment</option>
+                  <option value="5">5 seconds</option>
+                  <option value="10">10 seconds</option>
+                  <option value="15">15 seconds</option>
+                </select>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Time added after each move
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Time per Move (seconds)
+                </label>
+                <input
+                  type="number"
+                  value={gameOptions.timePerMove}
+                  onChange={(e) => updateGameOption('timePerMove', parseInt(e.target.value))}
+                  min="0"
+                  className="form-input w-full"
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Optional: Set to 0 to disable
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+              <h4 className="text-sm font-semibold text-neutral-800 mb-2">Time Control Info</h4>
+              <ul className="text-xs text-neutral-600 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary-600">•</span>
+                  <span><strong className="text-neutral-800">Main Time:</strong> Primary time allocation for the entire game</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary-600">•</span>
+                  <span><strong className="text-neutral-800">Byo-yomi:</strong> Extra periods after main time expires (Japanese timing)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary-600">•</span>
+                  <span><strong className="text-neutral-800">Fischer:</strong> Time added after each move (Western timing)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary-600">•</span>
+                  <span><strong className="text-neutral-800">Time per Move:</strong> Maximum time allowed for each move</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

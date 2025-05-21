@@ -9,6 +9,7 @@ import { useGame } from '../context/GameContext';
 import { Position, GameMove, GameState } from '../types/go';
 import ChatBox from '../components/ChatBox';
 import FloatingChatBubble from '../components/FloatingChatBubble';
+import Notification from '../components/Notification';
 
 // Helper function to check game status safely
 const hasStatus = (gameState: GameState, status: 'waiting' | 'playing' | 'finished' | 'scoring'): boolean => {
@@ -59,6 +60,11 @@ const GamePage: React.FC = () => {
   const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
   const [showDevTools, setShowDevTools] = useState(false);
   const [confirmingScore, setConfirmingScore] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    message: string;
+    type: 'info' | 'warning' | 'error';
+  }>>([]);
 
   // Check if there's a gameId in the URL and try to load that game
   useEffect(() => {
@@ -195,6 +201,35 @@ const GamePage: React.FC = () => {
       }
     });
 
+    // Handle player left event
+    socket.on('playerLeft', (leaveData) => {
+      console.log(`Player ${leaveData.playerId} left the game`);
+      const leftPlayer = gameState?.players.find(p => p.id === leaveData.playerId);
+      if (leftPlayer && leftPlayer.id !== currentPlayer?.id) {
+        setNotifications(prev => [...prev, {
+          id: Date.now().toString(),
+          message: `${leftPlayer.username} has left the game`,
+          type: 'warning'
+        }]);
+      }
+    });
+
+    // Handle player disconnection
+    socket.on('playerDisconnected', (disconnectData) => {
+      console.log(`Player disconnected from the game`);
+      // Find the disconnected player (excluding the current player)
+      const disconnectedPlayer = gameState?.players.find(
+        p => p.id !== currentPlayer?.id
+      );
+      if (disconnectedPlayer) {
+        setNotifications(prev => [...prev, {
+          id: Date.now().toString(),
+          message: `${disconnectedPlayer.username} has disconnected from the game`,
+          type: 'warning'
+        }]);
+      }
+    });
+
     return () => {
       socket.off('chatMessageReceived');
       socket.off('chatHistory');
@@ -202,8 +237,10 @@ const GamePage: React.FC = () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
+      socket.off('playerLeft');
+      socket.off('playerDisconnected');
     };
-  }, [gameState?.socket, gameState?.id, currentPlayer]);
+  }, [gameState?.socket, gameState?.id, currentPlayer, gameState?.players]);
 
   // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
@@ -410,6 +447,10 @@ const GamePage: React.FC = () => {
     }
   };
 
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -505,7 +546,17 @@ const GamePage: React.FC = () => {
 
   // Game board and UI
   return (
-    <div className="min-h-screen bg-neutral-100">
+    <div className="min-h-screen bg-neutral-100 relative">
+      {/* Notifications */}
+      {notifications.map(notification => (
+        <Notification
+          key={notification.id}
+          message={notification.message}
+          type={notification.type}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
+      
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold text-primary-700">Gosei Play</h1>

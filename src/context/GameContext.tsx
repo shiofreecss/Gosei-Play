@@ -1301,12 +1301,30 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     // Notify server if socket is connected
     if (state.socket && state.socket.connected && state.gameState && state.currentPlayer) {
       console.log(`Emitting leaveGame event for game ${state.gameState.id}`);
+      
+      // Find the opponent player
+      const opponent = state.gameState.players.find(p => p.id !== state.currentPlayer?.id);
+      
+      // Emit leave game event with additional info
       state.socket.emit('leaveGame', {
         gameId: state.gameState.id,
-        playerId: state.currentPlayer.id
+        playerId: state.currentPlayer.id,
+        username: state.currentPlayer.username,
+        opponentId: opponent?.id
       });
+
+      // Update game state to reflect player leaving
+      const updatedGameState: GameState = {
+        ...state.gameState,
+        status: 'finished' as const,
+        players: state.gameState.players.filter(p => p.id !== state.currentPlayer?.id)
+      };
+
+      // Update local state before leaving
+      dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedGameState });
     }
     
+    // Clean up local state
     dispatch({ type: 'LEAVE_GAME' });
   };
   

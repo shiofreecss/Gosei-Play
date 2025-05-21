@@ -21,14 +21,15 @@ interface TimeState {
 
 const TimeControl: React.FC<TimeControlProps> = ({
   timeControl,
-  timePerMove,
-  byoYomiPeriods = 0,
-  byoYomiTime = 0,
+  timePerMove = 0,
+  byoYomiPeriods = 5, // Default 5 periods
+  byoYomiTime = 30, // Default 30 seconds per period
   fischerTime = 0,
   currentTurn,
   onTimeout,
   isPlaying
 }) => {
+  // Initialize time states for both players
   const [blackTime, setBlackTime] = useState<TimeState>({
     mainTime: timeControl * 60,
     byoYomiPeriodsLeft: byoYomiPeriods,
@@ -46,69 +47,23 @@ const TimeControl: React.FC<TimeControlProps> = ({
   // Use refs to track the last update time to handle timer drift
   const lastUpdateTimeRef = useRef<number>(Date.now());
   const timerIdRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Play notification sound using browser's built-in notification
-  const playNotification = (type: 'low-time' | 'byo-yomi') => {
-    try {
-      if (type === 'low-time') {
-        new Notification('Low Time Warning', {
-          body: 'Less than 30 seconds remaining!',
-          silent: false
-        });
-      } else {
-        new Notification('Byo-yomi Period', {
-          body: 'Main time expired. Entering byo-yomi period.',
-          silent: false
-        });
-      }
-    } catch (e) {
-      console.warn('Notifications not supported or permission not granted');
+  // Initialize audio elements
+  useEffect(() => {
+    audioRef.current = new Audio('/sounds/time-warning.mp3');
+    audioRef.current.volume = 0.5;
+  }, []);
+
+  // Play time warning sound
+  const playTimeWarning = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {
+        // Ignore playback errors
+      });
     }
   };
-
-  useEffect(() => {
-    // Request notification permission
-    if (Notification.permission !== 'granted') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // Handle server time synchronization
-  useEffect(() => {
-    // Listen for server time updates
-    const handleServerTimeUpdate = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'timeUpdate' && data.color) {
-          // Update the appropriate timer based on the color
-          const setTimeState = data.color === 'black' ? setBlackTime : setWhiteTime;
-          const timeRemaining = data.timeRemaining;
-          
-          console.log(`Synchronizing ${data.color} time from server: ${timeRemaining}s`);
-          
-          // Update the timer state from server
-          setTimeState(prev => ({
-            ...prev,
-            mainTime: timeRemaining,
-            // Keep other byo-yomi state intact
-          }));
-          
-          // Update the last update time
-          lastUpdateTimeRef.current = Date.now();
-        }
-      } catch (e) {
-        // Ignore parsing errors
-      }
-    };
-    
-    // This is just a mock event listener since we don't have direct access to socket events here
-    // In a real implementation, you would connect this to your socket events
-    // window.addEventListener('message', handleServerTimeUpdate);
-    
-    // return () => {
-    //   window.removeEventListener('message', handleServerTimeUpdate);
-    // };
-  }, []);
 
   useEffect(() => {
     // Clean up previous timer
@@ -133,79 +88,61 @@ const TimeControl: React.FC<TimeControlProps> = ({
           const currentTimeState = currentTurn === 'black' ? blackTime : whiteTime;
           const setTimeState = currentTurn === 'black' ? setBlackTime : setWhiteTime;
 
-          if (currentTimeState.mainTime > 0 || (currentTimeState.isByoYomi && currentTimeState.byoYomiTimeLeft > 0)) {
-            // Play warning sounds
-            if (currentTimeState.mainTime === 30 || currentTimeState.byoYomiTimeLeft === 10) {
-              playNotification('low-time');
-            } else if (currentTimeState.mainTime === 0 && !currentTimeState.isByoYomi) {
-              playNotification('byo-yomi');
-            }
+          setTimeState(prev => {
+            let newState = { ...prev };
 
-            setTimeState(prev => {
-              // Don't go below zero
-              if (prev.mainTime <= elapsedSeconds && !prev.isByoYomi) {
-                // We've just run out of main time
-                if (prev.byoYomiPeriodsLeft > 0) {
-                  // Enter byo-yomi
-                  return {
-                    ...prev,
-                    mainTime: 0,
-                    isByoYomi: true,
-                    byoYomiTimeLeft: byoYomiTime
-                  };
+            // Handle main time
+            if (prev.mainTime > 0) {
+              newState.mainTime = Math.max(0, prev.mainTime - elapsedSeconds);
+              
+              // Play warning sound at specific thresholds
+              if (
+                (newState.mainTime <= 60 && prev.mainTime > 60) || // 1 minute
+                (newState.mainTime <= 30 && prev.mainTime > 30) || // 30 seconds
+                (newState.mainTime <= 10 && prev.mainTime > 10)    // 10 seconds
+              ) {
+                playTimeWarning();
+              }
+
+              // If main time runs out, switch to byo-yomi if available
+              if (newState.mainTime === 0 && prev.byoYomiPeriodsLeft > 0) {
+                newState.isByoYomi = true;
+                newState.byoYomiTimeLeft = byoYomiTime;
+                playTimeWarning(); // Signal byo-yomi start
+              }
+            }
+            // Handle byo-yomi time
+            else if (prev.isByoYomi && prev.byoYomiPeriodsLeft > 0) {
+              newState.byoYomiTimeLeft = Math.max(0, prev.byoYomiTimeLeft - elapsedSeconds);
+              
+              // Play warning sound in byo-yomi
+              if (
+                (newState.byoYomiTimeLeft <= 10 && prev.byoYomiTimeLeft > 10) || // 10 seconds
+                (newState.byoYomiTimeLeft <= 5 && prev.byoYomiTimeLeft > 5)     // 5 seconds
+              ) {
+                playTimeWarning();
+              }
+
+              // If byo-yomi period runs out
+              if (newState.byoYomiTimeLeft === 0) {
+                if (prev.byoYomiPeriodsLeft > 1) {
+                  newState.byoYomiPeriodsLeft = prev.byoYomiPeriodsLeft - 1;
+                  newState.byoYomiTimeLeft = byoYomiTime;
+                  playTimeWarning(); // Signal new period
                 } else {
-                  // No byo-yomi periods, time's up
-                  return {
-                    ...prev,
-                    mainTime: 0
-                  };
-                }
-              } else if (prev.mainTime > 0) {
-                // Just decrement main time
-                return { 
-                  ...prev, 
-                  mainTime: Math.max(0, prev.mainTime - elapsedSeconds) 
-                };
-              } else if (prev.isByoYomi) {
-                // Handle byo-yomi time
-                if (prev.byoYomiTimeLeft <= elapsedSeconds) {
-                  // This byo-yomi period is over
-                  if (prev.byoYomiPeriodsLeft > 1) {
-                    // Move to next period
-                    return {
-                      ...prev,
-                      byoYomiPeriodsLeft: prev.byoYomiPeriodsLeft - 1,
-                      byoYomiTimeLeft: byoYomiTime
-                    };
-                  } else {
-                    // No periods left, time's up
-                    return {
-                      ...prev,
-                      byoYomiPeriodsLeft: 0,
-                      byoYomiTimeLeft: 0
-                    };
-                  }
-                } else {
-                  // Just decrement byo-yomi time
-                  return {
-                    ...prev,
-                    byoYomiTimeLeft: prev.byoYomiTimeLeft - elapsedSeconds
-                  };
+                  // No periods left, time's up
+                  newState.byoYomiPeriodsLeft = 0;
+                  onTimeout(currentTurn);
                 }
               }
-              return prev;
-            });
-          } else if (currentTimeState.mainTime === 0 && 
-                   (!currentTimeState.isByoYomi || currentTimeState.byoYomiTimeLeft === 0)) {
-            // Time has run out
-            onTimeout(currentTurn);
-            
-            // Stop the timer
-            if (timerIdRef.current) {
-              clearInterval(timerIdRef.current);
-              timerIdRef.current = null;
             }
-          }
+            // Time's up
+            else if (!prev.isByoYomi || prev.byoYomiPeriodsLeft === 0) {
+              onTimeout(currentTurn);
+            }
+
+            return newState;
+          });
         }
       }, 100); // Update more frequently to reduce drift
     }
@@ -218,7 +155,7 @@ const TimeControl: React.FC<TimeControlProps> = ({
     };
   }, [isPlaying, currentTurn, blackTime, whiteTime, byoYomiTime, onTimeout]);
 
-  // Handle Fischer increment on move
+  // Handle Fischer increment on move change
   useEffect(() => {
     if (fischerTime > 0) {
       const prevTurn = currentTurn === 'black' ? 'white' : 'black';
@@ -241,7 +178,7 @@ const TimeControl: React.FC<TimeControlProps> = ({
     if (timeState.mainTime > 0) {
       return formatTime(timeState.mainTime);
     } else if (timeState.isByoYomi) {
-      return `BY ${timeState.byoYomiPeriodsLeft}x${formatTime(timeState.byoYomiTimeLeft)}`;
+      return `BY ${timeState.byoYomiPeriodsLeft}×${formatTime(timeState.byoYomiTimeLeft)}`;
     }
     return '0:00';
   };
@@ -253,9 +190,22 @@ const TimeControl: React.FC<TimeControlProps> = ({
       fontSize: '1.25rem'
     };
     
-    if (timeState.mainTime <= 30 || (timeState.isByoYomi && timeState.byoYomiTimeLeft <= 10)) {
-      return { ...baseStyle, color: isActive ? '#dc2626' : '#ef4444' }; // Red for low time
+    // Critical time warning (red)
+    if (
+      (timeState.mainTime > 0 && timeState.mainTime <= 30) ||
+      (timeState.isByoYomi && timeState.byoYomiTimeLeft <= 10)
+    ) {
+      return { ...baseStyle, color: '#dc2626' }; // Red for critical time
     }
+    
+    // Low time warning (orange)
+    if (
+      (timeState.mainTime > 0 && timeState.mainTime <= 60) ||
+      (timeState.isByoYomi && timeState.byoYomiTimeLeft <= 20)
+    ) {
+      return { ...baseStyle, color: '#f97316' }; // Orange for low time
+    }
+    
     return baseStyle;
   };
 
@@ -268,12 +218,29 @@ const TimeControl: React.FC<TimeControlProps> = ({
     backgroundColor: isActive ? '#f9fafb' : '#f3f4f6',
     borderRadius: '0.375rem',
     flex: 1,
-    borderLeft: isActive ? '3px solid #000' : '3px solid transparent'
+    borderLeft: isActive ? '3px solid #000' : '3px solid transparent',
+    position: 'relative' as const,
+    overflow: 'hidden' as const
   });
+
+  // Time pressure indicator animation
+  const getTimePressureStyle = (timeState: TimeState) => {
+    if (
+      (timeState.mainTime > 0 && timeState.mainTime <= 30) ||
+      (timeState.isByoYomi && timeState.byoYomiTimeLeft <= 10)
+    ) {
+      return {
+        animation: 'pulse 1s ease-in-out infinite',
+        background: 'linear-gradient(45deg, rgba(220, 38, 38, 0.1) 0%, transparent 100%)'
+      };
+    }
+    return {};
+  };
 
   return (
     <div className="flex gap-4 mt-4">
       <div style={clockCardStyle(currentTurn === 'black')}>
+        <div className="absolute inset-0" style={getTimePressureStyle(blackTime)} />
         <div className="flex items-center mb-1">
           <div style={{
             width: '0.75rem',
@@ -287,9 +254,15 @@ const TimeControl: React.FC<TimeControlProps> = ({
         <div style={getTimeStyle(blackTime, currentTurn === 'black')}>
           {getTimeDisplay(blackTime)}
         </div>
+        {blackTime.isByoYomi && (
+          <div className="text-xs text-gray-500 mt-1">
+            {blackTime.byoYomiPeriodsLeft} periods left
+          </div>
+        )}
       </div>
       
       <div style={clockCardStyle(currentTurn === 'white')}>
+        <div className="absolute inset-0" style={getTimePressureStyle(whiteTime)} />
         <div className="flex items-center mb-1">
           <div style={{
             width: '0.75rem',
@@ -304,6 +277,11 @@ const TimeControl: React.FC<TimeControlProps> = ({
         <div style={getTimeStyle(whiteTime, currentTurn === 'white')}>
           {getTimeDisplay(whiteTime)}
         </div>
+        {whiteTime.isByoYomi && (
+          <div className="text-xs text-gray-500 mt-1">
+            {whiteTime.byoYomiPeriodsLeft} periods left
+          </div>
+        )}
       </div>
     </div>
   );
