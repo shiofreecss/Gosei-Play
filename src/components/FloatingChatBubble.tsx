@@ -83,10 +83,10 @@ const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
   }, [isOpen]);
 
   return (
-    <div className="fixed bottom-8 right-8 z-50" ref={chatRef}>
+    <div className="fixed bottom-24 right-8 z-50" ref={chatRef}>
       {/* Chat floating button */}
       <button 
-        className="w-14 h-14 rounded-full bg-gray-800 text-white flex items-center justify-center cursor-pointer shadow-lg border-none transition-all duration-200 hover:bg-black hover:scale-105 focus:outline-none relative"
+        className="w-14 h-14 rounded-lg bg-neutral-800/90 text-white flex items-center justify-center cursor-pointer shadow-lg border border-neutral-700 transition-all duration-200 hover:bg-neutral-800 hover:scale-105 focus:outline-none relative"
         onClick={() => setIsOpen(!isOpen)}
         title={isOpen ? "Close chat" : "Open chat"}
       >
@@ -100,7 +100,7 @@ const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
           </svg>
         )}
         {unreadCount > 0 && !isOpen && (
-          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold border-2 border-white animate-bounce">
+          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold border-2 border-neutral-800 animate-bounce">
             {unreadCount > 99 ? '99+' : unreadCount}
           </div>
         )}

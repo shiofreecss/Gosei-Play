@@ -1237,23 +1237,30 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         // This is just for UI feedback and will be recalculated when scoring is confirmed
         const deadStonePositions = new Set<string>();
         const scoringRule = updatedGameState.scoringRule || 'japanese';
+        const komi = updatedGameState.komi || (scoringRule === 'chinese' ? 7.5 : 6.5);
         
         try {
-          // Get territories for visual feedback
+          // Get territories and preliminary score for visual feedback
           let scoringUtils;
           if (scoringRule === 'chinese') {
-            scoringUtils = calculateChineseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+            scoringUtils = calculateChineseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones, komi);
           } else if (scoringRule === 'korean') {
-            scoringUtils = calculateKoreanScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+            scoringUtils = calculateKoreanScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones, komi);
           } else if (scoringRule === 'aga') {
-            scoringUtils = calculateAGAScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+            scoringUtils = calculateAGAScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones, komi);
           } else if (scoringRule === 'ing') {
-            scoringUtils = calculateIngScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+            scoringUtils = calculateIngScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones, komi);
           } else {
-            scoringUtils = calculateJapaneseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones);
+            scoringUtils = calculateJapaneseScore(updatedGameState.board, deadStonePositions, updatedGameState.capturedStones, komi);
           }
           
           updatedGameState.territory = scoringUtils.territories;
+          // Set preliminary score for display
+          updatedGameState.score = { 
+            ...scoringUtils.score,
+            blackCaptures: updatedGameState.capturedStones.black,
+            whiteCaptures: updatedGameState.capturedStones.white
+          };
         } catch (e) {
           console.error('Error calculating initial territories:', e);
         }

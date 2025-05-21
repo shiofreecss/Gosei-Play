@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Board, Position, Stone, StoneColor, Territory } from '../../types/go';
+import React, { useState, useEffect } from 'react';
+import { Board, Position, Stone, StoneColor, Territory, GameState } from '../../types/go';
 import { isHandicapPoint } from '../../utils/handicapUtils';
 import { playStoneSound } from '../../utils/soundUtils';
 import { useBoardTheme } from '../../context/BoardThemeContext';
+import { useGame } from '../../context/GameContext';
 
 interface GoBoardProps {
   board: Board;
@@ -33,6 +34,7 @@ const GoBoard: React.FC<GoBoardProps> = ({
 }) => {
   const [hoverPosition, setHoverPosition] = useState<Position | null>(null);
   const { currentTheme } = useBoardTheme();
+  const { gameState } = useGame();
 
   // Get star point positions based on board size
   const getStarPoints = (size: number): Position[] => {
@@ -295,32 +297,59 @@ const GoBoard: React.FC<GoBoardProps> = ({
         })}
       </div>
 
-      {/* Board size indicator */}
-      <div className="board-size-indicator">
-        {board.size}×{board.size}
-      </div>
-      
+      {/* KO position marker */}
+      {gameState?.koPosition && (
+        <div 
+          className="absolute pointer-events-none ko-marker" 
+          style={{
+            left: `${(100 / board.size) * (gameState.koPosition.x + 0.5)}%`,
+            top: `${(100 / board.size) * (gameState.koPosition.y + 0.5)}%`,
+            transform: 'translate(-50%, -50%)',
+            zIndex: 20,
+          }}
+        >
+          <svg 
+            width="30" 
+            height="30" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M6 18L18 6M6 6l12 12" stroke="#ff3333" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        </div>
+      )}
+
       {/* Scoring mode indicator */}
       {isScoring && (
-        <div className="absolute top-0 left-0 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-br-lg text-sm font-medium">
-          Scoring Mode: Click stones to mark as dead
+        <div className="absolute top-0 left-0 bg-neutral-800/90 text-white px-4 py-2 rounded-br-lg text-sm font-medium shadow-md border border-neutral-700">
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+            </svg>
+            <span>Scoring Mode: Click stones to mark as dead</span>
+          </div>
         </div>
       )}
 
       {isHandicapPlacement && (
-        <div className="absolute top-0 left-0 bg-blue-100 text-blue-800 px-3 py-1 rounded-br-lg text-sm font-medium">
+        <div className="absolute top-0 left-0 bg-neutral-800/90 text-white px-3 py-1 rounded-br-lg text-sm font-medium">
           Handicap Mode: Place stones on highlighted points
         </div>
       )}
 
       {/* Territory legend */}
       {showTerritory && (
-        <div className="absolute top-0 right-0 bg-gray-100 text-gray-800 px-3 py-1 rounded-bl-lg text-sm font-medium">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-black opacity-30 rounded-full"></div>
-            <span>Black Territory</span>
-            <div className="w-3 h-3 bg-white border border-gray-500 opacity-30 rounded-full ml-2"></div>
-            <span>White Territory</span>
+        <div className="absolute top-0 right-0 bg-neutral-800/90 text-white px-4 py-2 rounded-bl-lg text-sm font-medium shadow-md border border-neutral-700">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-black opacity-40 rounded-full border-2 border-neutral-600"></div>
+              <span>Black Territory</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-white opacity-40 rounded-full border-2 border-neutral-600"></div>
+              <span>White Territory</span>
+            </div>
           </div>
         </div>
       )}

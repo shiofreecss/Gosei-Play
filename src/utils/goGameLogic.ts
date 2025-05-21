@@ -402,31 +402,10 @@ export const isSuicideMove = (position: Position, color: StoneColor, gameState: 
 
 // Check for ko rule violation
 export const isKoViolation = (position: Position, color: StoneColor, gameState: GameState): boolean => {
-  // Ko rule applies when capturing exactly one stone that just captured exactly one stone
-  
-  // If the move history is empty or has only one move, ko rule cannot be violated
-  if (gameState.history.length < 2) return false;
-  
-  // Get the most recent move
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const lastMove = gameState.history[gameState.history.length - 1];
-  
-  // Check if the current move is at the same position as the second-to-last move
-  // This is a simplification of the ko rule check
-  if (gameState.history.length >= 3) {
-    const twoMovesAgo = gameState.history[gameState.history.length - 3];
-    
-    // Check if twoMovesAgo is a position (not a pass)
-    if (!isPassMove(twoMovesAgo) && 'x' in twoMovesAgo && 'y' in twoMovesAgo) {
-      if (position.x === twoMovesAgo.x && position.y === twoMovesAgo.y) {
-        // Check if the last move captured exactly one stone
-        // For a complete implementation, we would need to track captured stones per move
-        const captureCount = 1; // Would need proper implementation
-        if (captureCount === 1) {
-          return true;
-        }
-      }
-    }
+  // If there's a KO position set and this move is at that position, it's a violation
+  // The KO position will remain restricted until another move is played
+  if (gameState.koPosition) {
+    return position.x === gameState.koPosition.x && position.y === gameState.koPosition.y;
   }
   
   return false;
@@ -435,7 +414,8 @@ export const isKoViolation = (position: Position, color: StoneColor, gameState: 
 // Capture stones that have no liberties after a move
 export const captureDeadStones = (gameState: GameState, lastMovePosition: Position): { 
   updatedStones: Stone[], 
-  capturedCount: number 
+  capturedCount: number,
+  koPosition?: Position
 } => {
   const { board } = gameState;
   const { stones, size } = board;
@@ -456,6 +436,8 @@ export const captureDeadStones = (gameState: GameState, lastMovePosition: Positi
   let capturedCount = 0;
   let remainingStones = [...stones];
   let capturedPositions: Position[] = [];
+  // Preserve existing KO position by default unless we create a new one
+  let koPosition: Position | undefined = gameState.koPosition;
   
   // Check each adjacent position for enemy groups that might be captured
   adjacentPositions.forEach(adjPos => {
@@ -489,13 +471,20 @@ export const captureDeadStones = (gameState: GameState, lastMovePosition: Positi
         console.log(`Removed ${beforeCount - afterCount} stones from board`);
         
         capturedCount += group.length;
+        
+        // Track KO position
+        if (group.length === 1) {
+          // Only update the KO position if we're capturing a single stone
+          // This will create a new KO situation
+          koPosition = group[0];
+        }
       }
     }
   });
   
   console.log(`Total captured: ${capturedCount} ${oppositeColor} stones at positions:`, capturedPositions);
   
-  return { updatedStones: remainingStones, capturedCount };
+  return { updatedStones: remainingStones, capturedCount, koPosition };
 };
 
 // Helper function to check if a move is a pass
@@ -536,8 +525,8 @@ export const applyGoRules = (
   // Add the new stone
   const updatedStones = [...gameState.board.stones, { position, color }];
   
-  // Capture any dead stones
-  const { updatedStones: afterCaptureStones, capturedCount } = 
+  // Capture any dead stones and track KO state
+  const { updatedStones: afterCaptureStones, capturedCount, koPosition } = 
     captureDeadStones({ ...gameState, board: { ...gameState.board, stones: updatedStones } }, position);
   
   // Update captured stones count
@@ -546,6 +535,19 @@ export const applyGoRules = (
     updatedCapturedStones[color] += capturedCount;
   }
   
+  // Special case: reset KO position if we just played elsewhere
+  let newKoPosition = koPosition;
+  
+  // If the KO position was set and we played somewhere else,
+  // we've satisfied the KO rule by playing elsewhere.
+  // If a new KO position was created in this move, it will be in koPosition
+  // If no new KO was created, we should clear the KO restriction for the next move
+  if (gameState.koPosition && 
+      (position.x !== gameState.koPosition.x || position.y !== gameState.koPosition.y) && 
+      !koPosition) {
+    newKoPosition = undefined;
+  }
+
   // Update the game state
   const updatedGameState: GameState = {
     ...gameState,
@@ -557,6 +559,7 @@ export const applyGoRules = (
     // Toggle turn normally after the first move
     currentTurn: color === 'black' ? 'white' : 'black',
     history: [...gameState.history, position],
+    koPosition: newKoPosition
   };
   
   return { valid: true, updatedGameState };

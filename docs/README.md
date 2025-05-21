@@ -3,13 +3,14 @@
 A modern, responsive real-time Go (Baduk/Weiqi) game application built with React, TypeScript, and Socket.io.
 
 ## Current Version
-v1.0.3 - See [VERSION.md](VERSION.md) for complete version history and change details.
+v1.0.4 - See [VERSION.md](VERSION.md) for complete version history and change details.
 
 ## Features
 
 - **Real-time multiplayer Go game** with socket-based communication
 - **Multiple board sizes** (9×9, 13×13, 19×19) suitable for players of all levels
 - **Customizable board themes** including Default, Dark Wood 3D, Light Wood 3D, and Universe themes
+- **Interactive game completion** with detailed score popup and personalized win/loss messages
 - **Authentic stone placement sounds** with toggle option in game settings
 - **Zen background music player** with multiple traditional tracks and volume control
 - **Real-time in-game chat** for communication between players
@@ -125,6 +126,8 @@ The socket server will run on http://localhost:3001
    - Use the "Pass Turn" button in the Game Controls section when you have no good moves
    - The game ends after both players pass consecutively
    - Territory is counted manually at the end of the game
+   - When the game completes, a popup shows the final score with personalized win/loss messages
+   - Convenient "Return Home" and "Play Again" buttons appear below the board after game completion
 
 4. **Game controls:**
    - All game controls are located in the Game Information panel

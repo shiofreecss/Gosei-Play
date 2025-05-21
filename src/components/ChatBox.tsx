@@ -76,25 +76,25 @@ const ChatBox: React.FC<ChatBoxProps> = ({
   };
 
   const containerStyle: React.CSSProperties = {
-    background: 'white',
+    background: 'rgb(23 23 23 / 0.9)',
     borderRadius: '0.75rem',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)',
     display: 'flex',
     flexDirection: 'column' as const,
-    height: '500px', // Fixed height
+    height: '500px',
     minHeight: '400px',
     maxHeight: '600px',
     width: '100%',
-    overflow: 'hidden', // Prevent content from overflowing
+    overflow: 'hidden',
   };
 
   const headerStyle: React.CSSProperties = {
     padding: '1rem',
-    borderBottom: '1px solid #e5e7eb',
+    borderBottom: '1px solid rgb(38 38 38)',
     fontWeight: '600',
     fontSize: '1.125rem',
-    color: '#1f2937',
-    backgroundColor: '#f9fafb',
+    color: 'white',
+    backgroundColor: 'rgb(23 23 23)',
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
@@ -108,12 +108,13 @@ const ChatBox: React.FC<ChatBoxProps> = ({
     flexDirection: 'column' as const,
     gap: '1rem',
     scrollBehavior: 'smooth' as const,
+    backgroundColor: 'rgb(23 23 23 / 0.9)',
   };
 
   const messageStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column' as const,
-    maxWidth: '80%', // Slightly narrower messages
+    maxWidth: '80%',
     gap: '0.25rem',
   };
 
@@ -136,57 +137,59 @@ const ChatBox: React.FC<ChatBoxProps> = ({
     wordBreak: 'break-word' as const,
     maxWidth: '100%',
     lineHeight: '1.4',
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   };
 
   const selfMessageContentStyle: React.CSSProperties = {
     ...messageContentStyle,
-    backgroundColor: '#4338ca', // Indigo color
+    backgroundColor: '#3730a3',
     color: 'white',
     borderBottomRightRadius: '0.25rem',
   };
 
   const otherMessageContentStyle: React.CSSProperties = {
     ...messageContentStyle,
-    backgroundColor: '#f3f4f6',
-    color: '#1f2937',
+    backgroundColor: 'rgb(38 38 38)',
+    color: 'white',
     borderBottomLeftRadius: '0.25rem',
   };
 
   const metaInfoStyle: React.CSSProperties = {
     fontSize: '0.75rem',
-    color: '#6b7280',
+    color: 'rgb(163 163 163)',
     marginTop: '0.125rem',
   };
 
   const inputContainerStyle: React.CSSProperties = {
     padding: '1rem',
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '1px solid rgb(38 38 38)',
     display: 'flex',
     gap: '0.75rem',
-    backgroundColor: '#f9fafb',
+    backgroundColor: 'rgb(23 23 23)',
   };
 
   const textareaStyle: React.CSSProperties = {
     flex: 1,
     padding: '0.75rem 1rem',
-    borderRadius: '1.5rem',
-    border: '1px solid #e5e7eb',
+    borderRadius: '0.75rem',
+    border: '1px solid rgb(38 38 38)',
     resize: 'none',
     fontSize: '0.9375rem',
     lineHeight: 1.4,
     minHeight: '2.5rem',
     maxHeight: '6rem',
-    backgroundColor: 'white',
-    transition: 'border-color 0.15s ease-in-out',
+    backgroundColor: 'rgb(38 38 38)',
+    color: 'white',
+    transition: 'all 0.15s ease-in-out',
     outline: 'none',
   };
 
   const sendButtonStyle: React.CSSProperties = {
-    padding: '0.75rem',
-    backgroundColor: '#4338ca',
+    width: '2.5rem',
+    height: '2.5rem',
+    backgroundColor: '#3730a3',
     color: 'white',
-    borderRadius: '50%',
+    borderRadius: '0.75rem',
     border: 'none',
     cursor: 'pointer',
     display: 'flex',
@@ -197,7 +200,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({
 
   const sendButtonDisabledStyle: React.CSSProperties = {
     ...sendButtonStyle,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: 'rgb(38 38 38)',
     cursor: 'not-allowed',
   };
 
@@ -214,12 +217,12 @@ const ChatBox: React.FC<ChatBoxProps> = ({
       <div style={messagesContainerStyle}>
         {chatMessages.length === 0 ? (
           <div style={{ 
-            color: '#6b7280', 
+            color: 'rgb(163 163 163)', 
             fontSize: '0.875rem', 
             textAlign: 'center',
             padding: '2rem',
-            backgroundColor: '#f9fafb',
-            borderRadius: '0.5rem',
+            backgroundColor: 'rgb(38 38 38)',
+            borderRadius: '0.75rem',
             margin: '1rem 0'
           }}>
             No messages yet. Start the conversation!
@@ -263,11 +266,11 @@ const ChatBox: React.FC<ChatBoxProps> = ({
           placeholder="Type a message..."
           rows={1}
           onFocus={(e) => {
-            e.target.style.borderColor = '#4338ca';
-            e.target.style.boxShadow = '0 0 0 2px rgba(67, 56, 202, 0.1)';
+            e.target.style.borderColor = '#3730a3';
+            e.target.style.boxShadow = '0 0 0 2px rgba(55, 48, 163, 0.2)';
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = '#e5e7eb';
+            e.target.style.borderColor = 'rgb(38 38 38)';
             e.target.style.boxShadow = 'none';
           }}
         />
@@ -277,12 +280,14 @@ const ChatBox: React.FC<ChatBoxProps> = ({
           disabled={!inputValue.trim()}
           onMouseEnter={(e) => {
             if (inputValue.trim()) {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#3730a3';
+              (e.target as HTMLButtonElement).style.backgroundColor = '#312e81';
+              (e.target as HTMLButtonElement).style.transform = 'scale(1.05)';
             }
           }}
           onMouseLeave={(e) => {
             if (inputValue.trim()) {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#4338ca';
+              (e.target as HTMLButtonElement).style.backgroundColor = '#3730a3';
+              (e.target as HTMLButtonElement).style.transform = 'scale(1)';
             }
           }}
         >

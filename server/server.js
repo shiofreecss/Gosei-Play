@@ -47,6 +47,11 @@ function broadcastGameUpdate(gameId, gameState) {
     });
   }
   
+  // Make sure the KO position is properly included if it exists
+  if (gameState.koPosition) {
+    log(`Broadcasting game update with KO position at (${gameState.koPosition.x}, ${gameState.koPosition.y})`);
+  }
+  
   // Then broadcast full state update
   io.to(gameId).emit('gameState', gameState);
   
@@ -230,7 +235,7 @@ io.on('connection', (socket) => {
     
     const gameState = activeGames.get(gameId);
     if (gameState) {
-      // Validate move
+      // Validate move - check if position is already occupied
       const isOccupied = gameState.board.stones.some(
         stone => stone.position.x === position.x && stone.position.y === position.y
       );
@@ -238,6 +243,15 @@ io.on('connection', (socket) => {
       if (isOccupied) {
         log(`Invalid move - position already occupied`);
         socket.emit('error', 'Invalid move - position already occupied');
+        return;
+      }
+      
+      // Check for KO rule violation
+      if (gameState.koPosition && 
+          position.x === gameState.koPosition.x && 
+          position.y === gameState.koPosition.y) {
+        log(`Invalid move - KO rule violation at (${position.x}, ${position.y})`);
+        socket.emit('error', 'Invalid move - KO rule violation');
         return;
       }
       
@@ -260,6 +274,16 @@ io.on('connection', (socket) => {
       gameState.board.stones = capturedStones.remainingStones;
       gameState.currentTurn = color === 'black' ? 'white' : 'black';
       gameState.history.push(position);
+      
+      // Set KO position if a single stone was captured
+      // Clear existing KO position if we moved elsewhere
+      if (capturedStones.koPosition) {
+        gameState.koPosition = capturedStones.koPosition;
+        log(`KO position updated to (${capturedStones.koPosition.x}, ${capturedStones.koPosition.y})`);
+      } else if (gameState.koPosition) {
+        log(`Clearing KO position as move was played elsewhere`);
+        gameState.koPosition = undefined;
+      }
       
       // Reset timer for the next move
       gameState.lastMoveTime = Date.now();
@@ -761,6 +785,8 @@ function captureDeadStones(gameState, updatedStones, lastMovePosition, playerCol
   
   let capturedCount = 0;
   let remainingStones = [...updatedStones];
+  let koPosition = undefined;
+  let capturedGroups = [];
   
   // Check each adjacent position for enemy groups that might be captured
   adjacentPositions.forEach(adjPos => {
@@ -776,6 +802,9 @@ function captureDeadStones(gameState, updatedStones, lastMovePosition, playerCol
       
       // If the group has no liberties, remove all stones in the group
       if (liberties === 0) {
+        // Track this group before removing
+        capturedGroups.push([...group]);
+        
         // Remove captured stones
         remainingStones = remainingStones.filter(stone => 
           !group.some(pos => pos.x === stone.position.x && pos.y === stone.position.y)
@@ -783,6 +812,12 @@ function captureDeadStones(gameState, updatedStones, lastMovePosition, playerCol
         
         capturedCount += group.length;
         log(`Captured ${group.length} ${oppositeColor} stones`);
+        
+        // Check for KO: if we captured exactly one stone
+        if (group.length === 1) {
+          koPosition = group[0];
+          log(`KO position set at (${koPosition.x}, ${koPosition.y})`);
+        }
       }
     }
   });
@@ -797,5 +832,5 @@ function captureDeadStones(gameState, updatedStones, lastMovePosition, playerCol
     // Client-side validation should prevent this
   }
   
-  return { remainingStones, capturedCount };
+  return { remainingStones, capturedCount, koPosition };
 } 

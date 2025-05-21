@@ -102,6 +102,7 @@ export interface GameState {
   komi: number;
   handicap: number;
   socket?: Socket | null;
+  koPosition?: Position;
 }
 
 export type GameMove = Position | { pass: true }; 

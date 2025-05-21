@@ -14,57 +14,64 @@ const Notification: React.FC<NotificationProps> = ({
   onClose
 }) => {
   const [isVisible, setIsVisible] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
-        setIsVisible(false);
-        onClose?.();
+        setIsExiting(true);
+        setTimeout(() => {
+          setIsVisible(false);
+          onClose?.();
+        }, 300); // Match the transition duration
       }, duration);
 
       return () => clearTimeout(timer);
     }
   }, [duration, onClose]);
 
-  const getBackgroundColor = () => {
+  const getStyles = () => {
+    const baseStyles = 'fixed top-4 right-4 w-96 max-w-[calc(100vw-2rem)] shadow-lg rounded-lg border backdrop-blur-md transition-all duration-300 ease-in-out z-50 transform';
+    const exitStyles = isExiting ? 'opacity-0 translate-x-2' : 'opacity-100 translate-x-0';
+    
     switch (type) {
       case 'warning':
-        return 'bg-amber-50 border-amber-200';
+        return `${baseStyles} ${exitStyles} bg-amber-900/10 border-amber-200/20 dark:border-amber-500/20`;
       case 'error':
-        return 'bg-red-50 border-red-200';
+        return `${baseStyles} ${exitStyles} bg-red-900/10 border-red-200/20 dark:border-red-500/20`;
       default:
-        return 'bg-blue-50 border-blue-200';
+        return `${baseStyles} ${exitStyles} bg-primary-900/10 border-primary-200/20 dark:border-primary-500/20`;
     }
   };
 
-  const getTextColor = () => {
+  const getIconStyles = () => {
     switch (type) {
       case 'warning':
-        return 'text-amber-800';
+        return 'text-amber-500';
       case 'error':
-        return 'text-red-800';
+        return 'text-red-500';
       default:
-        return 'text-blue-800';
+        return 'text-primary-500';
     }
   };
 
-  const getIconColor = () => {
+  const getTextStyles = () => {
     switch (type) {
       case 'warning':
-        return 'text-amber-400';
+        return 'text-amber-100';
       case 'error':
-        return 'text-red-400';
+        return 'text-red-100';
       default:
-        return 'text-blue-400';
+        return 'text-primary-100';
     }
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed top-4 right-4 w-96 max-w-[calc(100vw-2rem)] shadow-lg rounded-lg border ${getBackgroundColor()} p-4 transition-all duration-300 ease-in-out z-50`}>
-      <div className="flex items-start gap-3">
-        <div className={`flex-shrink-0 ${getIconColor()}`}>
+    <div className={getStyles()}>
+      <div className="flex items-start gap-3 p-4">
+        <div className={`flex-shrink-0 ${getIconStyles()}`}>
           {type === 'warning' && (
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -82,14 +89,17 @@ const Notification: React.FC<NotificationProps> = ({
           )}
         </div>
         <div className="flex-1">
-          <p className={`text-sm font-medium ${getTextColor()}`}>{message}</p>
+          <p className={`text-sm font-medium ${getTextStyles()}`}>{message}</p>
         </div>
         <button
           onClick={() => {
-            setIsVisible(false);
-            onClose?.();
+            setIsExiting(true);
+            setTimeout(() => {
+              setIsVisible(false);
+              onClose?.();
+            }, 300);
           }}
-          className={`flex-shrink-0 ${getTextColor()} hover:${getTextColor()} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${type === 'info' ? 'blue' : type === 'warning' ? 'amber' : 'red'}-500`}
+          className={`flex-shrink-0 ${getTextStyles()} hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${type === 'info' ? 'primary' : type === 'warning' ? 'amber' : 'red'}-500`}
         >
           <span className="sr-only">Close</span>
           <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

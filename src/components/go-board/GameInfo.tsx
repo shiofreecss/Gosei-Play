@@ -34,6 +34,8 @@ interface GameInfoProps {
   autoSaveEnabled?: boolean;
   onToggleAutoSave?: () => void;
   onSaveNow?: () => void;
+  onConfirmScore?: () => void;
+  onCancelScoring?: () => void;
 }
 
 const GameInfo: React.FC<GameInfoProps> = ({ 
@@ -49,7 +51,9 @@ const GameInfo: React.FC<GameInfoProps> = ({
   copied,
   autoSaveEnabled,
   onToggleAutoSave,
-  onSaveNow
+  onSaveNow,
+  onConfirmScore,
+  onCancelScoring
 }) => {
   const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest, board } = gameState;
   
@@ -196,73 +200,87 @@ const GameInfo: React.FC<GameInfoProps> = ({
       </h2>
       
       {/* Players Section - Side by Side */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         {/* Black Player */}
-        <div className={`player-card p-3 rounded-md transition-all duration-200 bg-gray-600`}>
+        <div className={`player-card p-5 rounded-lg transition-all duration-200 ${
+          currentTurn === 'black' ? 'bg-neutral-800 ring-2 ring-blue-500' : 'bg-neutral-800'
+        }`}>
           <div className="flex flex-col items-center">
             {/* Player Avatar */}
             <PlayerAvatar 
-              username={blackPlayer?.username || 'shio'} 
-              size={40}
+              username={blackPlayer?.username || 'Waiting...'} 
+              size={96}
             />
-            <div className="text-center mt-1">
-              <div className="flex items-center justify-center gap-1.5">
-                <div className="w-2.5 h-2.5 bg-black rounded-full"></div>
-                <span className="font-medium text-gray-200 text-sm">{blackPlayer?.username || 'shio'}</span>
+            <div className="text-center mt-4">
+              <div className="flex items-center justify-center gap-2.5 mb-2">
+                <div className="w-5 h-5 bg-black rounded-full border-2 border-neutral-700 shadow-inner"></div>
+                <span className="font-semibold text-white text-lg">
+                  {blackPlayer?.username || 'Waiting for opponent'}
+                </span>
               </div>
-              <div className="text-xs text-gray-400 mt-0.5">
-                Captures: {capturedStones?.white || 0}
+              <div className="text-base text-white/90 mt-1.5 font-medium bg-neutral-700/50 px-3 py-1 rounded-md">
+                Captured: {capturedStones?.white || 0}
               </div>
             </div>
           </div>
-          <div className="mt-2">
-            <div className={`text-base font-mono font-bold text-center p-1.5 rounded ${
-              currentTurn === 'black' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+          <div className="mt-4">
+            <div className={`text-xl font-mono font-bold text-center p-2.5 rounded-md ${
+              currentTurn === 'black' ? 'bg-blue-600 text-white' : 'bg-neutral-700 text-neutral-200'
             }`}>
-              {formatTime(blackPlayer?.timeRemaining)}
+              {blackPlayer ? formatTime(blackPlayer.timeRemaining) : '--:--'}
             </div>
           </div>
         </div>
         
         {/* White Player */}
-        <div className={`player-card p-3 rounded-md transition-all duration-200 bg-gray-600 ${
-          currentTurn === 'white' ? 'ring-1 ring-blue-400' : ''
+        <div className={`player-card p-5 rounded-lg transition-all duration-200 ${
+          currentTurn === 'white' ? 'bg-neutral-800 ring-2 ring-blue-500' : 'bg-neutral-800'
         }`}>
           <div className="flex flex-col items-center">
             {/* Player Avatar */}
             <PlayerAvatar 
-              username={whitePlayer?.username || '123'} 
-              size={40}
+              username={whitePlayer?.username || 'Waiting...'} 
+              size={96}
             />
-            <div className="text-center mt-1">
-              <div className="flex items-center justify-center gap-1.5">
-                <div className="w-2.5 h-2.5 bg-white rounded-full border border-gray-400"></div>
-                <span className="font-medium text-gray-200 text-sm">{whitePlayer?.username || '123'}</span>
+            <div className="text-center mt-4">
+              <div className="flex items-center justify-center gap-2.5 mb-2">
+                <div className="w-5 h-5 bg-white rounded-full border-2 border-neutral-300 shadow-lg"></div>
+                <span className="font-semibold text-white text-lg">
+                  {whitePlayer?.username || 'Waiting for opponent'}
+                </span>
               </div>
-              <div className="text-xs text-gray-400 mt-0.5">
-                Captures: {capturedStones?.black || 0}
+              <div className="text-base text-white/90 mt-1.5 font-medium bg-neutral-700/50 px-3 py-1 rounded-md">
+                Captured: {capturedStones?.black || 0}
               </div>
             </div>
           </div>
-          <div className="mt-2">
-            <div className={`text-base font-mono font-bold text-center p-1.5 rounded ${
-              currentTurn === 'white' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+          <div className="mt-4">
+            <div className={`text-xl font-mono font-bold text-center p-2.5 rounded-md ${
+              currentTurn === 'white' ? 'bg-blue-600 text-white' : 'bg-neutral-700 text-neutral-200'
             }`}>
-              {formatTime(whitePlayer?.timeRemaining)}
+              {whitePlayer ? formatTime(whitePlayer.timeRemaining) : '--:--'}
             </div>
           </div>
         </div>
       </div>
 
       {/* Current Turn Indicator */}
-      <div className="text-center p-2 mb-3 rounded-md bg-indigo-900/60">
+      <div className="text-center p-2.5 mb-4 rounded-lg bg-neutral-800/80 border border-neutral-700">
         {status === 'playing' ? (
-          <div className="flex items-center justify-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-full ${currentTurn === 'black' ? 'bg-black' : 'bg-white border border-gray-400'}`}></div>
-            <span className="text-indigo-200 text-sm">{isPlayerTurn ? "Your turn" : "Opponent's turn"}</span>
+          <div className="flex items-center justify-center gap-2.5">
+            <div className={`w-3.5 h-3.5 rounded-full ${
+              currentTurn === 'black' 
+                ? 'bg-black border-2 border-neutral-700' 
+                : 'bg-white border-2 border-neutral-300 shadow-lg'
+            }`}></div>
+            <span className="text-white text-base font-medium">
+              {isPlayerTurn ? "Your turn" : "Opponent's turn"}
+            </span>
           </div>
         ) : (
-          <span className="text-indigo-200 text-sm">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+          <span className="text-white text-base font-medium">
+            {status === 'waiting' ? 'Waiting for opponent' : status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
         )}
       </div>
 
@@ -270,6 +288,17 @@ const GameInfo: React.FC<GameInfoProps> = ({
       <div className="space-y-3">
         {/* Primary Game Controls */}
         <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={onPassTurn}
+            disabled={!isPlayerTurn || status !== 'playing'}
+            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+            Pass
+          </button>
+          
           <button
             onClick={onRequestUndo}
             disabled={!isPlayerTurn || status !== 'playing'}
@@ -280,7 +309,10 @@ const GameInfo: React.FC<GameInfoProps> = ({
             </svg>
             Request Undo
           </button>
-          
+        </div>
+
+        {/* Secondary Game Controls */}
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={onCopyGameLink}
             className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium"
@@ -288,12 +320,9 @@ const GameInfo: React.FC<GameInfoProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            {copied ? 'Copied!' : 'Copy Link'}
+            {copied ? 'Copied!' : 'Share'}
           </button>
-        </div>
-
-        {/* Secondary Game Controls */}
-        <div className="grid grid-cols-2 gap-3">
+          
           <button
             onClick={onResign}
             disabled={status !== 'playing'}
@@ -302,17 +331,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            Resign Game
-          </button>
-          
-          <button
-            onClick={onLeaveGame}
-            className="flex items-center justify-center gap-2 bg-gray-600 text-white px-4 py-2.5 rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Leave Game
+            Resign
           </button>
         </div>
       </div>
@@ -376,6 +395,113 @@ const GameInfo: React.FC<GameInfoProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Scoring Panel - Show only in scoring or finished state */}
+      {(status === 'scoring' || status === 'finished') && (
+        <div className="p-4 bg-gray-800/90 rounded-lg mt-4 border border-gray-700">
+          <h3 className="text-base font-semibold mb-3 text-gray-200">Score Breakdown</h3>
+          
+          {score ? (
+            <div className="grid grid-cols-3 gap-2 text-sm">
+              <div className="text-center"></div>
+              <div className="text-center font-semibold">Black</div>
+              <div className="text-center font-semibold">White</div>
+              
+              {/* Territory */}
+              <div className="text-gray-300">Territory</div>
+              <div className="text-center text-white">{score.blackTerritory?.toFixed(1) || '0.0'}</div>
+              <div className="text-center text-white">{score.whiteTerritory?.toFixed(1) || '0.0'}</div>
+              
+              {/* Stones (for Chinese/Korean scoring) */}
+              {(gameState.scoringRule === 'chinese' || gameState.scoringRule === 'korean' || gameState.scoringRule === 'aga' || gameState.scoringRule === 'ing') && (
+                <>
+                  <div className="text-gray-300">Stones</div>
+                  <div className="text-center text-white">{score.blackStones?.toFixed(1) || '0.0'}</div>
+                  <div className="text-center text-white">{score.whiteStones?.toFixed(1) || '0.0'}</div>
+                </>
+              )}
+              
+              {/* Captures (for Japanese scoring) */}
+              {(gameState.scoringRule === 'japanese' || gameState.scoringRule === 'aga' || gameState.scoringRule === 'ing') && (
+                <>
+                  <div className="text-gray-300">Captures</div>
+                  <div className="text-center text-white">{score.blackCaptures?.toFixed(1) || capturedStones.black.toFixed(1)}</div>
+                  <div className="text-center text-white">{score.whiteCaptures?.toFixed(1) || capturedStones.white.toFixed(1)}</div>
+                </>
+              )}
+              
+              {/* Dead Stones */}
+              {deadStonesByColor.black > 0 || deadStonesByColor.white > 0 ? (
+                <>
+                  <div className="text-gray-300">Dead Stones</div>
+                  <div className="text-center text-white">{deadStonesByColor.black}</div>
+                  <div className="text-center text-white">{deadStonesByColor.white}</div>
+                </>
+              ) : null}
+              
+              {/* Komi */}
+              <div className="text-gray-300">Komi</div>
+              <div className="text-center text-white">0.0</div>
+              <div className="text-center text-white">{score.komi?.toFixed(1) || gameState.komi.toFixed(1)}</div>
+              
+              {/* Total */}
+              <div className="text-gray-300 font-semibold">Total</div>
+              <div className="text-center text-white font-bold text-base">{score.black.toFixed(1)}</div>
+              <div className="text-center text-white font-bold text-base">{score.white.toFixed(1)}</div>
+            </div>
+          ) : (
+            <div className="text-center text-white p-3">
+              <p>Calculating score...</p>
+              <p className="text-sm opacity-80 mt-2">Mark dead stones by clicking on them</p>
+            </div>
+          )}
+          
+          {/* Result display */}
+          {status === 'finished' && score && (
+            <div className="mt-4 text-center">
+              <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+                gameState.winner === 'black' 
+                  ? 'bg-black text-white'
+                  : gameState.winner === 'white' 
+                    ? 'bg-white text-black border border-gray-300'
+                    : 'bg-gray-600 text-white'
+              }`}>
+                {gameState.winner === 'black' 
+                  ? 'Black wins by ' + (score.black - score.white).toFixed(1) + ' points'
+                  : gameState.winner === 'white' 
+                    ? 'White wins by ' + (score.white - score.black).toFixed(1) + ' points'
+                    : 'Game ended in a draw'
+                }
+              </div>
+            </div>
+          )}
+          
+          {/* Scoring actions */}
+          {status === 'scoring' && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                onClick={onConfirmScore}
+                className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Confirm Score
+              </button>
+              
+              <button
+                onClick={onCancelScoring}
+                className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Resume Game
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

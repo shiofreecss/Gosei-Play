@@ -10,6 +10,7 @@ import { Position, GameMove, GameState } from '../types/go';
 import ChatBox from '../components/ChatBox';
 import FloatingChatBubble from '../components/FloatingChatBubble';
 import Notification from '../components/Notification';
+import GameCompleteModal from '../components/GameCompleteModal';
 
 // Helper function to check game status safely
 const hasStatus = (gameState: GameState, status: 'waiting' | 'playing' | 'finished' | 'scoring'): boolean => {
@@ -595,6 +596,27 @@ const GamePage: React.FC = () => {
                 territory={gameState.territory}
                 showTerritory={gameState.status === 'finished' || gameState.status === 'scoring'}
               />
+              
+              {/* Game completion buttons below board */}
+              {gameState.status === 'finished' && (
+                <div className="mt-6 flex justify-center gap-4">
+                  <button
+                    onClick={() => navigate('/')}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors font-medium"
+                  >
+                    Return Home
+                  </button>
+                  <button
+                    onClick={() => {
+                      resetGame();
+                      navigate('/');
+                    }}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors font-medium"
+                  >
+                    Play Again
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -614,6 +636,8 @@ const GamePage: React.FC = () => {
               autoSaveEnabled={autoSaveEnabled}
               onToggleAutoSave={toggleAutoSave}
               onSaveNow={saveGameNow}
+              onConfirmScore={handleConfirmScore}
+              onCancelScoring={handleCancelScoring}
             />
             
             {/* Debug Controls - Only shown when dev tools are enabled */}
@@ -635,55 +659,7 @@ const GamePage: React.FC = () => {
       {/* Game error messages */}
       <GameError />
 
-      {gameState.status === 'finished' && (
-        <div className="text-center mt-6 w-full bg-indigo-50 p-6 rounded-lg border border-indigo-200 shadow-md">
-          <h3 className="text-xl font-semibold text-indigo-800 mb-3">Game Complete</h3>
-          
-          <div className="flex justify-center items-center mb-4">
-            <div className={`text-center p-4 ${gameState.winner === 'black' ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-900'} rounded-lg shadow-md w-60`}>
-              <div className="text-sm font-medium mb-1">
-                {gameState.winner === 'black' ? 'Black Wins!' : gameState.winner === 'white' ? 'White Wins!' : 'Draw!'}
-              </div>
-              {gameState.score && (
-                <div className="flex justify-center items-center gap-4">
-                  <div>
-                    <div className="text-xs opacity-80">Black</div>
-                    <div className="text-xl font-bold">{gameState.score.black.toFixed(1)}</div>
-                  </div>
-                  <div className="text-sm">vs</div>
-                  <div>
-                    <div className="text-xs opacity-80">White</div>
-                    <div className="text-xl font-bold">{gameState.score.white.toFixed(1)}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex justify-center gap-4 mt-6">
-            <button
-              onClick={() => navigate('/')}
-              className="btn bg-indigo-600 text-white hover:bg-indigo-700 px-6 py-2"
-            >
-              Return to Home
-            </button>
-            <button
-              onClick={() => {
-                // Reset game state and start a new game
-                resetGame();
-                navigate('/');
-              }}
-              className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2"
-            >
-              Play Again
-            </button>
-          </div>
-          
-          <p className="text-sm text-indigo-600 mt-4">
-            See the detailed score breakdown in the game info panel.
-          </p>
-        </div>
-      )}
+      {gameState.status === 'finished' && <GameCompleteModal />}
       
       {/* Add connection status component */}
       <ConnectionStatus />

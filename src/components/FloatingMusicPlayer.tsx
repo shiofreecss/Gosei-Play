@@ -167,40 +167,20 @@ const FloatingMusicPlayer: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-999" ref={playerRef} style={{ bottom: '180px', right: '30px', zIndex: 998 }}>
+    <div className="fixed bottom-8 right-8 z-40" ref={playerRef}>
       {/* Floating music panel */}
       <div className={`${
-        isExpanded ? 'bg-white rounded-lg shadow-lg p-4 w-72 opacity-100' : 'w-14 h-14 opacity-90 hover:opacity-100 rounded-full'
-      } transition-all duration-300 overflow-hidden`} style={{
-        borderRadius: isExpanded ? undefined : '50%'
-      }}>
+        isExpanded ? 'bg-neutral-800/90 rounded-lg shadow-lg p-4 w-72 border border-neutral-700' : 'w-14 h-14'
+      } transition-all duration-200`}>
         
         {/* Collapsed view - just the music icon */}
         {!isExpanded && (
           <button
             onClick={() => setIsExpanded(true)}
-            className="w-full h-full flex items-center justify-center rounded-full"
+            className="w-full h-full flex items-center justify-center rounded-lg bg-neutral-800/90 text-white shadow-lg border border-neutral-700 transition-all duration-200 hover:bg-neutral-800 hover:scale-105 focus:outline-none"
             title="Music Player"
-            style={{ 
-              color: 'white', 
-              backgroundColor: BROWN.main,
-              border: 'none',
-              borderRadius: '50%',
-              outline: 'none',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = BROWN.hover;
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.borderRadius = '50%';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = BROWN.main;
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.borderRadius = '50%';
-            }}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
               <path d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z"/>
               <path fill-rule="evenodd" d="M14 11V2h1v9h-1zM6 3v10H5V3h1z"/>
               <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z"/>
@@ -212,10 +192,10 @@ const FloatingMusicPlayer: React.FC = () => {
         {isExpanded && (
           <div className="flex flex-col">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium text-gray-800">Music Player</h3>
+              <h3 className="font-medium text-white">Music Player</h3>
               <button 
                 onClick={() => setIsExpanded(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-neutral-400 hover:text-white transition-colors"
                 title="Minimize"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -226,24 +206,17 @@ const FloatingMusicPlayer: React.FC = () => {
             
             {/* Current track info */}
             <div className="text-center mb-4">
-              <div className="text-sm font-semibold text-gray-800 truncate">
+              <div className="text-sm font-semibold text-white truncate">
                 {musicTracks[currentTrackIndex].name}
               </div>
             </div>
             
             {/* Playback controls */}
-            <div className="flex justify-center items-center gap-4 mb-4">
+            <div className="flex items-center justify-center gap-4 mb-4">
               <button
                 onClick={previousTrack}
-                className="w-8 h-8 flex items-center justify-center text-gray-600 transition-colors"
+                className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
                 title="Previous Track"
-                style={{ color: BROWN.text }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = BROWN.hover;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = BROWN.text;
-                }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -252,20 +225,8 @@ const FloatingMusicPlayer: React.FC = () => {
               
               <button
                 onClick={togglePlay}
-                className="w-12 h-12 rounded-full flex items-center justify-center shadow transition-colors"
+                className="w-12 h-12 rounded-lg flex items-center justify-center shadow transition-colors bg-neutral-700 hover:bg-neutral-600 text-white"
                 title={isPlaying ? 'Pause' : 'Play'}
-                style={{
-                  backgroundColor: BROWN.main,
-                  color: 'white',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = BROWN.hover;
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = BROWN.main;
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
               >
                 {isPlaying ? (
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -281,15 +242,8 @@ const FloatingMusicPlayer: React.FC = () => {
               
               <button
                 onClick={nextTrack}
-                className="w-8 h-8 flex items-center justify-center text-gray-600 transition-colors"
+                className="w-8 h-8 flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
                 title="Next Track"
-                style={{ color: BROWN.text }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = BROWN.hover;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = BROWN.text;
-                }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -298,8 +252,8 @@ const FloatingMusicPlayer: React.FC = () => {
             </div>
             
             {/* Volume control */}
-            <div className="flex items-center gap-2 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: BROWN.text }}>
+            <div className="flex items-center gap-2 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
               </svg>
               
@@ -310,36 +264,26 @@ const FloatingMusicPlayer: React.FC = () => {
                 step="0.01" 
                 value={volume} 
                 onChange={handleVolumeChange}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
               />
               
-              <span className="text-xs text-gray-500" style={{ color: BROWN.text }}>
+              <span className="text-xs text-neutral-400">
                 {Math.round(volume * 100)}%
               </span>
             </div>
             
             {/* Track selection */}
-            <div className="mt-2 max-h-32 overflow-y-auto">
-              <p className="text-xs text-gray-500 mb-1" style={{ color: BROWN.text }}>Select Track:</p>
+            <div className="space-y-1">
+              <p className="text-xs text-neutral-400 mb-1">Select Track:</p>
               {musicTracks.map((track, index) => (
                 <button
                   key={index}
                   onClick={() => changeTrack(index)}
-                  className="w-full text-left px-3 py-2 rounded-md text-sm mb-1 transition-colors"
-                  style={{
-                    backgroundColor: currentTrackIndex === index ? BROWN.lightest : 'transparent',
-                    color: currentTrackIndex === index ? BROWN.dark : BROWN.text
-                  }}
-                  onMouseEnter={(e) => {
-                    if (currentTrackIndex !== index) {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (currentTrackIndex !== index) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                    currentTrackIndex === index 
+                      ? 'bg-neutral-700 text-white' 
+                      : 'text-neutral-300 hover:bg-neutral-700/50'
+                  }`}
                 >
                   {track.name}
                 </button>
