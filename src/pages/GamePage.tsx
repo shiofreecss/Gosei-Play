@@ -4,7 +4,6 @@ import GoBoard from '../components/go-board/GoBoard';
 import GameInfo from '../components/go-board/GameInfo';
 import GameError from '../components/GameError';
 import BoardThemeButton from '../components/BoardThemeButton';
-import AppThemeSelector from '../components/AppThemeSelector';
 import ConnectionStatus from '../components/ConnectionStatus';
 import { useGame } from '../context/GameContext';
 import { Position, GameMove, GameState } from '../types/go';
@@ -510,9 +509,6 @@ const GamePage: React.FC = () => {
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold text-primary-700">Gosei Play</h1>
-          <div className="flex items-center space-x-4">
-            <AppThemeSelector />
-          </div>
         </div>
         
         {/* Add a small indicator when dev tools are enabled */}
@@ -549,238 +545,11 @@ const GamePage: React.FC = () => {
                 showTerritory={gameState.status === 'finished' || gameState.status === 'scoring'}
               />
             </div>
-            
-            {/* Game controls moved below the board */}
-            <div className="flex gap-2 flex-wrap justify-center mt-4 mb-4">
-              <button
-                onClick={handleLeaveGame}
-                className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
-              >
-                Leave Game
-              </button>
-              <button
-                onClick={copyGameLink}
-                className="btn btn-primary"
-              >
-                {copied ? 'Copied!' : 'Copy Game Link'}
-              </button>
-              {/* Only show Sync Game button when developer tools are enabled */}
-              {showDevTools && (
-                <button
-                  onClick={handleSyncGame}
-                  className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400"
-                  disabled={syncing}
-                >
-                  {syncing ? 'Syncing...' : 'Sync Game'}
-                </button>
-              )}
-              <button
-                onClick={toggleAutoSave}
-                className={`btn ${autoSaveEnabled ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'} focus:ring-neutral-400`}
-              >
-                {autoSaveEnabled ? 'Auto-Save: ON' : 'Auto-Save: OFF'}
-              </button>
-              {!autoSaveEnabled && (
-                <button
-                  onClick={saveGameNow}
-                  className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 focus:ring-blue-400"
-                >
-                  Save Now
-                </button>
-              )}
-              {/* Board theme selector button */}
-              <div className="board-theme-container">
-                <BoardThemeButton />
-              </div>
-            </div>
-            
-            {/* Undo Request Notification */}
-            {gameState.status === 'playing' && gameState.undoRequest && currentPlayer && gameState.undoRequest.requestedBy !== currentPlayer.id && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center w-full max-w-md">
-                <p className="text-blue-800 font-medium mb-2">
-                  Your opponent has requested to undo to a previous position.
-                </p>
-                <div className="flex justify-center gap-2">
-                  <button
-                    onClick={handleAcceptUndo}
-                    className="btn bg-green-600 text-white hover:bg-green-700"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={handleRejectUndo}
-                    className="btn bg-red-100 text-red-800 hover:bg-red-200"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {/* Undo Request Pending */}
-            {gameState.status === 'playing' && gameState.undoRequest && currentPlayer && gameState.undoRequest.requestedBy === currentPlayer.id && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center w-full max-w-md">
-                <p className="text-yellow-800">
-                  Undo request sent. Waiting for opponent's response...
-                </p>
-              </div>
-            )}
-            
-            {/* Keep Scoring Controls */}
-            {gameState.status === 'scoring' && (
-              <div className="text-center mt-6 w-full bg-yellow-50 p-6 rounded-lg border border-yellow-200 shadow-md">
-                <h3 className="text-xl font-semibold text-yellow-800 mb-3">Scoring Phase</h3>
-                <div className="text-sm text-yellow-700 mb-4 max-w-2xl mx-auto">
-                  <p className="mb-2">
-                    The game has ended. Now it's time to determine the score:
-                  </p>
-                  <ol className="list-decimal text-left pl-8 space-y-1">
-                    <li>Click on stones that are considered dead (surrounded with no chance of living)</li>
-                    <li>These stones will be removed from the board during scoring</li>
-                    <li>When both players agree on dead stones, click "Confirm Score" to end the game</li>
-                  </ol>
-                </div>
-                
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4 mt-4">
-                  <button
-                    onClick={handleConfirmScore}
-                    className="btn bg-green-600 text-white hover:bg-green-700 px-6 py-2 text-base font-medium flex items-center gap-2"
-                    disabled={confirmingScore}
-                  >
-                    {confirmingScore ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Confirming...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Confirm Score
-                      </>
-                    )}
-                  </button>
-                  
-                  <button
-                    onClick={handleCancelScoring}
-                    className="btn bg-red-100 text-red-800 hover:bg-red-200 px-6 py-2 text-base font-medium flex items-center gap-2"
-                    disabled={confirmingScore}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    Cancel Scoring
-                  </button>
-                  
-                  <button
-                    onClick={handleSyncGame}
-                    className="btn bg-blue-100 text-blue-800 hover:bg-blue-200 px-6 py-2 text-base font-medium flex items-center gap-2"
-                    title="Sync dead stones with other players"
-                    disabled={syncing}
-                  >
-                    {syncing ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-blue-800" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
-                        </svg>
-                        Sync Dead Stones
-                      </>
-                    )}
-                  </button>
-                </div>
-                
-                {/* Territory visualization key */}
-                <div className="flex items-center justify-center gap-6 mt-6 p-2 bg-white rounded-lg border border-yellow-100 max-w-md mx-auto">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-black opacity-30 rounded-full mr-2"></div>
-                    <span className="text-sm">Black Territory</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-white border border-gray-500 opacity-30 rounded-full mr-2"></div>
-                    <span className="text-sm">White Territory</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-red-400 opacity-30 rounded-full mr-2"></div>
-                    <span className="text-sm">Dead Stones</span>
-                  </div>
-                </div>
-
-                {/* Dead Stones Counter Card */}
-                <div className="mt-4 bg-white rounded-lg border border-red-200 shadow-sm max-w-md mx-auto p-4">
-                  <h4 className="text-red-800 font-semibold text-center mb-2">
-                    Dead Stones Summary
-                    {confirmingScore && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Confirming...
-                      </span>
-                    )}
-                    {hasStatus(gameState, 'finished') && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Confirmed
-                      </span>
-                    )}
-                  </h4>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-4 h-4 bg-black rounded-full"></div>
-                        <span className="text-sm font-medium">Black</span>
-                      </div>
-                      <span className="text-2xl font-bold text-red-800">
-                        {hasStatus(gameState, 'finished') && gameState.score?.deadBlackStones !== undefined
-                          ? gameState.score.deadBlackStones
-                          : gameState.board.stones.filter(stone => 
-                              stone.color === 'black' && 
-                              gameState.deadStones?.some(dead => 
-                                dead.x === stone.position.x && dead.y === stone.position.y
-                              )
-                            ).length}
-                      </span>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-4 h-4 bg-white border border-gray-300 rounded-full"></div>
-                        <span className="text-sm font-medium">White</span>
-                      </div>
-                      <span className="text-2xl font-bold text-red-800">
-                        {hasStatus(gameState, 'finished') && gameState.score?.deadWhiteStones !== undefined
-                          ? gameState.score.deadWhiteStones
-                          : gameState.board.stones.filter(stone => 
-                              stone.color === 'white' && 
-                              gameState.deadStones?.some(dead => 
-                                dead.x === stone.position.x && dead.y === stone.position.y
-                              )
-                            ).length}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center mt-3 text-sm text-gray-600">
-                    {/* Consider memoizing this for efficiency */}
-                    Total: <span className="font-bold">{gameState.deadStones?.length || 0}</span> stones marked
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-          
-          {/* Right sidebar - Game Info */}
+
+          {/* Game Info Panel */}
           <div className="xl:col-span-1">
-            <GameInfo 
+            <GameInfo
               gameState={gameState}
               currentPlayer={currentPlayer || undefined}
               onResign={handleResignGame}
@@ -788,7 +557,26 @@ const GamePage: React.FC = () => {
               onAcceptUndo={handleAcceptUndo}
               onRejectUndo={handleRejectUndo}
               onPassTurn={handlePassTurn}
+              onLeaveGame={handleLeaveGame}
+              onCopyGameLink={copyGameLink}
+              copied={copied}
+              autoSaveEnabled={autoSaveEnabled}
+              onToggleAutoSave={toggleAutoSave}
+              onSaveNow={saveGameNow}
             />
+            
+            {/* Debug Controls - Only shown when dev tools are enabled */}
+            {showDevTools && (
+              <div className="mt-6">
+                <button
+                  onClick={handleSyncGame}
+                  className="btn bg-neutral-200 text-neutral-800 hover:bg-neutral-300 focus:ring-neutral-400 w-full"
+                  disabled={syncing}
+                >
+                  {syncing ? 'Syncing...' : 'Sync Game'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

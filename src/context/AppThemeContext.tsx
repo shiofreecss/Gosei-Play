@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Define the available app themes
-export type AppTheme = 'modern' | 'traditional';
+export type AppTheme = 'modern';
 
 // Theme context interface
 interface AppThemeContextType {
@@ -16,43 +16,32 @@ const AppThemeContext = createContext<AppThemeContextType>({
   setTheme: () => {},
   availableThemes: [
     { id: 'modern', name: 'Modern', description: 'Clean modern interface with light colors' },
-    { id: 'traditional', name: 'Traditional', description: 'Classic East Asian style inspired by traditional Go paintings' },
   ],
 });
 
 // Provider component
 export const AppThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize theme from localStorage or use default
-  const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
-    const savedTheme = localStorage.getItem('gosei-app-theme');
-    // Handle case where saved theme might be 'minimalist' (now removed)
-    if (savedTheme === 'minimalist') {
-      return 'modern';
-    }
-    return (savedTheme as AppTheme) || 'modern';
-  });
+  // Initialize theme to modern only
+  const [currentTheme] = useState<AppTheme>('modern');
 
-  // Available themes definition
+  // Available themes definition - only modern
   const availableThemes = [
     { id: 'modern' as AppTheme, name: 'Modern', description: 'Clean modern interface with light colors' },
-    { id: 'traditional' as AppTheme, name: 'Traditional', description: 'Classic East Asian style inspired by traditional Go paintings' },
   ];
 
   // Update theme and save to localStorage
   const setTheme = (theme: AppTheme) => {
-    setCurrentTheme(theme);
+    // Since we only have modern theme, this is now a no-op
     localStorage.setItem('gosei-app-theme', theme);
-    
-    // Apply theme-specific class to body
-    document.body.classList.remove('theme-modern', 'theme-traditional', 'theme-minimalist');
-    document.body.classList.add(`theme-${theme}`);
+    document.body.classList.remove('theme-traditional', 'theme-minimalist');
+    document.body.classList.add('theme-modern');
   };
 
-  // Apply theme class on initial load and theme changes
+  // Apply modern theme class on initial load
   useEffect(() => {
-    document.body.classList.remove('theme-modern', 'theme-traditional', 'theme-minimalist');
-    document.body.classList.add(`theme-${currentTheme}`);
-  }, [currentTheme]);
+    document.body.classList.remove('theme-traditional', 'theme-minimalist');
+    document.body.classList.add('theme-modern');
+  }, []);
 
   return (
     <AppThemeContext.Provider

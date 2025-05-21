@@ -4,7 +4,6 @@ import { useAppTheme } from '../context/AppThemeContext';
 
 const BoardThemeButton: React.FC = () => {
   const { currentTheme, setTheme, availableThemes } = useBoardTheme();
-  const { currentTheme: appTheme } = useAppTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -27,9 +26,6 @@ const BoardThemeButton: React.FC = () => {
     return theme.charAt(0).toUpperCase() + theme.slice(1).replace('-', ' ');
   };
 
-  // Determine if we're using traditional theme
-  const isTraditionalTheme = appTheme === 'traditional';
-
   // Custom styles for the dropdown
   const dropdownStyle = {
     position: 'absolute' as const,
@@ -42,33 +38,29 @@ const BoardThemeButton: React.FC = () => {
     boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
   };
 
-  // Additional styles for fixing the traditional theme issues
-  const containerStyle = isTraditionalTheme ? {
-    position: 'relative' as const,
-    zIndex: 100,
-  } : {};
-
   return (
-    <div className="relative board-theme-selector" ref={dropdownRef} style={containerStyle}>
+    <div className="relative board-theme-selector" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-white rounded-md shadow border border-neutral-200 hover:border-primary-300 transition-colors board-theme-button"
+        className="flex items-center justify-between w-full px-3 py-2 bg-white rounded-md shadow border border-neutral-200 hover:border-primary-300 transition-colors board-theme-button"
       >
-        <div 
-          className={`w-6 h-6 aspect-square flex-shrink-0 rounded border border-neutral-400 board-theme-${currentTheme}`}
-          style={{ position: 'relative' }}
-        >
-          {/* Preview stones */}
+        <div className="flex items-center gap-2">
           <div 
-            className={`stone stone-black absolute`}
-            style={{ width: '35%', height: '35%', top: '25%', left: '25%' }} 
-          />
-          <div 
-            className={`stone stone-white absolute`}
-            style={{ width: '35%', height: '35%', top: '45%', left: '45%' }} 
-          />
+            className={`w-6 h-6 aspect-square flex-shrink-0 rounded border border-neutral-400 board-theme-${currentTheme}`}
+            style={{ position: 'relative' }}
+          >
+            {/* Preview stones */}
+            <div 
+              className={`stone stone-black absolute`}
+              style={{ width: '35%', height: '35%', top: '25%', left: '25%' }} 
+            />
+            <div 
+              className={`stone stone-white absolute`}
+              style={{ width: '35%', height: '35%', top: '45%', left: '45%' }} 
+            />
+          </div>
+          <span className="text-sm font-medium">Board Theme</span>
         </div>
-        <span className="text-sm font-medium">Board Theme</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="6 15 12 9 18 15"></polyline>
         </svg>

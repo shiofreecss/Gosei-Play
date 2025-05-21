@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const pusher = require('./pusher');
 
 const app = express();
 app.use(cors());
@@ -32,6 +33,52 @@ function log(message) {
   if (DEBUG) {
     console.log(`[${new Date().toISOString()}] ${message}`);
   }
+}
+
+// Improved broadcast function for better synchronization
+function broadcastGameUpdate(gameId, gameState) {
+  // First send immediate move notification if there's a last move
+  if (gameState.lastMove) {
+    io.to(gameId).emit('moveMade', {
+      position: gameState.lastMove,
+      color: gameState.lastMoveColor,
+      playerId: gameState.lastMovePlayerId,
+      capturedCount: gameState.lastMoveCapturedCount || 0
+    });
+  }
+  
+  // Then broadcast full state update
+  io.to(gameId).emit('gameState', gameState);
+  
+  // Only try Pusher broadcast if configured
+  if (pusher) {
+    try {
+      pusher.trigger(`game-${gameId}`, 'game-update', {
+        gameState: gameState
+      });
+    } catch (error) {
+      console.error('Error broadcasting via Pusher:', error);
+      // Continue execution even if Pusher fails
+    }
+  }
+  
+  // Store the game state
+  activeGames.set(gameId, gameState);
+}
+
+// Improved timer handling function
+function handlePlayerTimeout(gameState, player) {
+  gameState.status = 'finished';
+  gameState.winner = player.color === 'black' ? 'white' : 'black';
+  
+  // Broadcast timeout and game end
+  io.to(gameState.id).emit('playerTimeout', {
+    gameId: gameState.id,
+    playerId: player.id,
+    color: player.color
+  });
+  
+  broadcastGameUpdate(gameState.id, gameState);
 }
 
 io.on('connection', (socket) => {
@@ -79,8 +126,8 @@ io.on('connection', (socket) => {
     
     log(`Player ${playerId} created and joined game ${gameState.id}`);
     
-    // Send an acknowledgment back to the client
-    socket.emit('gameCreated', { success: true, gameId: gameState.id });
+    // Use the new broadcast function
+    broadcastGameUpdate(gameState.id, gameState);
   });
 
   // Join an existing game
@@ -152,9 +199,8 @@ io.on('connection', (socket) => {
           username
         });
         
-        // Broadcast updated game state to ALL clients in the room
-        io.to(gameId).emit('gameState', gameState);
-        log(`Broadcasting updated game state to all clients in room ${gameId}`);
+        // Use the new broadcast function for game updates
+        broadcastGameUpdate(gameId, gameState);
       } else {
         // Just send current game state to the reconnecting client
         socket.emit('gameState', gameState);
@@ -182,10 +228,9 @@ io.on('connection', (socket) => {
   socket.on('makeMove', ({ gameId, position, color, playerId }) => {
     log(`Player ${playerId} made move at (${position.x}, ${position.y}) in game ${gameId}`);
     
-    // Update the game state if it exists in memory
     const gameState = activeGames.get(gameId);
     if (gameState) {
-      // First, check if the move is valid (not occupied)
+      // Validate move
       const isOccupied = gameState.board.stones.some(
         stone => stone.position.x === position.x && stone.position.y === position.y
       );
@@ -196,36 +241,10 @@ io.on('connection', (socket) => {
         return;
       }
       
-      // Check if the player has timed out (if move timer is enabled)
-      if (gameState.timePerMove && gameState.timePerMove > 0 && gameState.lastMoveTime) {
-        const currentPlayer = gameState.players.find(p => p.color === color);
-        if (currentPlayer && currentPlayer.timeRemaining !== undefined) {
-          const elapsedTime = Math.floor((Date.now() - gameState.lastMoveTime) / 1000);
-          const remainingTime = Math.max(0, currentPlayer.timeRemaining - elapsedTime);
-          
-          if (remainingTime <= 0) {
-            log(`Player ${playerId} has run out of time`);
-            // Handle timeout - opponent wins
-            gameState.status = 'finished';
-            gameState.winner = color === 'black' ? 'white' : 'black';
-            activeGames.set(gameId, gameState);
-            
-            // Broadcast timeout
-            io.to(gameId).emit('playerTimeout', {
-              gameId,
-              playerId,
-              color
-            });
-            
-            // Broadcast updated game state
-            io.to(gameId).emit('gameState', gameState);
-            return;
-          }
-          
-          // Update remaining time
-          currentPlayer.timeRemaining = remainingTime;
-        }
-      }
+      // Track last move for immediate updates
+      gameState.lastMove = position;
+      gameState.lastMoveColor = color;
+      gameState.lastMovePlayerId = playerId;
       
       // Add the stone
       const updatedStones = [...gameState.board.stones, {
@@ -233,13 +252,9 @@ io.on('connection', (socket) => {
         color
       }];
       
-      // Capture opponent stones that have no liberties
+      // Capture opponent stones
       const capturedStones = captureDeadStones(gameState, updatedStones, position, color);
-      
-      // Log capture info 
-      if (capturedStones.capturedCount > 0) {
-        log(`Captured ${capturedStones.capturedCount} stones from ${color === 'black' ? 'white' : 'black'}`);
-      }
+      gameState.lastMoveCapturedCount = capturedStones.capturedCount;
       
       // Update game state
       gameState.board.stones = capturedStones.remainingStones;
@@ -261,32 +276,12 @@ io.on('connection', (socket) => {
       if (!gameState.capturedStones) {
         gameState.capturedStones = { black: 0, white: 0 };
       }
-      
-      // Capturing player gets the points
       if (capturedStones.capturedCount > 0) {
         gameState.capturedStones[color] += capturedStones.capturedCount;
-        log(`Updated captured stones count. ${color} now has ${gameState.capturedStones[color]} captures`);
       }
       
-      // Store updated game state
-      activeGames.set(gameId, gameState);
-      
-      // Broadcast the move to ALL clients in the room IMMEDIATELY
-      io.to(gameId).emit('moveMade', {
-        gameId,
-        position,
-        color,
-        playerId,
-        capturedCount: capturedStones.capturedCount,
-        timeRemaining: gameState.players.find(p => p.color === gameState.currentTurn)?.timeRemaining
-      });
-      log(`Broadcasting move to all clients in room ${gameId}`);
-      
-      // Also broadcast the full game state after a slight delay
-      setTimeout(() => {
-        io.to(gameId).emit('gameState', gameState);
-        log(`Broadcasting full game state to all clients in room ${gameId}`);
-      }, 200);
+      // Use the improved broadcast function
+      broadcastGameUpdate(gameId, gameState);
     }
   });
 
@@ -294,66 +289,38 @@ io.on('connection', (socket) => {
   socket.on('timerTick', ({ gameId }) => {
     const gameState = activeGames.get(gameId);
     if (gameState && gameState.status === 'playing' && gameState.timePerMove > 0 && gameState.lastMoveTime) {
-      const currentPlayer = gameState.players.find(p => p.color === gameState.currentTurn);
+      const now = Date.now();
+      const elapsedTime = Math.floor((now - gameState.lastMoveTime) / 1000);
       
+      // Update time for current player only
+      const currentPlayer = gameState.players.find(p => p.color === gameState.currentTurn);
       if (currentPlayer && currentPlayer.timeRemaining !== undefined) {
-        const elapsedTime = Math.floor((Date.now() - gameState.lastMoveTime) / 1000);
+        // Calculate remaining time
         const remainingTime = Math.max(0, currentPlayer.timeRemaining - elapsedTime);
-        
-        // Update the timeRemaining in the game state to ensure it's accurate
         currentPlayer.timeRemaining = remainingTime;
         
-        if (remainingTime <= 0 && currentPlayer.timeRemaining > 0) {
-          // Player has just run out of time
-          log(`Player ${currentPlayer.id} has run out of time`);
-          
-          // Handle timeout - opponent wins
-          gameState.status = 'finished';
-          gameState.winner = gameState.currentTurn === 'black' ? 'white' : 'black';
-          activeGames.set(gameId, gameState);
-          
-          // Broadcast timeout
-          io.to(gameId).emit('playerTimeout', {
+        // Send time updates for both players
+        gameState.players.forEach(player => {
+          io.to(gameId).emit('timeUpdate', {
             gameId,
-            playerId: currentPlayer.id,
-            color: currentPlayer.color
+            playerId: player.id,
+            color: player.color,
+            timeRemaining: player.color === gameState.currentTurn ? 
+              remainingTime : player.timeRemaining
           });
-          
-          // Broadcast updated game state
-          io.to(gameId).emit('gameState', gameState);
-        } else {
-          // Always update time for both players for better synchronization
-          const blackPlayer = gameState.players.find(p => p.color === 'black');
-          const whitePlayer = gameState.players.find(p => p.color === 'white');
-          
-          // Send time updates for both players
-          if (blackPlayer && blackPlayer.timeRemaining !== undefined) {
-            io.to(gameId).emit('timeUpdate', {
-              gameId,
-              playerId: blackPlayer.id,
-              color: 'black',
-              timeRemaining: blackPlayer.color === gameState.currentTurn ? 
-                remainingTime : blackPlayer.timeRemaining
-            });
-          }
-          
-          if (whitePlayer && whitePlayer.timeRemaining !== undefined) {
-            io.to(gameId).emit('timeUpdate', {
-              gameId,
-              playerId: whitePlayer.id,
-              color: 'white',
-              timeRemaining: whitePlayer.color === gameState.currentTurn ? 
-                remainingTime : whitePlayer.timeRemaining
-            });
-          }
-          
-          // Also send a full game state update periodically (every 5 seconds) to ensure clients are in sync
-          const now = Date.now();
-          if (!gameState.lastFullStateUpdate || now - gameState.lastFullStateUpdate > 5000) {
-            gameState.lastFullStateUpdate = now;
-            io.to(gameId).emit('gameState', gameState);
-          }
+        });
+        
+        // Check for timeout
+        if (remainingTime <= 0 && currentPlayer.timeRemaining > 0) {
+          handlePlayerTimeout(gameState, currentPlayer);
         }
+      }
+      
+      // Periodic full state sync
+      const lastSync = gameState.lastFullStateSync || 0;
+      if (now - lastSync >= 5000) { // Sync every 5 seconds
+        gameState.lastFullStateSync = now;
+        broadcastGameUpdate(gameId, gameState);
       }
     }
   });
@@ -407,16 +374,8 @@ io.on('connection', (socket) => {
       // Store updated game state
       activeGames.set(gameId, gameState);
       
-      // Broadcast the pass to ALL clients in the room
-      io.to(gameId).emit('turnPassed', {
-        gameId,
-        color,
-        playerId,
-        nextTurn: gameState.currentTurn,
-        isEndGame: gameState.status === 'scoring',
-        timeRemaining: gameState.players.find(p => p.color === gameState.currentTurn)?.timeRemaining
-      });
-      log(`Broadcasting pass to all clients in room ${gameId}`);
+      // Use the new broadcast function for move updates
+      broadcastGameUpdate(gameId, gameState);
       
       // Also broadcast the full game state
       io.to(gameId).emit('gameState', gameState);
@@ -524,6 +483,9 @@ io.on('connection', (socket) => {
       });
       log(`Broadcasting game end to all clients in room ${gameId}`);
       
+      // Use the new broadcast function for move updates
+      broadcastGameUpdate(gameId, gameState);
+      
       // Also broadcast the full game state
       io.to(gameId).emit('gameState', gameState);
       log(`Broadcasting final game state to all clients in room ${gameId}`);
@@ -552,6 +514,9 @@ io.on('connection', (socket) => {
       // Store updated game state
       activeGames.set(gameId, gameState);
       
+      // Use the new broadcast function for move updates
+      broadcastGameUpdate(gameId, gameState);
+      
       // Broadcast the cancel to ALL clients in the room
       io.to(gameId).emit('scoringCanceled', {
         gameId
@@ -577,6 +542,9 @@ io.on('connection', (socket) => {
       
       // Store updated game state
       activeGames.set(gameId, gameState);
+      
+      // Use the new broadcast function for move updates
+      broadcastGameUpdate(gameId, gameState);
       
       // Broadcast the resignation to ALL clients in the room
       io.to(gameId).emit('playerResigned', {
@@ -629,9 +597,8 @@ io.on('connection', (socket) => {
       // Store updated game state
       activeGames.set(gameId, gameState);
       
-      // Broadcast updated game state to all clients in the room
-      io.to(gameId).emit('gameState', gameState);
-      log(`Broadcasting undo request to all clients in room ${gameId}`);
+      // Use the new broadcast function for move updates
+      broadcastGameUpdate(gameId, gameState);
     }
   });
 
@@ -686,9 +653,8 @@ io.on('connection', (socket) => {
       // Store updated game state
       activeGames.set(gameId, gameState);
       
-      // Broadcast updated game state to all clients in the room
-      io.to(gameId).emit('gameState', gameState);
-      log(`Broadcasting updated game state after undo response to all clients in room ${gameId}`);
+      // Use the new broadcast function for move updates
+      broadcastGameUpdate(gameId, gameState);
     }
   });
 });

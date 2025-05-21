@@ -2,6 +2,8 @@ import React from 'react';
 import { GameState, Player, GameMove, Position, StoneColor, Stone, GameType } from '../../types/go';
 import TimeControl from '../TimeControl';
 import SoundSettings from '../SoundSettings';
+import PlayerAvatar from '../PlayerAvatar';
+import BoardThemeButton from '../BoardThemeButton';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true, color: StoneColor } {
@@ -10,11 +12,12 @@ function isPassMove(move: GameMove): move is { pass: true, color: StoneColor } {
 
 // Format time remaining in MM:SS format
 function formatTime(seconds: number | undefined): string {
-  if (seconds === undefined) return '–:––';
+  if (seconds === undefined || seconds === null) return '--:--';
+  if (seconds < 0) return '00:00';
   
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const mins = Math.floor(Math.abs(seconds) / 60);
+  const secs = Math.floor(Math.abs(seconds) % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 interface GameInfoProps {
@@ -25,6 +28,12 @@ interface GameInfoProps {
   onAcceptUndo?: () => void;
   onRejectUndo?: () => void;
   onPassTurn?: () => void;
+  onLeaveGame?: () => void;
+  onCopyGameLink?: () => void;
+  copied?: boolean;
+  autoSaveEnabled?: boolean;
+  onToggleAutoSave?: () => void;
+  onSaveNow?: () => void;
 }
 
 const GameInfo: React.FC<GameInfoProps> = ({ 
@@ -34,7 +43,13 @@ const GameInfo: React.FC<GameInfoProps> = ({
   onRequestUndo,
   onAcceptUndo,
   onRejectUndo,
-  onPassTurn
+  onPassTurn,
+  onLeaveGame,
+  onCopyGameLink,
+  copied,
+  autoSaveEnabled,
+  onToggleAutoSave,
+  onSaveNow
 }) => {
   const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest, board } = gameState;
   
@@ -170,157 +185,183 @@ const GameInfo: React.FC<GameInfoProps> = ({
   };
   
   return (
-    <div className="game-info p-4 rounded-lg shadow-md">
-      <h2 className="flex items-center flex-wrap text-xl font-semibold mb-4">
-        Game Info
-        <span className={getGameTypeBadgeStyle(gameState.gameType as GameType)}>
-          {getGameTypeIcon()}
-          {getGameTypeName()}
-        </span>
+    <div className="game-info bg-gray-900 text-white p-4 rounded-lg shadow-lg min-w-[480px] border border-gray-800">
+      <h2 className="flex items-center justify-between text-xl font-semibold mb-4 text-gray-200">
+        <div className="flex items-center gap-2">
+          Game Info
+          <span className="text-sm bg-gray-700 px-2 py-1 rounded text-gray-300">
+            {getGameTypeName()}
+          </span>
+        </div>
       </h2>
       
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      {/* Players Section - Side by Side */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
         {/* Black Player */}
-        <div className={`player-card p-3 border rounded-md ${currentTurn === 'black' ? 'player-card-active' : ''}`}>
-          <div className="flex items-center mb-2">
-            <div className="w-4 h-4 bg-black rounded-full mr-2"></div>
-            <span className="font-medium">{blackPlayer?.username || 'Black'}</span>
+        <div className={`player-card p-3 rounded-md transition-all duration-200 bg-gray-600`}>
+          <div className="flex flex-col items-center">
+            {/* Player Avatar */}
+            <PlayerAvatar 
+              username={blackPlayer?.username || 'shio'} 
+              size={40}
+            />
+            <div className="text-center mt-1">
+              <div className="flex items-center justify-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-black rounded-full"></div>
+                <span className="font-medium text-gray-200 text-sm">{blackPlayer?.username || 'shio'}</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5">
+                Captures: {capturedStones?.white || 0}
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-gray-600">
-            Captures: {capturedStones?.white || 0}
+          <div className="mt-2">
+            <div className={`text-base font-mono font-bold text-center p-1.5 rounded ${
+              currentTurn === 'black' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+            }`}>
+              {formatTime(blackPlayer?.timeRemaining)}
+            </div>
           </div>
         </div>
         
         {/* White Player */}
-        <div className={`player-card p-3 border rounded-md ${currentTurn === 'white' ? 'player-card-active' : ''}`}>
-          <div className="flex items-center mb-2">
-            <div className="w-4 h-4 bg-white border border-black rounded-full mr-2"></div>
-            <span className="font-medium">{whitePlayer?.username || 'White'}</span>
+        <div className={`player-card p-3 rounded-md transition-all duration-200 bg-gray-600 ${
+          currentTurn === 'white' ? 'ring-1 ring-blue-400' : ''
+        }`}>
+          <div className="flex flex-col items-center">
+            {/* Player Avatar */}
+            <PlayerAvatar 
+              username={whitePlayer?.username || '123'} 
+              size={40}
+            />
+            <div className="text-center mt-1">
+              <div className="flex items-center justify-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-white rounded-full border border-gray-400"></div>
+                <span className="font-medium text-gray-200 text-sm">{whitePlayer?.username || '123'}</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5">
+                Captures: {capturedStones?.black || 0}
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-gray-600">
-            Captures: {capturedStones?.black || 0}
+          <div className="mt-2">
+            <div className={`text-base font-mono font-bold text-center p-1.5 rounded ${
+              currentTurn === 'white' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'
+            }`}>
+              {formatTime(whitePlayer?.timeRemaining)}
+            </div>
           </div>
         </div>
       </div>
-      
-      {/* Game Status */}
-      <div className="border-t pt-4">
-        <div className="game-status p-2 rounded-md text-center mb-4">
-          {status === 'waiting' && 'Waiting for players...'}
-          {status === 'playing' && (
-            isPlayerTurn 
-              ? <span className="font-medium text-green-600">Your turn</span>
-              : <span>Opponent's turn</span>
-          )}
-          {status === 'scoring' && <span className="text-blue-600">Scoring phase</span>}
-          {status === 'finished' && <span className="text-purple-600">Game complete</span>}
+
+      {/* Current Turn Indicator */}
+      <div className="text-center p-2 mb-3 rounded-md bg-indigo-900/60">
+        {status === 'playing' ? (
+          <div className="flex items-center justify-center gap-2">
+            <div className={`w-2.5 h-2.5 rounded-full ${currentTurn === 'black' ? 'bg-black' : 'bg-white border border-gray-400'}`}></div>
+            <span className="text-indigo-200 text-sm">{isPlayerTurn ? "Your turn" : "Opponent's turn"}</span>
+          </div>
+        ) : (
+          <span className="text-indigo-200 text-sm">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+        )}
+      </div>
+
+      {/* Game Control Buttons */}
+      <div className="space-y-3">
+        {/* Primary Game Controls */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={onRequestUndo}
+            disabled={!isPlayerTurn || status !== 'playing'}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+          >
+            Request Undo
+          </button>
+          
+          <button
+            onClick={onCopyGameLink}
+            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
+          >
+            {copied ? 'Copied!' : 'Copy Link'}
+          </button>
         </div>
-        
-        {/* Game Controls */}
-        {status === 'playing' && (
-          <div className="flex flex-col gap-2">
-            {isPlayerTurn && (
-              <button 
-                onClick={onPassTurn}
-                className="btn btn-secondary"
-                disabled={!isPlayerTurn}
+
+        {/* Secondary Game Controls */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={onResign}
+            disabled={status !== 'playing'}
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+          >
+            Resign Game
+          </button>
+          
+          <button
+            onClick={onLeaveGame}
+            className="bg-neutral-200 text-neutral-800 px-4 py-2 rounded-md hover:bg-neutral-300 transition-colors text-sm font-medium"
+          >
+            Leave Game
+          </button>
+        </div>
+      </div>
+
+      {/* Game Stats and Settings */}
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="p-3 bg-gray-800/80 rounded-md">
+          <h3 className="text-base font-semibold mb-2 text-gray-200">Game Stats</h3>
+          <div className="grid grid-cols-1 gap-1 text-xs text-gray-300">
+            <div>Moves: {totalStones}</div>
+            <div>Board: {board.size}×{board.size}</div>
+            <div>Komi: {gameState.komi}</div>
+            <div>Scoring: {getScoringRuleName()}</div>
+            <div>Type: {getGameTypeDescription()}</div>
+          </div>
+        </div>
+
+        {/* Settings */}
+        <div className="p-3 bg-gray-800/80 rounded-md">
+          <h3 className="text-base font-semibold mb-2 text-gray-200">Settings</h3>
+          <div className="space-y-2">
+            {/* Stone Sound Setting */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-300">Stone Sound</span>
+              <SoundSettings />
+            </div>
+            
+            {/* Auto Save Setting */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-300">Auto Save</span>
+              <button
+                onClick={onToggleAutoSave}
+                className={`px-2 py-1 rounded text-xs ${
+                  autoSaveEnabled 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-600 text-gray-300'
+                }`}
               >
-                Pass Turn
+                {autoSaveEnabled ? 'ON' : 'OFF'}
               </button>
+            </div>
+            
+            {/* Manual Save Button - only show when auto-save is off */}
+            {!autoSaveEnabled && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-300">Manual Save</span>
+                <button
+                  onClick={onSaveNow}
+                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                >
+                  Save Now
+                </button>
+              </div>
             )}
             
-            <button 
-              onClick={onRequestUndo}
-              className="btn bg-blue-100 text-blue-800 hover:bg-blue-200"
-              disabled={!isPlayerTurn || history.length < 2 || !!undoRequest}
-            >
-              Request Undo
-            </button>
-            
-            <button 
-              onClick={onResign}
-              className="btn bg-red-100 text-red-800 hover:bg-red-200"
-            >
-              Resign Game
-            </button>
-          </div>
-        )}
-        
-        {/* Game Stats */}
-        <div className="mt-4 pt-4 border-t">
-          <h3 className="font-medium mb-2">Game Stats</h3>
-          <dl className="grid grid-cols-2 gap-1 text-sm">
-            <dt>Moves:</dt>
-            <dd>{totalStones}</dd>
-            <dt>Board:</dt>
-            <dd>{gameState.board.size}×{gameState.board.size}</dd>
-            <dt>Komi:</dt>
-            <dd>{gameState.komi}</dd>
-            <dt>Scoring:</dt>
-            <dd>{getScoringRuleName()}</dd>
-            <dt>Type:</dt>
-            <dd>{getGameTypeDescription()}</dd>
-          </dl>
-        </div>
-        
-        {/* Time Control Display */}
-        {gameState.timeControl && (
-          <div className="time-control mt-4">
-            <div className="text-sm font-medium mb-2">Time Control</div>
-            <div className="flex justify-between">
-              <div className="font-medium">Black: 
-                {blackPlayer?.timeRemaining !== undefined ? 
-                  formatTime(blackPlayer.timeRemaining) : '--:--'}
-              </div>
-              <div className="font-medium">White: 
-                {whitePlayer?.timeRemaining !== undefined ? 
-                  formatTime(whitePlayer.timeRemaining) : '--:--'}
-              </div>
+            {/* Board Theme Setting */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-300">Board Theme</span>
+              <BoardThemeButton />
             </div>
           </div>
-        )}
-        
-        {/* Final Score Display */}
-        {status === 'finished' && score && (
-          <div className="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-            <h3 className="font-medium text-center mb-2">Final Score</h3>
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <div className="bg-white p-2 rounded shadow-sm">
-                <div className="text-xs">Black</div>
-                <div className="text-xl font-bold">{score.black.toFixed(1)}</div>
-                {score.blackTerritory && (
-                  <div className="text-xs text-gray-500">
-                    Territory: {score.blackTerritory}
-                    {score.deadWhiteStones ? ` + ${score.deadWhiteStones} captures` : ''}
-                  </div>
-                )}
-              </div>
-              <div className="bg-white p-2 rounded shadow-sm">
-                <div className="text-xs">White</div>
-                <div className="text-xl font-bold">{score.white.toFixed(1)}</div>
-                {score.whiteTerritory && (
-                  <div className="text-xs text-gray-500">
-                    Territory: {score.whiteTerritory}
-                    {score.deadBlackStones ? ` + ${score.deadBlackStones} captures` : ''}
-                    {gameState.komi ? ` + ${gameState.komi} komi` : ''}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="text-center mt-2 font-medium">
-              {gameState.winner === 'black' && 'Black wins'}
-              {gameState.winner === 'white' && 'White wins'}
-              {!gameState.winner && 'Draw'}
-              {score.black && score.white && (
-                <span className="text-sm"> by {Math.abs(score.black - score.white).toFixed(1)} points</span>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {/* Sound Settings */}
-        <div className="mt-4 pt-4 border-t">
-          <SoundSettings />
         </div>
       </div>
     </div>

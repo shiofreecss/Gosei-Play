@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { GameOptions, ColorPreference, ScoringRule, GameType } from '../types/go';
 import ConnectionStatus from '../components/ConnectionStatus';
-import AppThemeSelector from '../components/AppThemeSelector';
+import BoardSizePreview from '../components/go-board/BoardSizePreview';
 
 // Define keys for localStorage
 const STORAGE_KEYS = {
@@ -16,6 +16,11 @@ const STORAGE_KEYS = {
   SCORING_RULE: 'gosei-scoring-rule',
   GAME_TYPE: 'gosei-game-type'
 };
+
+interface SavedGame {
+  id: string;
+  savedAt: number;
+}
 
 // Component to display and load saved offline games
 interface SavedGamesListProps {
@@ -147,7 +152,10 @@ const HomePage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [gameId, setGameId] = useState('');
   const [isCreatingGame, setIsCreatingGame] = useState(false);
+  const [showGameSettings, setShowGameSettings] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
+  const [showCustomSizes, setShowCustomSizes] = useState(false);
   const [gameOptions, setGameOptions] = useState<GameOptions>({
     boardSize: getStoredValue(STORAGE_KEYS.BOARD_SIZE, 19),
     handicap: getStoredValue(STORAGE_KEYS.HANDICAP, 0),
@@ -239,11 +247,14 @@ const HomePage: React.FC = () => {
       return;
     }
 
-    // Clear any previous errors
-    setLocalError(null);
-
     // Save username for future games
     localStorage.setItem(STORAGE_KEYS.USERNAME, username.trim());
+    setShowGameSettings(true);
+  };
+
+  const handleStartGame = () => {
+    // Clear any previous errors
+    setLocalError(null);
 
     // Update the player's username before creating the game
     const options = {
@@ -305,18 +316,25 @@ const HomePage: React.FC = () => {
   };
 
   // Board size option component
-  const BoardSizeOption = ({ size, description }: { size: number, description: string }) => {
+  const BoardSizeOption = ({ size, description, isStandard = true }: { size: number, description: string, isStandard?: boolean }) => {
     return (
       <div 
         className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
           gameOptions.boardSize === size 
             ? 'border-primary-500 bg-primary-50 shadow-md' 
             : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30'
-        }`}
+        } ${isStandard ? '' : 'opacity-90 hover:opacity-100'}`}
         onClick={() => updateGameOption('boardSize', size)}
+        title={`${size}×${size} board - ${description}`}
       >
+        <div className="flex items-center gap-4">
+          <BoardSizePreview size={size} className="w-20 h-20 rounded-lg shadow-sm" />
+          <div className="flex-grow">
         <div className="flex items-center justify-between mb-2">
+              <div>
           <span className="font-bold text-lg">{size}×{size}</span>
+                {!isStandard && <span className="ml-2 text-xs px-2 py-1 bg-neutral-100 rounded-full">Custom</span>}
+              </div>
           {gameOptions.boardSize === size && (
             <span className="text-primary-600">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -326,6 +344,15 @@ const HomePage: React.FC = () => {
           )}
         </div>
         <p className="text-sm text-neutral-600">{description}</p>
+            <div className="mt-2 text-xs text-neutral-500">
+              {size === 9 && "Quick games (~20-30 min)"}
+              {size === 13 && "Medium length (~45-60 min)"}
+              {size === 19 && "Full length (~90-120 min)"}
+              {size === 15 && "Traditional Korean size (~60-90 min)"}
+              {size === 21 && "Extended play (~120-150 min)"}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -408,14 +435,169 @@ const HomePage: React.FC = () => {
     );
   };
 
+  // Game options panel component
+  const GameOptionsPanel = () => {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 mb-6">
+        <h2 className="text-2xl font-bold mb-4">Game Settings</h2>
+        
+        {/* Board Size Selection */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Board Size</h3>
+            <button
+              onClick={() => setShowCustomSizes(!showCustomSizes)}
+              className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+            >
+              {showCustomSizes ? 'Hide' : 'Show'} Custom Sizes
+              <span className={`transform transition-transform duration-200 ${showCustomSizes ? 'rotate-180' : ''}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </span>
+            </button>
+          </div>
+          
+          {/* Standard Board Sizes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <BoardSizeOption size={9} description="Perfect for beginners" />
+            <BoardSizeOption size={13} description="Intermediate play" />
+            <BoardSizeOption size={19} description="Standard tournament size" />
+          </div>
+          
+          {/* Custom Board Sizes */}
+          {showCustomSizes && (
+            <div>
+              <div className="border-l-2 border-primary-200 pl-4 py-2 mb-3">
+                <p className="text-sm text-neutral-600">
+                  Custom board sizes offer unique playing experiences. Choose these sizes if you want to try something different from the standard tournament sizes.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
+                <BoardSizeOption size={15} description="Traditional Korean size" isStandard={false} />
+                <BoardSizeOption size={21} description="Extended board size" isStandard={false} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Game Rules */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Rules</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Scoring Rules
+              </label>
+              <select
+                value={gameOptions.scoringRule}
+                onChange={(e) => updateGameOption('scoringRule', e.target.value as ScoringRule)}
+                className="form-select w-full"
+              >
+                <option value="japanese">Japanese</option>
+                <option value="chinese">Chinese</option>
+                <option value="korean">Korean</option>
+                <option value="aga">AGA</option>
+                <option value="ing">Ing</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Game Type
+              </label>
+              <select
+                value={gameOptions.gameType}
+                onChange={(e) => updateGameOption('gameType', e.target.value as GameType)}
+                className="form-select w-full"
+              >
+                <option value="even">Even Game</option>
+                <option value="handicap">Handicap Game</option>
+                <option value="teaching">Teaching Game</option>
+                <option value="blitz">Blitz Game</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Handicap Settings - Only show if handicap game type is selected */}
+        {gameOptions.gameType === 'handicap' && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3">Handicap Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Number of Handicap Stones
+                </label>
+                <select
+                  value={gameOptions.handicap}
+                  onChange={(e) => updateGameOption('handicap', parseInt(e.target.value))}
+                  className="form-select w-full"
+                >
+                  {[2,3,4,5,6,7,8,9].map(num => (
+                    <option key={num} value={num}>{num} stones</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Color Preference
+                </label>
+                <select
+                  value={gameOptions.colorPreference}
+                  onChange={(e) => updateGameOption('colorPreference', e.target.value as ColorPreference)}
+                  className="form-select w-full"
+                >
+                  <option value="random">Random</option>
+                  <option value="black">Black</option>
+                  <option value="white">White</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Time Control Settings */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Time Control</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Main Time (minutes)
+              </label>
+              <input
+                type="number"
+                value={gameOptions.timeControl}
+                onChange={(e) => updateGameOption('timeControl', parseInt(e.target.value))}
+                min="0"
+                className="form-input w-full"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Time per Move (seconds)
+              </label>
+              <input
+                type="number"
+                value={gameOptions.timePerMove}
+                onChange={(e) => updateGameOption('timePerMove', parseInt(e.target.value))}
+                min="0"
+                className="form-input w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-neutral-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-12">
-          <div className="flex justify-end mb-2">
-            <AppThemeSelector />
-          </div>
           <h1 className="text-4xl font-bold text-primary-700 mb-2">Gosei Play</h1>
           <p className="text-xl text-neutral-600">
             Play Go online with friends around the world
@@ -430,10 +612,13 @@ const HomePage: React.FC = () => {
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-card overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          {!showGameSettings ? (
+            // Initial screen with name input
+            <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="lg:flex">
-            {/* Left panel */}
-            <div className="lg:w-1/2 p-6 md:p-10">
+                {/* Left panel - Create Game */}
+                <div className="lg:w-1/2 p-6 md:p-10 border-r border-neutral-200">
               <h2 className="text-3xl font-bold mb-8">Play Go</h2>
               
               {(error || localError) && (
@@ -456,313 +641,116 @@ const HomePage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-6 mt-10">
+                  <div className="space-y-4">
                 <button
-                  onClick={() => setIsCreatingGame(true)}
-                  className="btn btn-primary text-lg py-4"
+                      onClick={handleCreateGame}
+                      className="btn btn-primary w-full text-lg py-3"
                 >
                   Create New Game
                 </button>
                 
-                <div>
-                  <div className="flex mb-2">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-neutral-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-neutral-500">or</span>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
                     <input
                       type="text"
-                      className="flex-1 form-input rounded-r-none text-lg py-3"
+                        className="form-input flex-1"
                       value={gameId}
                       onChange={(e) => setGameId(e.target.value)}
                       placeholder="Enter game link or ID"
-                      aria-label="Game link or ID"
                     />
                     <button
                       onClick={handleJoinGame}
-                      className="btn btn-success rounded-l-none text-lg py-3 px-6"
-                      disabled={!username.trim() || !gameId.trim()}
+                        className="btn btn-secondary whitespace-nowrap"
                     >
                       Join Game
                     </button>
+                    </div>
                   </div>
-                  <p className="text-sm text-neutral-600">
-                    Join a game by entering a game link shared by your friend
-                  </p>
                 </div>
                 
-                {/* Saved Offline Games Section */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-3">Saved Offline Games</h3>
-                  <SavedGamesList username={username} navigate={navigate} />
+                {/* Right panel - About Go */}
+                <div className="lg:w-1/2 bg-neutral-50 p-6 md:p-10">
+                  <h2 className="text-3xl font-bold mb-6">About Go</h2>
+                  <div className="prose prose-neutral max-w-none">
+                    <p className="text-lg mb-6">
+                      Go is an ancient board game that originated in China more than 2,500 years ago. The game is played by two players who take turns placing black and white stones on the intersections of the grid.
+                    </p>
+                    <p className="text-lg mb-6">
+                      The objective is to control more territory than your opponent by surrounding empty areas with your stones. Stones that are completely surrounded by the opponent's stones are captured and removed from the board.
+                    </p>
+                    <h3 className="text-xl font-semibold mb-4">Common board sizes:</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-center">
+                        <span className="w-16 font-medium">9×9</span>
+                        <span className="text-neutral-600">Standard size for beginners</span>
+                      </li>
+                      <li className="flex items-center">
+                        <span className="w-16 font-medium">13×13</span>
+                        <span className="text-neutral-600">Medium size for intermediate players</span>
+                      </li>
+                      <li className="flex items-center">
+                        <span className="w-16 font-medium">19×19</span>
+                        <span className="text-neutral-600">Full size, used in tournaments worldwide</span>
+                      </li>
+                    </ul>
+                    <h4 className="text-lg font-semibold mt-4 mb-2">Additional sizes:</h4>
+                    <ul className="space-y-2">
+                      <li className="flex items-center">
+                        <span className="w-16 font-medium">15×15</span>
+                        <span className="text-neutral-600">Traditional Korean board size</span>
+                      </li>
+                      <li className="flex items-center">
+                        <span className="w-16 font-medium">21×21</span>
+                        <span className="text-neutral-600">Extended size for unique gameplay</span>
+                      </li>
+                    </ul>
+                    <p className="mt-6 text-sm text-neutral-500">
+                      Go is considered one of the most elegant and challenging board games ever devised.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Right panel */}
-            <div className="lg:w-1/2 bg-primary-50 p-6 md:p-10">
-              {isCreatingGame ? (
+          ) : (
+            // Game settings screen
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow p-6">
+                <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold mb-8">Game Options</h2>
-                  
-                  <div className="mb-8">
-                    <label className="block text-lg font-medium text-neutral-700 mb-3">
-                      Board Size
-                    </label>
-                    <div className="grid grid-cols-1 gap-4">
-                      <BoardSizeOption 
-                        size={19} 
-                        description="Standard size (19×19). Traditional board with complex gameplay." 
-                      />
-                      <BoardSizeOption 
-                        size={13} 
-                        description="Medium size (13×13). Good for intermediate players." 
-                      />
-                      <BoardSizeOption 
-                        size={9} 
-                        description="Small size (9×9). Great for beginners and quick games." 
-                      />
-                    </div>
+                    <h2 className="text-3xl font-bold">Game Settings</h2>
+                    <p className="text-neutral-600 mt-1">Welcome, {username}! Configure your game preferences.</p>
                   </div>
-
-                  <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-3">
-                      Your Preferred Color
-                    </label>
-                    <div className="flex gap-4">
-                      <ColorOption 
-                        color="black" 
-                        description="Play as black (goes first)" 
-                      />
-                      <ColorOption 
-                        color="white" 
-                        description="Play as white (goes second)" 
-                      />
-                      <ColorOption 
-                        color="random" 
-                        description="Randomly assigned" 
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-2">
-                      Time Control Settings
-                    </label>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-600 mb-1">
-                          Main Time (minutes per player)
-                        </label>
-                        <select
-                          className="form-select text-lg py-3"
-                          value={gameOptions.timeControlOptions.timeControl}
-                          onChange={(e) => updateGameOption('timeControlOptions', {
-                            ...gameOptions.timeControlOptions,
-                            timeControl: parseInt(e.target.value)
-                          })}
-                        >
-                          <option value={10}>10 minutes</option>
-                          <option value={30}>30 minutes</option>
-                          <option value={60}>1 hour</option>
-                          <option value={0}>No time limit</option>
-                        </select>
+                  <button 
+                    onClick={() => setShowGameSettings(false)}
+                    className="btn btn-secondary"
+                  >
+                    Back
+                  </button>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-600 mb-1">
-                          Time Per Move (seconds)
-                        </label>
-                        <select
-                          className="form-select text-lg py-3"
-                          value={gameOptions.timeControlOptions.timePerMove || 0}
-                          onChange={(e) => updateGameOption('timeControlOptions', {
-                            ...gameOptions.timeControlOptions,
-                            timePerMove: parseInt(e.target.value)
-                          })}
-                        >
-                          <option value={0}>No limit per move</option>
-                          <option value={15}>15 seconds</option>
-                          <option value={30}>30 seconds</option>
-                          <option value={60}>1 minute</option>
-                          <option value={120}>2 minutes</option>
-                          <option value={300}>5 minutes</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-600 mb-1">
-                          Byo-yomi Periods
-                        </label>
-                        <select
-                          className="form-select text-lg py-3"
-                          value={gameOptions.timeControlOptions.byoYomiPeriods || 0}
-                          onChange={(e) => updateGameOption('timeControlOptions', {
-                            ...gameOptions.timeControlOptions,
-                            byoYomiPeriods: parseInt(e.target.value)
-                          })}
-                        >
-                          <option value={0}>No byo-yomi</option>
-                          <option value={3}>3 periods</option>
-                          <option value={5}>5 periods</option>
-                          <option value={7}>7 periods</option>
-                        </select>
-                      </div>
-
-                      {(gameOptions.timeControlOptions.byoYomiPeriods ?? 0) > 0 && (
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-600 mb-1">
-                            Byo-yomi Time (seconds per period)
-                          </label>
-                          <select
-                            className="form-select text-lg py-3"
-                            value={gameOptions.timeControlOptions.byoYomiTime || 30}
-                            onChange={(e) => updateGameOption('timeControlOptions', {
-                              ...gameOptions.timeControlOptions,
-                              byoYomiTime: parseInt(e.target.value)
-                            })}
-                          >
-                            <option value={30}>30 seconds</option>
-                            <option value={45}>45 seconds</option>
-                            <option value={60}>60 seconds</option>
-                          </select>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-600 mb-1">
-                          Fischer Increment (seconds)
-                        </label>
-                        <select
-                          className="form-select text-lg py-3"
-                          value={gameOptions.timeControlOptions.fischerTime || 0}
-                          onChange={(e) => updateGameOption('timeControlOptions', {
-                            ...gameOptions.timeControlOptions,
-                            fischerTime: parseInt(e.target.value)
-                          })}
-                        >
-                          <option value={0}>No increment</option>
-                          <option value={5}>5 seconds</option>
-                          <option value={10}>10 seconds</option>
-                          <option value={15}>15 seconds</option>
-                          <option value={30}>30 seconds</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2 text-gray-700">Game Type</h3>
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                      <GameTypeOption
-                        type="even"
-                        title="Even Game"
-                        description="Standard game between evenly matched players"
-                        selected={gameOptions.gameType === 'even'}
-                        onClick={() => updateGameOption('gameType', 'even')}
-                      />
-                      <GameTypeOption
-                        type="handicap"
-                        title="Handicap Game"
-                        description="Black receives extra stones to balance different skill levels"
-                        selected={gameOptions.gameType === 'handicap'}
-                        onClick={() => updateGameOption('gameType', 'handicap')}
-                      />
-                    </div>
-                    
-                    <div className="mt-2">
-                      <GameTypeOption
-                        type="blitz"
-                        title="Blitz Go"
-                        description="Fast-paced game with shorter time controls"
-                        selected={gameOptions.gameType === 'blitz'}
-                        onClick={() => updateGameOption('gameType', 'blitz')}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <label className="block text-lg font-medium text-neutral-700 mb-3">
-                      Scoring Rules
-                    </label>
-                    <div className="flex gap-4">
-                      <RulesetOption 
-                        rule="japanese" 
-                        name="Japanese" 
-                        description="Territory scoring" 
-                      />
-                      <RulesetOption 
-                        rule="chinese" 
-                        name="Chinese" 
-                        description="Area scoring" 
-                      />
-                    </div>
-                  </div>
-
-                  {gameOptions.gameType === 'handicap' && (
-                    <div className="mb-6">
-                      <label className="block text-lg font-medium text-neutral-700 mb-2">
-                        Handicap Stones
-                      </label>
-                      <select
-                        className="form-select text-lg py-3"
-                        value={gameOptions.handicap}
-                        onChange={(e) => updateGameOption('handicap', parseInt(e.target.value))}
-                      >
-                        <option value={0}>0 (Even game)</option>
-                        <option value={2}>2 stones</option>
-                        <option value={3}>3 stones</option>
-                        <option value={4}>4 stones</option>
-                        <option value={5}>5 stones</option>
-                        <option value={6}>6 stones</option>
-                        <option value={7}>7 stones</option>
-                        <option value={8}>8 stones</option>
-                        <option value={9}>9 stones</option>
-                      </select>
-                    </div>
-                  )}
-                   
-                  <div className="mt-8 grid grid-cols-2 gap-6">
+                {/* Game Options Panel */}
+                <GameOptionsPanel />
+                
+                {/* Let's Play button */}
+                <div className="mt-8 flex justify-end">
                     <button
-                      onClick={() => setIsCreatingGame(false)}
-                      className="btn btn-secondary text-lg py-3"
-                    >
-                      Cancel
+                    onClick={handleStartGame}
+                    className="btn btn-primary text-lg py-3 px-8"
+                  >
+                    Let's Play
                     </button>
-                    <button
-                      onClick={handleCreateGame}
-                      className="btn btn-primary text-lg py-3"
-                      disabled={!username.trim()}
-                    >
-                      Create Game
-                    </button>
-                  </div>
                 </div>
-              ) : (
-                <div>
-                  <h2 className="text-3xl font-bold mb-6">About Go</h2>
-                  <p className="mb-4 text-lg">
-                    Go is an ancient board game that originated in China more than 2,500 years ago. 
-                    The game is played by two players who take turns placing black and white stones 
-                    on the intersections of a grid.
-                  </p>
-                  <p className="mb-4 text-lg">
-                    The objective is to control more territory than your opponent by surrounding 
-                    empty areas with your stones. Stones that are completely surrounded by the 
-                    opponent's stones are captured and removed from the board.
-                  </p>
-                  <p className="mb-4 text-lg font-semibold">
-                    Common board sizes:
-                  </p>
-                  <ul className="list-disc pl-8 mb-6 space-y-2 text-lg">
-                    <li><span className="font-medium">19×19</span> - Standard size, used in professional play</li>
-                    <li><span className="font-medium">13×13</span> - Medium size, good for intermediate players</li>
-                    <li><span className="font-medium">9×9</span> - Small size, great for beginners and quick games</li>
-                  </ul>
-                  <p className="text-lg">
-                    Go is considered one of the oldest board games continuously played today, 
-                    and one of the most complex and elegant games ever devised.
-                  </p>
                 </div>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
       

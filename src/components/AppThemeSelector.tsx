@@ -15,9 +15,10 @@ const AppThemeSelector: React.FC = () => {
           value={currentTheme}
           onChange={(e) => setTheme(e.target.value as any)}
           className="theme-select"
+          aria-label="Select app theme"
         >
           {availableThemes.map((theme) => (
-            <option key={theme.id} value={theme.id}>
+            <option key={theme.id} value={theme.id} title={theme.description}>
               {theme.name}
             </option>
           ))}

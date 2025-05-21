@@ -95,6 +95,46 @@ Missing Features:
 - Partner coordination UI
 - Team scoring adjustments
 
+### Board Sizes (Fully Implemented) ✓
+Current Implementation:
+- Standard board sizes (9×9, 13×13, 19×19)
+- Custom board sizes (15×15, 21×21)
+- Visual board size preview component
+- Accurate star point (hoshi) placement for all sizes
+- Estimated game duration indicators
+- Responsive grid scaling
+- Size preference persistence
+- Organized UI with collapsible custom sizes section
+
+Features:
+1. Board Size Selection
+   - Clear separation of standard and custom sizes
+   - Visual previews with grid and star points
+   - Descriptive text for each size option
+   - Estimated game duration guidance
+   - Size-specific star point patterns
+
+2. UI/UX Improvements
+   - Collapsible custom sizes section
+   - Visual feedback for selected size
+   - Tooltips with size descriptions
+   - Custom badge for non-standard sizes
+   - Responsive design for all screen sizes
+
+3. Technical Implementation
+   - BoardSizePreview component for visual representation
+   - Dynamic grid generation
+   - Star point calculation for each size
+   - Size preference storage in localStorage
+   - Proper TypeScript typing
+
+4. Integration
+   - Seamless integration with game creation flow
+   - Consistent styling with application theme
+   - Proper scaling with board themes
+   - Compatibility with all scoring rules
+   - Support for handicap placement
+
 ### 3. Time Control Systems (Partially Implemented)
 
 #### Current Features

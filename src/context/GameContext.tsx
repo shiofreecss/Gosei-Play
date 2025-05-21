@@ -594,6 +594,88 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     }
   }, [state.socket, state.gameState, state.currentPlayer]);
 
+  // Add timer effect to component
+  useEffect(() => {
+    if (state.socket && state.gameState?.status === 'playing' && 
+        ((state.gameState.timeControl?.timePerMove ?? 0) > 0 || (state.gameState.timePerMove ?? 0) > 0)) {
+      // Send timer ticks more frequently for better accuracy
+      const timerInterval = setInterval(() => {
+        if (state.gameState?.status === 'playing' && state.socket) {
+          state.socket.emit('timerTick', {
+            gameId: state.gameState.id
+          });
+        }
+      }, 500); // Update twice per second for smoother countdown
+      
+      return () => clearInterval(timerInterval);
+    }
+  }, [state.socket, state.gameState]);
+
+  // Update socket event handlers
+  useEffect(() => {
+    if (state.socket) {
+      // Handle time updates
+      state.socket.on('timeUpdate', (timeData: { playerId: string; color: StoneColor; timeRemaining: number }) => {
+        console.log(`Time update for player ${timeData.playerId}: ${timeData.timeRemaining}s remaining`);
+        
+        // Update the player's time in the game state directly
+        dispatch({ 
+          type: 'UPDATE_PLAYER_TIME', 
+          payload: {
+            playerId: timeData.playerId,
+            color: timeData.color,
+            timeRemaining: timeData.timeRemaining
+          }
+        });
+      });
+
+      // Handle move updates
+      state.socket.on('moveMade', (moveData) => {
+        console.log(`Move made at (${moveData.position.x}, ${moveData.position.y}) by ${moveData.playerId}`);
+        
+        // Play stone sound when opponent makes a move
+        if (state.currentPlayer && moveData.playerId !== state.currentPlayer.id) {
+          playStoneSound();
+        }
+      });
+
+      // Handle game state updates
+      state.socket.on('gameState', (gameState) => {
+        console.log('Received updated game state:', gameState.id);
+        
+        // Preserve the socket instance
+        const updatedState = {
+          ...gameState,
+          socket: state.socket
+        };
+        
+        dispatch({ type: 'UPDATE_GAME_STATE', payload: updatedState });
+        
+        // Save game state to localStorage for persistence
+        try {
+          safelySetItem(`gosei-game-${gameState.id}`, JSON.stringify(gameState));
+        } catch (e) {
+          console.warn('Failed to save game state to localStorage:', e);
+        }
+      });
+
+      // Handle timeout events
+      state.socket.on('playerTimeout', (timeoutData) => {
+        console.log(`Player ${timeoutData.playerId} has timed out`);
+        // Game state update will be handled by the gameState event
+      });
+
+      // Clean up event listeners
+      const socket = state.socket; // Store reference for cleanup
+      return () => {
+        socket.off('timeUpdate');
+        socket.off('moveMade');
+        socket.off('gameState');
+        socket.off('playerTimeout');
+      };
+    }
+  }, [state.socket]);
+
   // Helper to generate a short, readable game code
   const generateGameCode = (): string => {
     // Create a short, readable code (e.g., "BLUE-STONE-42")
