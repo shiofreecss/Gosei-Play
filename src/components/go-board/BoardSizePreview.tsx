@@ -5,40 +5,32 @@ interface BoardSizePreviewProps {
   className?: string;
 }
 
-interface StarPoint {
-  key: string;
-  cx: string;
-  cy: string;
-  r: string;
-  fill: string;
-}
-
 const BoardSizePreview: React.FC<BoardSizePreviewProps> = ({ size, className = '' }) => {
   // Generate grid lines
-  const lines: React.ReactElement[] = [];
+  const gridLines = [];
   for (let i = 0; i < size; i++) {
     // Horizontal lines
-    lines.push(
+    gridLines.push(
       <line
         key={`h${i}`}
         x1="0"
         y1={`${(100 / (size - 1)) * i}%`}
         x2="100%"
         y2={`${(100 / (size - 1)) * i}%`}
-        stroke="rgba(0, 0, 0, 0.5)"
-        strokeWidth="1"
+        stroke="rgba(0, 0, 0, 0.3)"
+        strokeWidth="0.5"
       />
     );
     // Vertical lines
-    lines.push(
+    gridLines.push(
       <line
         key={`v${i}`}
         x1={`${(100 / (size - 1)) * i}%`}
         y1="0"
         x2={`${(100 / (size - 1)) * i}%`}
         y2="100%"
-        stroke="rgba(0, 0, 0, 0.5)"
-        strokeWidth="1"
+        stroke="rgba(0, 0, 0, 0.3)"
+        strokeWidth="0.5"
       />
     );
   }
@@ -46,25 +38,11 @@ const BoardSizePreview: React.FC<BoardSizePreviewProps> = ({ size, className = '
   // Generate star points (hoshi)
   const starPoints: React.ReactElement[] = [];
   const getStarPoints = (size: number): [number, number][] => {
-    if (size === 9) {
-      return [[2, 2], [2, 6], [4, 4], [6, 2], [6, 6]];
-    } else if (size === 13) {
-      return [[3, 3], [3, 9], [6, 6], [9, 3], [9, 9]];
-    } else if (size === 15) {
-      return [[3, 3], [3, 11], [7, 7], [11, 3], [11, 11]];
-    } else if (size === 19) {
-      return [
-        [3, 3], [3, 9], [3, 15],
-        [9, 3], [9, 9], [9, 15],
-        [15, 3], [15, 9], [15, 15]
-      ];
-    } else if (size === 21) {
-      return [
-        [3, 3], [3, 10], [3, 17],
-        [10, 3], [10, 10], [10, 17],
-        [17, 3], [17, 10], [17, 17]
-      ];
-    }
+    if (size === 9) return [[2, 2], [2, 6], [4, 4], [6, 2], [6, 6]];
+    if (size === 13) return [[3, 3], [3, 9], [6, 6], [9, 3], [9, 9]];
+    if (size === 15) return [[3, 3], [3, 11], [7, 7], [11, 3], [11, 11]];
+    if (size === 19) return [[3, 3], [3, 9], [3, 15], [9, 3], [9, 9], [9, 15], [15, 3], [15, 9], [15, 15]];
+    if (size === 21) return [[3, 3], [3, 10], [3, 17], [10, 3], [10, 10], [10, 17], [17, 3], [17, 10], [17, 17]];
     return [];
   };
 
@@ -74,20 +52,20 @@ const BoardSizePreview: React.FC<BoardSizePreviewProps> = ({ size, className = '
         key={`star${x}${y}`}
         cx={`${(100 / (size - 1)) * x}%`}
         cy={`${(100 / (size - 1)) * y}%`}
-        r="4"
+        r="3%"
         fill="rgba(0, 0, 0, 0.7)"
       />
     );
   });
 
   return (
-    <div className={`relative aspect-square ${className}`} style={{ backgroundColor: '#E6BE7E' }}>
+    <div className={`relative aspect-square bg-amber-100 ${className}`}>
       <svg
         viewBox="0 0 100 100"
         className="absolute inset-0 w-full h-full"
-        style={{ padding: '10%' }}
+        style={{ padding: '5%' }}
       >
-        {lines}
+        {gridLines}
         {starPoints}
       </svg>
     </div>

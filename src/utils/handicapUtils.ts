@@ -2,6 +2,17 @@ import { Position, Stone, ScoringRule } from '../types/go';
 
 // Standard handicap stone positions for different board sizes
 const HANDICAP_POSITIONS: Record<number, Position[]> = {
+  21: [
+    { x: 3, y: 3 },     // bottom left
+    { x: 17, y: 17 },   // top right
+    { x: 17, y: 3 },    // bottom right
+    { x: 3, y: 17 },    // top left
+    { x: 10, y: 10 },   // center
+    { x: 10, y: 3 },    // bottom center
+    { x: 10, y: 17 },   // top center
+    { x: 3, y: 10 },    // left center
+    { x: 17, y: 10 },   // right center
+  ],
   19: [
     { x: 3, y: 3 },    // bottom left
     { x: 15, y: 15 },  // top right
@@ -12,6 +23,17 @@ const HANDICAP_POSITIONS: Record<number, Position[]> = {
     { x: 9, y: 15 },   // top center
     { x: 3, y: 9 },    // left center
     { x: 15, y: 9 },   // right center
+  ],
+  15: [
+    { x: 3, y: 3 },     // bottom left
+    { x: 11, y: 11 },   // top right
+    { x: 11, y: 3 },    // bottom right
+    { x: 3, y: 11 },    // top left
+    { x: 7, y: 7 },     // center
+    { x: 7, y: 3 },     // bottom center
+    { x: 7, y: 11 },    // top center
+    { x: 3, y: 7 },     // left center
+    { x: 11, y: 7 },    // right center
   ],
   13: [
     { x: 3, y: 3 },    // bottom left

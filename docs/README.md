@@ -136,19 +136,21 @@ The socket server will run on http://localhost:3001
 
 ## Board Sizes
 
+For detailed information about board sizes, star points, time requirements, and recommendations, please see [BOARD_SIZES.md](BOARD_SIZES.md).
+
 ### Standard Sizes
-- **9×9**: Perfect for beginners, ideal for quick games (20-30 minutes)
-- **13×13**: Intermediate play, good balance of complexity and duration (45-60 minutes)
-- **19×19**: Standard tournament size, full strategic depth (90-120 minutes)
+- **9×9**: Perfect for beginners, ideal for quick games (10+ minutes per player)
+- **13×13**: Intermediate play, good balance of complexity and duration (20+ minutes per player)
+- **19×19**: Standard tournament size, full strategic depth (45+ minutes per player)
 
 ### Custom Sizes
-- **15×15**: Traditional Korean size, medium-length games (60-90 minutes)
-- **21×21**: Extended board size for unique gameplay experiences (120-150 minutes)
+- **15×15**: Traditional Korean size, medium-length games (30+ minutes per player)
+- **21×21**: Extended board size for unique gameplay experiences (60+ minutes per player)
 
 Each board size features:
 - Visual preview showing the actual grid and star points
 - Accurate star point (hoshi) placement
-- Estimated game duration
+- Enforced minimum time requirements
 - Responsive grid scaling for all screen sizes
 
 Board size selection is available during game creation, with standard sizes always visible and custom sizes in a collapsible section. Your selected board size preference is saved between games.

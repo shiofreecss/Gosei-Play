@@ -37,14 +37,28 @@ const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastReadIndex, setLastReadIndex] = useState(messages.length);
+  const [lastNotificationSound, setLastNotificationSound] = useState(0);
   const chatRef = useRef<HTMLDivElement>(null);
+  const notificationSound = useRef<HTMLAudioElement | null>(null);
 
-  // Track unread messages
+  // Initialize notification sound
+  useEffect(() => {
+    notificationSound.current = new Audio('/sounds/notification.mp3');
+  }, []);
+
+  // Track unread messages and play notification sound
   useEffect(() => {
     if (!isOpen && messages.length > lastReadIndex) {
       setUnreadCount(messages.length - lastReadIndex);
+      
+      // Play notification sound with cooldown
+      const now = Date.now();
+      if (now - lastNotificationSound > 1000) { // 1 second cooldown
+        notificationSound.current?.play().catch(err => console.error('Error playing notification:', err));
+        setLastNotificationSound(now);
+      }
     }
-  }, [messages, isOpen, lastReadIndex]);
+  }, [messages, isOpen, lastReadIndex, lastNotificationSound]);
 
   // Reset unread count when opening the chat
   useEffect(() => {
@@ -72,7 +86,7 @@ const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
     <div className="fixed bottom-8 right-8 z-50" ref={chatRef}>
       {/* Chat floating button */}
       <button 
-        className="w-14 h-14 rounded-full bg-gray-800 text-white flex items-center justify-center cursor-pointer shadow-lg border-none transition-all duration-200 hover:bg-black hover:scale-105 focus:outline-none"
+        className="w-14 h-14 rounded-full bg-gray-800 text-white flex items-center justify-center cursor-pointer shadow-lg border-none transition-all duration-200 hover:bg-black hover:scale-105 focus:outline-none relative"
         onClick={() => setIsOpen(!isOpen)}
         title={isOpen ? "Close chat" : "Open chat"}
       >
@@ -86,8 +100,8 @@ const FloatingChatBubble: React.FC<FloatingChatBubbleProps> = ({
           </svg>
         )}
         {unreadCount > 0 && !isOpen && (
-          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold border-2 border-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
+          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold border-2 border-white animate-bounce">
+            {unreadCount > 99 ? '99+' : unreadCount}
           </div>
         )}
       </button>

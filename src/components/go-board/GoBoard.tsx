@@ -52,6 +52,13 @@ const GoBoard: React.FC<GoBoardProps> = ({
       points.push({ x: 6, y: 6 }); // center
       points.push({ x: 9, y: 3 });
       points.push({ x: 9, y: 9 });
+    } else if (size === 15) {
+      // 15x15 board has 5 star points
+      points.push({ x: 3, y: 3 });
+      points.push({ x: 3, y: 11 });
+      points.push({ x: 7, y: 7 }); // center
+      points.push({ x: 11, y: 3 });
+      points.push({ x: 11, y: 11 });
     } else if (size === 19) {
       // 19x19 board has 9 star points
       points.push({ x: 3, y: 3 });
@@ -63,6 +70,17 @@ const GoBoard: React.FC<GoBoardProps> = ({
       points.push({ x: 15, y: 3 });
       points.push({ x: 15, y: 9 });
       points.push({ x: 15, y: 15 });
+    } else if (size === 21) {
+      // 21x21 board has 9 star points
+      points.push({ x: 3, y: 3 });
+      points.push({ x: 3, y: 10 });
+      points.push({ x: 3, y: 17 });
+      points.push({ x: 10, y: 3 });
+      points.push({ x: 10, y: 10 }); // center
+      points.push({ x: 10, y: 17 });
+      points.push({ x: 17, y: 3 });
+      points.push({ x: 17, y: 10 });
+      points.push({ x: 17, y: 17 });
     }
     
     return points;
@@ -219,6 +237,18 @@ const GoBoard: React.FC<GoBoardProps> = ({
                     opacity: isDead ? 0.3 : 1 
                   }}
                 >
+                  {isLastMove && (
+                    <div 
+                      className="absolute w-2 h-2 rounded-full last-move-dot"
+                      style={{
+                        backgroundColor: stone.color === 'black' ? 'white' : 'black',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        opacity: 0.8
+                      }}
+                    />
+                  )}
                   {isDead && (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

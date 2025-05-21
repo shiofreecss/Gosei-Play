@@ -4,6 +4,7 @@ import { useGame } from '../context/GameContext';
 import { GameOptions, ColorPreference, ScoringRule, GameType } from '../types/go';
 import ConnectionStatus from '../components/ConnectionStatus';
 import BoardSizePreview from '../components/go-board/BoardSizePreview';
+import GoseiLogo from '../components/GoseiLogo';
 
 // Define keys for localStorage
 const STORAGE_KEYS = {
@@ -146,6 +147,18 @@ const setStoredValue = (key: string, value: any): void => {
   }
 };
 
+// Helper function to get minimum time based on board size
+const getMinimumTimeForBoardSize = (size: number): number => {
+  switch (size) {
+    case 9: return 10;
+    case 13: return 20;
+    case 15: return 30;
+    case 19: return 45;
+    case 21: return 60;
+    default: return 30;
+  };
+};
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { createGame, joinGame, gameState, error } = useGame();
@@ -212,6 +225,16 @@ const HomePage: React.FC = () => {
         [key]: value
       };
       
+      // If updating board size, automatically set the minimum time
+      if (key === 'boardSize') {
+        const minTime = getMinimumTimeForBoardSize(value as number);
+        newState.timeControl = minTime;
+        newState.timeControlOptions = {
+          ...prev.timeControlOptions,
+          timeControl: minTime
+        };
+      }
+      
       // If updating timeControlOptions, sync the direct timeControl and timePerMove properties
       if (key === 'timeControlOptions' && typeof value === 'object') {
         if ('timeControl' in value) {
@@ -224,9 +247,12 @@ const HomePage: React.FC = () => {
       
       // If updating direct timeControl or timePerMove, sync the timeControlOptions
       if (key === 'timeControl' && typeof value === 'number') {
+        const minTime = getMinimumTimeForBoardSize(newState.boardSize);
+        const finalTime = Math.max(value, minTime);
+        newState.timeControl = finalTime;
         newState.timeControlOptions = {
           ...prev.timeControlOptions,
-          timeControl: value
+          timeControl: finalTime
         };
       }
       
@@ -324,7 +350,15 @@ const HomePage: React.FC = () => {
             ? 'border-primary-500 bg-primary-50 shadow-md' 
             : 'border-neutral-200 hover:border-primary-300 hover:bg-primary-50/30'
         } ${isStandard ? '' : 'opacity-90 hover:opacity-100'}`}
-        onClick={() => updateGameOption('boardSize', size)}
+        onClick={() => {
+          // Update board size
+          updateGameOption('boardSize', size);
+          // Update time control to minimum if it's below the minimum
+          const minTime = getMinimumTimeForBoardSize(size);
+          if (!gameOptions.timeControl || gameOptions.timeControl < minTime) {
+            updateGameOption('timeControl', minTime);
+          }
+        }}
         title={`${size}×${size} board - ${description}`}
       >
         <div className="flex items-center gap-4">
@@ -566,13 +600,26 @@ const HomePage: React.FC = () => {
               <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Main Time (minutes)
               </label>
-              <input
-                type="number"
-                value={gameOptions.timeControl}
-                onChange={(e) => updateGameOption('timeControl', parseInt(e.target.value))}
-                min="0"
-                className="form-input w-full"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  value={gameOptions.timeControl}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value);
+                    updateGameOption('timeControl', newValue);
+                  }}
+                  min={getMinimumTimeForBoardSize(gameOptions.boardSize)}
+                  className="form-input w-full"
+                />
+                <div className="mt-1">
+                  <p className="text-sm text-neutral-500">
+                    Minimum {getMinimumTimeForBoardSize(gameOptions.boardSize)} minutes for {gameOptions.boardSize}×{gameOptions.boardSize} board
+                  </p>
+                  <p className="text-xs text-primary-600 mt-1">
+                    Time is automatically adjusted based on board size
+                  </p>
+                </div>
+              </div>
             </div>
             
             <div>
@@ -586,6 +633,9 @@ const HomePage: React.FC = () => {
                 min="0"
                 className="form-input w-full"
               />
+              <p className="mt-1 text-xs text-neutral-500">
+                Optional: Set to 0 to disable time per move
+              </p>
             </div>
           </div>
         </div>
@@ -598,16 +648,16 @@ const HomePage: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-primary-700 mb-2">Gosei Play</h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <GoseiLogo size={48} />
+            <h1 className="text-4xl font-bold text-primary-700">Gosei Play</h1>
+          </div>
           <p className="text-xl text-neutral-600">
             Play Go online with friends around the world
           </p>
           <div className="mt-4 flex justify-center space-x-6">
             <Link to="/board-demo" className="text-primary-600 underline hover:text-primary-800 transition-colors">
-              View board size comparison
-            </Link>
-            <Link to="/board-demo" className="text-primary-600 underline hover:text-primary-800 transition-colors">
-              Try board themes
+              View Board Size Comparison
             </Link>
           </div>
         </header>

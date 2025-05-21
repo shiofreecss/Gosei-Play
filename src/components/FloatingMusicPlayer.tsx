@@ -167,7 +167,7 @@ const FloatingMusicPlayer: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-999" ref={playerRef} style={{ bottom: '110px', right: '30px', zIndex: 999 }}>
+    <div className="fixed bottom-4 right-4 z-999" ref={playerRef} style={{ bottom: '180px', right: '30px', zIndex: 998 }}>
       {/* Floating music panel */}
       <div className={`${
         isExpanded ? 'bg-white rounded-lg shadow-lg p-4 w-72 opacity-100' : 'w-14 h-14 opacity-90 hover:opacity-100 rounded-full'
