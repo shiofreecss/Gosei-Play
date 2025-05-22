@@ -4,6 +4,7 @@ import TimeControl from '../TimeControl';
 import SoundSettings from '../SoundSettings';
 import PlayerAvatar from '../PlayerAvatar';
 import BoardThemeButton from '../BoardThemeButton';
+import useDeviceDetect from '../../hooks/useDeviceDetect';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true, color: StoneColor } {
@@ -55,6 +56,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
   onConfirmScore,
   onCancelScoring
 }) => {
+  const { isMobile, isTablet, isDesktop } = useDeviceDetect();
   const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest, board } = gameState;
   
   // Find black and white players
@@ -189,42 +191,48 @@ const GameInfo: React.FC<GameInfoProps> = ({
   };
   
   return (
-    <div className="game-info bg-gray-900 text-white p-3 sm:p-4 rounded-lg shadow-lg w-full md:w-[400px] lg:w-[450px] xl:w-[500px] border border-gray-800">
+    <div className={`game-info bg-gray-900 text-white p-3 sm:p-4 rounded-lg shadow-lg border border-gray-800 ${
+      isTablet 
+        ? 'w-[600px] mx-auto'
+        : isMobile
+          ? 'w-full'
+          : 'w-[400px] xl:w-[500px]'
+    }`}>
       <h2 className="flex items-center justify-between text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-gray-200">
         <div className="flex items-center gap-2">
           Game Info
-          <span className="text-xs sm:text-sm bg-gray-700 px-2 py-1 rounded text-gray-300">
+          <span className={`text-xs ${isTablet ? 'text-base' : 'sm:text-sm'} bg-gray-700 px-2 py-1 rounded text-gray-300`}>
             {getGameTypeName()}
           </span>
         </div>
       </h2>
       
       {/* Players Section - Side by Side */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-3 sm:mb-4">
+      <div className={`grid grid-cols-2 gap-2 ${isTablet ? 'gap-6' : 'sm:gap-4'} mb-3 sm:mb-4`}>
         {/* Black Player */}
-        <div className={`player-card p-2 sm:p-5 rounded-lg transition-all duration-200 ${
+        <div className={`player-card p-2 ${isTablet ? 'p-6' : 'sm:p-5'} rounded-lg transition-all duration-200 ${
           currentTurn === 'black' ? 'bg-neutral-800 ring-2 ring-blue-500' : 'bg-neutral-800'
         }`}>
           <div className="flex flex-col items-center">
             {/* Player Avatar */}
             <PlayerAvatar 
               username={blackPlayer?.username || 'Waiting...'} 
-              size={64}
+              size={isTablet ? 80 : 64}
             />
             <div className="text-center mt-2 sm:mt-4">
               <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 mb-1 sm:mb-2">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-black rounded-full border-2 border-neutral-700 shadow-inner"></div>
-                <span className="font-semibold text-white text-sm sm:text-lg truncate max-w-[90px] sm:max-w-full">
+                <div className={`w-4 h-4 ${isTablet ? 'w-6 h-6' : 'sm:w-5 sm:h-5'} bg-black rounded-full border-2 border-neutral-700 shadow-inner`}></div>
+                <span className={`font-semibold text-white ${isTablet ? 'text-xl' : 'text-sm sm:text-lg'} truncate max-w-[90px] sm:max-w-full`}>
                   {blackPlayer?.username || 'Waiting for opponent'}
                 </span>
               </div>
-              <div className="text-xs sm:text-base text-white/90 mt-0.5 sm:mt-1.5 font-medium bg-neutral-700/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md">
+              <div className={`${isTablet ? 'text-base' : 'text-xs sm:text-base'} text-white/90 mt-0.5 sm:mt-1.5 font-medium bg-neutral-700/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md`}>
                 Captured: {capturedStones?.white || 0}
               </div>
             </div>
           </div>
           <div className="mt-2 sm:mt-4">
-            <div className={`text-base sm:text-xl font-mono font-bold text-center p-1 sm:p-2.5 rounded-md ${
+            <div className={`${isTablet ? 'text-2xl p-3' : 'text-base sm:text-xl p-1 sm:p-2.5'} font-mono font-bold text-center rounded-md ${
               currentTurn === 'black' ? 'bg-blue-600 text-white' : 'bg-neutral-700 text-neutral-200'
             }`}>
               {blackPlayer ? formatTime(blackPlayer.timeRemaining) : '--:--'}
@@ -233,29 +241,29 @@ const GameInfo: React.FC<GameInfoProps> = ({
         </div>
         
         {/* White Player */}
-        <div className={`player-card p-2 sm:p-5 rounded-lg transition-all duration-200 ${
+        <div className={`player-card p-2 ${isTablet ? 'p-6' : 'sm:p-5'} rounded-lg transition-all duration-200 ${
           currentTurn === 'white' ? 'bg-neutral-800 ring-2 ring-blue-500' : 'bg-neutral-800'
         }`}>
           <div className="flex flex-col items-center">
             {/* Player Avatar */}
             <PlayerAvatar 
               username={whitePlayer?.username || 'Waiting...'} 
-              size={64}
+              size={isTablet ? 80 : 64}
             />
             <div className="text-center mt-2 sm:mt-4">
               <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 mb-1 sm:mb-2">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full border-2 border-neutral-300 shadow-lg"></div>
-                <span className="font-semibold text-white text-sm sm:text-lg truncate max-w-[90px] sm:max-w-full">
+                <div className={`w-4 h-4 ${isTablet ? 'w-6 h-6' : 'sm:w-5 sm:h-5'} bg-white rounded-full border-2 border-neutral-300 shadow-lg`}></div>
+                <span className={`font-semibold text-white ${isTablet ? 'text-xl' : 'text-sm sm:text-lg'} truncate max-w-[90px] sm:max-w-full`}>
                   {whitePlayer?.username || 'Waiting for opponent'}
                 </span>
               </div>
-              <div className="text-xs sm:text-base text-white/90 mt-0.5 sm:mt-1.5 font-medium bg-neutral-700/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md">
+              <div className={`${isTablet ? 'text-base' : 'text-xs sm:text-base'} text-white/90 mt-0.5 sm:mt-1.5 font-medium bg-neutral-700/50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-md`}>
                 Captured: {capturedStones?.black || 0}
               </div>
             </div>
           </div>
           <div className="mt-2 sm:mt-4">
-            <div className={`text-base sm:text-xl font-mono font-bold text-center p-1 sm:p-2.5 rounded-md ${
+            <div className={`${isTablet ? 'text-2xl p-3' : 'text-base sm:text-xl p-1 sm:p-2.5'} font-mono font-bold text-center rounded-md ${
               currentTurn === 'white' ? 'bg-blue-600 text-white' : 'bg-neutral-700 text-neutral-200'
             }`}>
               {whitePlayer ? formatTime(whitePlayer.timeRemaining) : '--:--'}
@@ -265,7 +273,9 @@ const GameInfo: React.FC<GameInfoProps> = ({
       </div>
 
       {/* Current Turn Indicator */}
-      <div className="text-center p-2.5 mb-4 rounded-lg bg-neutral-800/80 border border-neutral-700">
+      <div className={`text-center p-2.5 mb-4 rounded-lg bg-neutral-800/80 border border-neutral-700 ${
+        isTablet ? 'text-lg p-4' : ''
+      }`}>
         {status === 'playing' ? (
           <div className="flex items-center justify-center gap-2.5">
             <div className={`w-3.5 h-3.5 rounded-full ${
@@ -285,15 +295,19 @@ const GameInfo: React.FC<GameInfoProps> = ({
       </div>
 
       {/* Game Control Buttons */}
-      <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
+      <div className={`space-y-2 ${isTablet ? 'space-y-4' : 'sm:space-y-3'} mb-3 sm:mb-4`}>
         {/* Primary Game Controls */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className={`grid grid-cols-2 gap-2 ${isTablet ? 'gap-4' : 'sm:gap-3'}`}>
           <button
             onClick={onPassTurn}
             disabled={status !== 'playing' || !isPlayerTurn}
-            className="flex items-center justify-center gap-1 sm:gap-2 bg-blue-600 text-white px-2 sm:px-4 py-2 sm:py-2.5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm font-medium"
+            className={`flex items-center justify-center gap-1 ${
+              isTablet 
+                ? 'text-base gap-3 px-6 py-4' 
+                : 'sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5'
+            } bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm font-medium`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isTablet ? 'h-4 w-4' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
             Pass
@@ -302,9 +316,13 @@ const GameInfo: React.FC<GameInfoProps> = ({
           <button
             onClick={onRequestUndo}
             disabled={!isPlayerTurn || status !== 'playing'}
-            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+            className={`flex items-center justify-center gap-2 ${
+              isTablet 
+                ? 'text-base gap-4 px-6 py-4' 
+                : 'sm:gap-2 px-4 py-2.5'
+            } bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isTablet ? 'h-5 w-5' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Undo
@@ -312,12 +330,16 @@ const GameInfo: React.FC<GameInfoProps> = ({
         </div>
 
         {/* Secondary Game Controls */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid grid-cols-2 gap-3 ${isTablet ? 'gap-4' : 'sm:gap-3'}`}>
           <button
             onClick={onCopyGameLink}
-            className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium"
+            className={`flex items-center justify-center gap-2 ${
+              isTablet 
+                ? 'text-base gap-4 px-6 py-4' 
+                : 'sm:gap-2 px-4 py-2.5'
+            } bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isTablet ? 'h-5 w-5' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             {copied ? 'Copied!' : 'Share'}
@@ -326,9 +348,13 @@ const GameInfo: React.FC<GameInfoProps> = ({
           <button
             onClick={onResign}
             disabled={status !== 'playing'}
-            className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+            className={`flex items-center justify-center gap-2 ${
+              isTablet 
+                ? 'text-base gap-4 px-6 py-4' 
+                : 'sm:gap-2 px-4 py-2.5'
+            } bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isTablet ? 'h-5 w-5' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
             Resign
@@ -337,10 +363,12 @@ const GameInfo: React.FC<GameInfoProps> = ({
       </div>
 
       {/* Game Stats and Settings */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-3 sm:mt-4">
-        <div className="p-2 sm:p-3 bg-gray-800/80 rounded-md">
-          <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2 text-gray-200">Game Stats</h3>
-          <div className="grid grid-cols-1 gap-0.5 sm:gap-1 text-xs text-gray-300">
+      <div className={`grid grid-cols-2 gap-2 ${isTablet ? 'gap-4' : 'sm:gap-3'} mt-3 sm:mt-4`}>
+        <div className={`p-2 ${isTablet ? 'p-4' : 'sm:p-3'} bg-gray-800/80 rounded-md`}>
+          <h3 className={`${isTablet ? 'text-lg' : 'text-sm sm:text-base'} font-semibold mb-1 sm:mb-2 text-gray-200`}>
+            Game Stats
+          </h3>
+          <div className={`grid grid-cols-1 gap-0.5 ${isTablet ? 'gap-2 text-base' : 'sm:gap-1 text-xs'} text-gray-300`}>
             <div>Moves: {totalStones}</div>
             <div>Board: {board.size}×{board.size}</div>
             <div>Komi: {gameState.komi}</div>
@@ -350,21 +378,23 @@ const GameInfo: React.FC<GameInfoProps> = ({
         </div>
 
         {/* Settings */}
-        <div className="p-2 sm:p-3 bg-gray-800/80 rounded-md">
-          <h3 className="text-sm sm:text-base font-semibold mb-1 sm:mb-2 text-gray-200">Settings</h3>
-          <div className="space-y-1 sm:space-y-2">
+        <div className={`p-2 ${isTablet ? 'p-4' : 'sm:p-3'} bg-gray-800/80 rounded-md`}>
+          <h3 className={`${isTablet ? 'text-lg' : 'text-sm sm:text-base'} font-semibold mb-1 sm:mb-2 text-gray-200`}>
+            Settings
+          </h3>
+          <div className={`space-y-1 ${isTablet ? 'space-y-2' : 'sm:space-y-2'}`}>
             {/* Stone Sound Setting */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-300">Stone Sound</span>
+            <div className={`flex items-center justify-between text-xs ${isTablet ? 'text-base' : ''}`}>
+              <span className={`text-gray-300 ${isTablet ? 'text-base' : ''}`}>Stone Sound</span>
               <SoundSettings />
             </div>
             
             {/* Auto Save Setting */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-300">Auto Save</span>
+            <div className={`flex items-center justify-between text-xs ${isTablet ? 'text-base' : ''}`}>
+              <span className={`text-gray-300 ${isTablet ? 'text-base' : ''}`}>Auto Save</span>
               <button
                 onClick={onToggleAutoSave}
-                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs ${
+                className={`px-1.5 ${isTablet ? 'px-2' : ''} py-0.5 ${isTablet ? 'py-1' : ''} rounded text-xs ${
                   autoSaveEnabled 
                     ? 'bg-green-600 text-white' 
                     : 'bg-gray-600 text-gray-300'
@@ -376,11 +406,11 @@ const GameInfo: React.FC<GameInfoProps> = ({
             
             {/* Manual Save Button - only show when auto-save is off */}
             {!autoSaveEnabled && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-300">Manual Save</span>
+              <div className={`flex items-center justify-between text-xs ${isTablet ? 'text-base' : ''}`}>
+                <span className={`text-gray-300 ${isTablet ? 'text-base' : ''}`}>Manual Save</span>
                 <button
                   onClick={onSaveNow}
-                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                  className={`bg-blue-600 text-white ${isTablet ? 'px-2 py-1' : 'px-2 py-0.5'} rounded text-xs hover:bg-blue-700 ${isTablet ? '' : ''}`}
                 >
                   Save Now
                 </button>
@@ -388,8 +418,8 @@ const GameInfo: React.FC<GameInfoProps> = ({
             )}
             
             {/* Board Theme Setting */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-300">Board Theme</span>
+            <div className={`flex items-center justify-between text-xs ${isTablet ? 'text-base' : ''}`}>
+              <span className={`text-gray-300 ${isTablet ? 'text-base' : ''}`}>Board Theme</span>
               <BoardThemeButton />
             </div>
           </div>
@@ -398,11 +428,13 @@ const GameInfo: React.FC<GameInfoProps> = ({
 
       {/* Scoring Panel - Show only in scoring or finished state */}
       {(status === 'scoring' || status === 'finished') && (
-        <div className="p-4 bg-gray-800/90 rounded-lg mt-4 border border-gray-700">
-          <h3 className="text-base font-semibold mb-3 text-gray-200">Score Breakdown</h3>
+        <div className={`p-4 bg-gray-800/90 rounded-lg mt-4 border border-gray-700 ${isTablet ? 'text-base' : 'text-sm'}`}>
+          <h3 className={`${isTablet ? 'text-base' : 'text-sm sm:text-base'} font-semibold mb-3 text-gray-200`}>
+            Score Breakdown
+          </h3>
           
           {score ? (
-            <div className="grid grid-cols-3 gap-2 text-sm">
+            <div className={`grid grid-cols-3 gap-2 ${isTablet ? 'text-base' : 'text-sm'}`}>
               <div className="text-center"></div>
               <div className="text-center font-semibold">Black</div>
               <div className="text-center font-semibold">White</div>
@@ -450,15 +482,15 @@ const GameInfo: React.FC<GameInfoProps> = ({
               <div className="text-center text-white font-bold text-base">{score.white.toFixed(1)}</div>
             </div>
           ) : (
-            <div className="text-center text-white p-3">
+            <div className={`text-center text-white p-3 ${isTablet ? 'text-base' : 'text-sm'}`}>
               <p>Calculating score...</p>
-              <p className="text-sm opacity-80 mt-2">Mark dead stones by clicking on them</p>
+              <p className={`text-sm opacity-80 mt-2 ${isTablet ? 'text-base' : 'text-sm'}`}>Mark dead stones by clicking on them</p>
             </div>
           )}
           
           {/* Result display */}
           {status === 'finished' && score && (
-            <div className="mt-4 text-center">
+            <div className={`mt-4 text-center ${isTablet ? 'text-base' : 'text-sm'}`}>
               <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
                 gameState.winner === 'black' 
                   ? 'bg-black text-white'
@@ -478,12 +510,16 @@ const GameInfo: React.FC<GameInfoProps> = ({
           
           {/* Scoring actions */}
           {status === 'scoring' && (
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className={`mt-4 grid grid-cols-2 gap-3 ${isTablet ? 'gap-4' : 'gap-3'}`}>
               <button
                 onClick={onConfirmScore}
-                className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+                className={`flex items-center justify-center gap-2 ${
+                  isTablet 
+                    ? 'text-base gap-4 px-6 py-4' 
+                    : 'sm:gap-2 px-4 py-2.5'
+                } bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isTablet ? 'h-5 w-5' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Confirm Score
@@ -491,9 +527,13 @@ const GameInfo: React.FC<GameInfoProps> = ({
               
               <button
                 onClick={onCancelScoring}
-                className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+                className={`flex items-center justify-center gap-2 ${
+                  isTablet 
+                    ? 'text-base gap-4 px-6 py-4' 
+                    : 'sm:gap-2 px-4 py-2.5'
+                } bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isTablet ? 'h-5 w-5' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
                 Resume Game
