@@ -451,12 +451,21 @@
 /* Keep only the Go board specific styles, UI styles are now in Tailwind */
 
 /* Board styles */
-.board-bg {
+.board {
   background-color: #E6BE7E;
-  border-radius: 0.375rem;
+  border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 8px 16px -4px rgba(0, 0, 0, 0.1),
+    0 4px 8px -2px rgba(0, 0, 0, 0.06);
   position: relative;
+  display: grid;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Board theme variants */
@@ -464,10 +473,10 @@
   background-color: #E6BE7E;
   background-image: 
     url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.15' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"),
-    linear-gradient(90deg, rgba(200, 160, 90, 0.07) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(150, 110, 60, 0.07) 1px, transparent 1px),
     linear-gradient(135deg, #E6BE7E, #D6A75E);
-  box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.2);
+  box-shadow: 
+    0 12px 24px -6px rgba(0, 0, 0, 0.15),
+    0 6px 12px -3px rgba(0, 0, 0, 0.1);
   border: 1px solid #C9A36D;
 }
 
@@ -476,16 +485,21 @@
   background-image: 
     url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03' numOctaves='5' stitchTiles='stitch' seed='10'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23wood)' opacity='0.15'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.1' numOctaves='3' seed='5'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23grain)' opacity='0.07'/%3E%3C/svg%3E"),
-    linear-gradient(90deg, rgba(80, 40, 20, 0.09) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(40, 20, 10, 0.07) 1px, transparent 1px),
     radial-gradient(circle at 50% 50%, #7d4e28, #5d3c18);
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.6), 0 6px 8px -3px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 235, 205, 0.1);
+  box-shadow: 
+    0 16px 32px -8px rgba(0, 0, 0, 0.3),
+    0 8px 16px -4px rgba(0, 0, 0, 0.2),
+    inset 0 0 20px rgba(255, 235, 205, 0.1);
   border: 1px solid #4e3010;
 }
 
 .board-theme-universe {
   background: linear-gradient(to bottom, #0C0E1A, #121630);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+  box-shadow: 
+    0 16px 32px -8px rgba(0, 0, 0, 0.4),
+    0 8px 16px -4px rgba(0, 0, 0, 0.3),
+    inset 0 0 40px rgba(134, 187, 255, 0.1);
+  border: 1px solid rgba(134, 187, 255, 0.2);
 }
 
 .board-grid {
@@ -504,59 +518,87 @@
   cursor: pointer;
 }
 
-/* Line styles by theme */
+/* Board intersection grid lines */
+.board-intersection::before,
+.board-intersection::after {
+  content: '';
+  position: absolute;
+  background-color: #000000;
+  transition: none;
+}
+
+.board-intersection::before {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.board-intersection::after {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Theme-specific grid line styles */
 .board-theme-default .board-intersection::before,
 .board-theme-default .board-intersection::after {
-  background-color: black;
-  opacity: 0.8;
+  background-color: #000000;
 }
 
 .board-theme-wood-3d .board-intersection::before,
 .board-theme-wood-3d .board-intersection::after {
-  background-color: rgba(0, 0, 0, 0.85);
-  opacity: 0.9;
-  box-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+  background-color: #000000;
 }
 
 .board-theme-universe .board-intersection::before,
 .board-theme-universe .board-intersection::after {
-  background-color: rgba(134, 187, 255, 0.9);
-  opacity: 0.9;
-  box-shadow: 0 0 8px rgba(134, 187, 255, 0.7);
+  background-color: #FFFFFF;
 }
 
-.board-intersection::before {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 1px;
-  background-color: black;
-  opacity: 0.8;
-}
-
-.board-intersection::after {
-  content: '';
-  position: absolute;
-  height: 100%;
-  width: 1px;
-  background-color: black;
-  opacity: 0.8;
-}
-
-.board-edge-left::before {
-  left: 50%;
-}
-
-.board-edge-right::before {
-  right: 50%;
-}
-
-.board-edge-top::after {
+/* Edge line styles */
+.top-edge::after {
+  height: 50%;
   top: 50%;
 }
 
-.board-edge-bottom::after {
+.bottom-edge::after {
+  height: 50%;
   bottom: 50%;
+}
+
+.left-edge::before {
+  width: 50%;
+  left: 50%;
+}
+
+.right-edge::before {
+  width: 50%;
+  right: 50%;
+}
+
+/* Board edge line enhancements */
+.board-intersection.top-edge::after,
+.board-intersection.bottom-edge::after,
+.board-intersection.left-edge::before,
+.board-intersection.right-edge::before {
+  background-color: #000000;
+}
+
+/* Theme-specific edge line styles */
+.board-theme-wood-3d .board-intersection.top-edge::after,
+.board-theme-wood-3d .board-intersection.bottom-edge::after,
+.board-theme-wood-3d .board-intersection.left-edge::before,
+.board-theme-wood-3d .board-intersection.right-edge::before {
+  background-color: #000000;
+}
+
+.board-theme-universe .board-intersection.top-edge::after,
+.board-theme-universe .board-intersection.bottom-edge::after,
+.board-theme-universe .board-intersection.left-edge::before,
+.board-theme-universe .board-intersection.right-edge::before {
+  background-color: #FFFFFF;
 }
 
 .star-point {
@@ -803,15 +845,19 @@
 /* Board and grid classes */
 .board {
   background-color: #E6BE7E;
-  border-radius: 0.375rem;
+  border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 
+    0 8px 16px -4px rgba(0, 0, 0, 0.1),
+    0 4px 8px -2px rgba(0, 0, 0, 0.06);
   position: relative;
   display: grid;
   aspect-ratio: 1 / 1;
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  padding: 2%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Board size specific grid settings */
