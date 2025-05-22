@@ -648,6 +648,10 @@
   border-radius: 9999px;
   z-index: 10;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  height: 90%;
+  top: 5%;
+  left: 5%;
 }
 
 /* Stone theme variants */
@@ -765,11 +769,6 @@
     max-width: 95vw;
   }
 
-  .stone {
-    width: calc(min(90%, 8vw)) !important;
-    height: calc(min(90%, 8vw)) !important;
-  }
-
   .stone .last-move-dot {
     width: calc(min(30%, 2.5vw)) !important;
     height: calc(min(30%, 2.5vw)) !important;
@@ -781,30 +780,31 @@
     max-width: 90vw;
   }
 
-  .stone {
-    width: calc(min(90%, 7.5vw)) !important; /* Increased from 6vw to 7.5vw (1.25x) */
-    height: calc(min(90%, 7.5vw)) !important;
-  }
-
   .stone .last-move-dot {
-    width: calc(min(30%, 2.5vw)) !important; /* Increased proportionally */
-    height: calc(min(30%, 2.5vw)) !important;
+    width: calc(min(30%, 2vw)) !important;
+    height: calc(min(30%, 2vw)) !important;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .board-grid {
-    max-width: 700px;
-  }
-
-  .stone {
-    width: calc(min(90%, 5vw)) !important;
-    height: calc(min(90%, 5vw)) !important;
+    max-width: 800px;
   }
 
   .stone .last-move-dot {
     width: calc(min(30%, 1.8vw)) !important;
     height: calc(min(30%, 1.8vw)) !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .board-grid {
+    max-width: 900px;
+  }
+
+  .stone .last-move-dot {
+    width: calc(min(30%, 1.6vw)) !important;
+    height: calc(min(30%, 1.6vw)) !important;
   }
 }
 

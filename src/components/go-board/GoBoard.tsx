@@ -147,12 +147,8 @@ const GoBoard: React.FC<GoBoardProps> = ({
 
   // Get stone size based on board size (larger stones for smaller boards)
   const getStoneSize = () => {
-    // Responsive stone sizes based on board size
-    if (board.size === 9) return 'calc(min(90%, 3.5vw))';
-    if (board.size === 13) return 'calc(min(85%, 3vw))';
-    if (board.size === 19) return 'calc(min(80%, 2.5vw))';
-    if (board.size === 21) return 'calc(min(75%, 2.2vw))';
-    return 'calc(min(80%, 2.5vw))'; // default
+    // Stone size is 90% of a single intersection size
+    return 'calc(90%)'; // 90% of the parent intersection size
   };
 
   // Get star point class based on board size
