@@ -8,7 +8,8 @@ v1.0.4 - See [VERSION.md](VERSION.md) for complete version history and change de
 ## Features
 
 - **Real-time multiplayer Go game** with socket-based communication
-- **Multiple board sizes** (9×9, 13×13, 19×19) suitable for players of all levels
+- **Multiple board sizes** (9×9, 13×13, 15×15, 19×19, 21×21) suitable for players of all levels
+- **Complete KO rule enforcement** to prevent infinite capture loops - see [KO_RULE.md](KO_RULE.md)
 - **Customizable board themes** including Default, Dark Wood 3D, Light Wood 3D, and Universe themes
 - **Interactive game completion** with detailed score popup and personalized win/loss messages
 - **Authentic stone placement sounds** with toggle option in game settings
@@ -217,6 +218,31 @@ gosei-play/
 - `npm build`: Builds the app for production
 - `npm test`: Runs tests
 - `npm eject`: Ejects from Create React App
+
+## Documentation
+
+### Core Features
+- **[KO_RULE.md](KO_RULE.md)** - Complete KO rule implementation documentation
+- **[KO_RULE_QUICK_REFERENCE.md](KO_RULE_QUICK_REFERENCE.md)** - Quick reference for developers
+- **[BOARD_SIZES.md](BOARD_SIZES.md)** - Board size specifications and features
+- **[TIME_CONTROL_FLEXIBILITY.md](TIME_CONTROL_FLEXIBILITY.md)** - Time control system documentation
+- **[MOBILE_RESPONSIVENESS.md](MOBILE_RESPONSIVENESS.md)** - Mobile optimization details
+
+### Technical Documentation
+- **[PLANNING.md](PLANNING.md)** - Implementation roadmap and status
+- **[VERSION.md](VERSION.md)** - Version history and changes
+- **[SECURITY.md](SECURITY.md)** - Security considerations
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+
+### Deployment Guides
+- **[VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)** - VPS deployment instructions
+- **[HEROKU_SETUP.md](HEROKU_SETUP.md)** - Heroku deployment guide
+- **[NETLIFY_SETUP.md](NETLIFY_SETUP.md)** - Netlify deployment instructions
+
+### Specialized Features
+- **[TIMEOUT_NOTIFICATIONS.md](TIMEOUT_NOTIFICATIONS.md)** - Timeout and notification systems
+- **[BYO_YOMI_TIMEOUT.md](BYO_YOMI_TIMEOUT.md)** - Byo-yomi time control details
+- **[NETLIFY_AUDIO_SETUP.md](NETLIFY_AUDIO_SETUP.md)** - Audio configuration for Netlify
 
 ## Contributing
 
