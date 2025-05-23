@@ -6,6 +6,7 @@ import GoBoard from '../components/go-board/GoBoard';
 import { Board, Position, StoneColor, Stone } from '../types/go';
 import { useBoardTheme } from '../context/BoardThemeContext';
 import BoardThemeSelector from '../components/BoardThemeSelector';
+import RulesSidebar from '../components/RulesSidebar';
 
 // Helper functions for capturing logic
 const getAdjacentPositions = (pos: Position, size: number): Position[] => {
@@ -293,7 +294,14 @@ const BoardDemoPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <BoardSizeComparison onSizeSelect={handleSizeSelect} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <BoardSizeComparison onSizeSelect={handleSizeSelect} />
+              </div>
+              <div>
+                <RulesSidebar />
+              </div>
+            </div>
           )}
         </div>
       </div>

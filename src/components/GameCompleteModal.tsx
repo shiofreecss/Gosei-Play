@@ -84,17 +84,17 @@ const GameCompleteModal: React.FC<GameCompleteModalProps> = ({ onClose, onPlayAg
             
             {/* Score display */}
             {score ? (
-              <div className="flex justify-center items-center gap-4">
-                <div>
-                  <div className="text-xs opacity-80">Black</div>
-                  <div className="text-2xl font-bold">{score.black.toFixed(1)}</div>
-                </div>
-                <div className="text-sm">vs</div>
-                <div>
-                  <div className="text-xs opacity-80">White</div>
-                  <div className="text-2xl font-bold">{score.white.toFixed(1)}</div>
-                </div>
+            <div className="flex justify-center items-center gap-4">
+              <div>
+                <div className="text-xs opacity-80">Black</div>
+                <div className="text-2xl font-bold">{score.black.toFixed(1)}</div>
               </div>
+              <div className="text-sm">vs</div>
+              <div>
+                <div className="text-xs opacity-80">White</div>
+                <div className="text-2xl font-bold">{score.white.toFixed(1)}</div>
+              </div>
+            </div>
             ) : (
               <div className="flex justify-center items-center">
                 <div className="text-xl font-semibold">
@@ -112,7 +112,7 @@ const GameCompleteModal: React.FC<GameCompleteModalProps> = ({ onClose, onPlayAg
                     : 'You lose - time expired!'
                 ) : score ? (
                   playerWon 
-                    ? `You win by ${pointDifference} points` 
+                  ? `You win by ${pointDifference} points` 
                     : `You lose by ${pointDifference} points`
                 ) : (
                   playerWon ? 'You win!' : 'You lose!'

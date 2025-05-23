@@ -1,202 +1,137 @@
 # Gosei Play Version History
 
-## v1.0.5 (2025-05-23)
+## v1.0.6 - Byo-Yomi Timeout Implementation (Current)
 
-### Features
-- **Flexible Time Controls**: Users can now set any main time they want
-  - Removed enforced minimum time requirements based on board size
-  - Time settings are now recommendations rather than restrictions
-  - Users can create bullet games, blitz games, or any custom timing
-  - Smart board size changes: only updates time if user hasn't customized it
+### New Features
+- **Complete Byo-Yomi System**: Full implementation of Japanese time control
+  - Main time countdown with automatic transition to byo-yomi
+  - Multiple byo-yomi periods (3, 5, or 7) with individual countdown
+  - Period reset when moves/passes are made during byo-yomi
+  - Progressive period consumption when time expires
+  - Final timeout when all periods are exhausted
 
-- **Enhanced Game End Notifications**: Proper timeout and resignation notifications
-  - Timeout notifications: "Black/White expired - Opponent win (W+T/B+T)"
-  - Resignation notifications: "Black/White resigned - Opponent win (W+R/B+R)"
-  - Standard Go result notation (B+T, W+T, B+R, W+R)
-  - Enhanced GameCompleteModal to handle games without traditional scoring
-  - Immediate notifications when games end by timeout or resignation
+### Server Enhancements
+- Enhanced timer handling with byo-yomi state tracking
+- Real-time period management and countdown
+- Proper timeout notifications with game result notation (B+T, W+T)
+- Move/pass handling that resets current byo-yomi period
+- Automatic game state synchronization for byo-yomi
 
-### Improvements
-- Changed time control input validation to allow any positive value (≥0 minutes)
-- Updated help text from "Minimum X minutes" to "Recommended X minutes (you can set any time you want)"
-- Enhanced user interface to be more user-friendly and flexible
-- Preserved custom time settings when changing board sizes
-- Updated documentation to reflect recommendations vs. requirements
-- Enhanced server-side timeout and resignation handling with proper result notation
-- Improved client-side event handling for game end scenarios
+### Client Improvements
+- Updated Player interface with byo-yomi state fields
+- Enhanced TimeControl component with byo-yomi indicators
+- Real-time byo-yomi period display ("BY 3×0:30" format)
+- Audio warnings for byo-yomi time pressure
+- Proper event handling for byo-yomi transitions
+- Synchronized state management with server
 
-### Documentation Updates
-- Updated BOARD_SIZES.md to reflect recommended rather than enforced time settings
-- Updated README.md to clarify time control flexibility
-- Added comprehensive test documentation for the new functionality
+### User Experience
+- Visual byo-yomi indicators with period countdown
+- Notifications for entering byo-yomi and period usage
+- Time pressure animations and audio feedback
+- Proper timeout messages with game results
 
-## v1.0.4 (2025-04-25)
+### Technical Details
+- Enhanced Player interface with byoYomiPeriodsLeft, byoYomiTimeLeft, isInByoYomi
+- New server events: byoYomiStarted, byoYomiPeriodUsed
+- Updated timeUpdate events with byo-yomi state
+- Comprehensive event cleanup and memory management
+- Server-authoritative time control with client synchronization
 
-### Features
-- Comprehensive mobile responsiveness improvements:
-  - Redesigned Game UI layout for optimal display on mobile devices
-  - Enhanced Go board scaling and touch interaction
-  - Optimized Game Info panel for small screens
-  - Improved player information display on mobile
-  - Added responsive typography and UI elements
+## v1.0.5 - Time Control Flexibility
 
-### Improvements
-- Removed fixed width constraints causing overflow on mobile
-- Added responsive stone sizing based on viewport width
-- Implemented truncation for long player names on small screens
-- Adjusted padding, margins and spacing for touch-friendly interfaces
-- Optimized the board container to prevent horizontal scrolling
-- Reduced UI element sizes on mobile for better touch targets
-- Added proper breakpoints for layout changes between mobile and desktop
-- Enhanced container handling with overflow controls
+### Major Changes
+- **Flexible Time Controls**: Users can now set any main time (0+ minutes)
+- **Removed Time Restrictions**: No more minimum time requirements based on board size
+- **Smart Recommendations**: System shows recommended times but doesn't enforce them
+- **Preserved Custom Settings**: User time preferences maintained when changing board sizes
 
-### Documentation
-- Added comprehensive mobile responsiveness documentation
-- Updated main documentation with mobile support references
+### Implementation Details
+- Renamed `getMinimumTimeForBoardSize()` → `getRecommendedTimeForBoardSize()`
+- Removed enforcement logic (`Math.max(value, minTime)`)
+- Updated validation to allow any positive value (≥0 minutes)
+- Enhanced board size logic to preserve custom time settings
+- Updated UI text to clarify recommendations vs requirements
 
-## v1.0.3 (2025-04-21)
+### Files Modified
+- `src/pages/HomePage.tsx` - Core time control logic changes
+- `docs/BOARD_SIZES.md` - Updated to reflect recommendations vs requirements
 
-### Features
-- Added comprehensive board theme system with multiple options:
-  - Default Board: Standard wooden go board with flat stones
-  - Dark Wood 3D: Realistic dark wooden board with 3D stone rendering
-  - Light Wood 3D: Realistic light wooden board with 3D stone rendering
-  - Universe: Cosmic-themed board with black holes and white holes
-- Enhanced theme selector UI in game information panel
-- Improved wood grain textures for both default and 3D themes
-- Fixed theme icon display to ensure proper square proportions
-- Added application-wide themes to customize the entire UI experience:
-  - Modern: Clean, contemporary interface with light colors (default)
-  - Traditional: Classic East Asian style inspired by traditional Go artwork with reddish-brown accent colors
+### User Benefits
+- **Bullet Games**: 1-5 minute games for quick practice
+- **Blitz Games**: 5-15 minute games for fast-paced play  
+- **Custom Timings**: Any time setting for specific needs
+- **Teaching Games**: Extended time for learning and discussion
+- **Demonstration Games**: 0-minute games for position analysis
 
-### Improvements
-- Made grid lines more visible on wooden themes for better gameplay clarity
-- Refined stone designs across all themes for consistent styling
-- Added theme preview in selection dropdown
-- Enhanced star point styling for each theme
-- Board theme preferences now saved between sessions
-- More realistic wood textures with SVG-based grain patterns
-- Consistent board size indicators across all themes
-- Application theme settings persist between sessions
-- Added traditional paper texture to traditional theme
-- Enhanced styling for buttons, cards, and UI elements in each theme
-- Traditional theme features brush stroke styling and authentic East Asian aesthetic elements
-- Added subtle ink-wash painting style decorative elements to the traditional theme
-- Improved button design in traditional theme with reddish-brown color scheme matching historical Go paintings
-- Fixed board theme selection dropdown styling in traditional theme
-- Simplified theme selection to focus on Modern and Traditional options for better user experience
-- Maintained consistent server status panel positioning across all themes
-- Enhanced server status panel styling to match theme aesthetics
-- Improved connection status panel with consistent positioning and styling across devices and themes
-- Added responsive design for connection status panel on mobile devices
+## v1.0.4 - Enhanced Game Features
+
+### Features Added
+- Advanced scoring systems (Chinese, Japanese, Korean, AGA, Ing)
+- Handicap stone placement system
+- Color preference selection for game creators
+- Improved game state synchronization
+- Enhanced mobile responsiveness
 
 ### Bug Fixes
-- Fixed theme icon display in dropdown selectors
-- Fixed grid line visibility issues on dark themes
-- Fixed inconsistent styling of control buttons between themes
-- Fixed board theme dropdown styling in traditional theme to maintain consistent look with Modern theme
-- Fixed server status panel positioning in Traditional theme to match Modern theme layout
-- Fixed z-index and visibility issues with connection status panel to ensure it's always properly displayed
-- Resolved styling conflicts in Traditional theme for server connection status
+- Fixed timer synchronization issues
+- Improved socket connection stability
+- Better error handling for network issues
 
-## v1.0.2 (2025-04-19)
+## v1.0.3 - Core Gameplay
 
-### Features
-- Improved UI layout and controls organization
-- Added chat functionality for in-game communication
-- Enhanced game control panel with integrated Pass, Resign, and Undo buttons
-- Streamlined interface with cleaner board view
-- Added authentic stone placement sounds with toggle option in game controls
-- Added zen background music player with multiple tracks and volume control
-  - Music player appears only during active gameplay
-  - Features three background music tracks (Traditional Go, Zen Music 1, Zen Music 2)
-  - Includes volume control and track selection
-  - Persists playback state between game screens
+### Features Added
+- Complete Go rules implementation
+- Stone capture mechanics
+- Ko rule enforcement
+- Territory scoring
+- Game state persistence
 
-### Improvements
-- Moved game controls to a dedicated section in the Game Information panel
-- Reorganized game information display for better readability
-- Added responsive layout for chat panel on different screen sizes
-- Improved visual feedback for game actions
-- Added sound settings in the game controls
-- Sound preferences are saved between sessions
-- Music player automatically hides during game setup and join screens
+### Technical Improvements
+- Optimized board rendering
+- Improved move validation
+- Enhanced game state management
 
-### Bug Fixes
-- Fixed synchronization issues in time control display
-- Fixed timer discrepancies between players in Blitz Go games
+## v1.0.2 - Multiplayer Foundation
 
-## v1.0.1 build2 (2025-04-19)
-
-### Bug Fixes
-- Fixed critical issue with handicap game turn order
-  - White now correctly plays first after black's handicap stones are placed
-  - Fixed turn handling in game creation and joining logic
-  - Corrected turn alternation in move handling
-
-### Known Issues
-- None reported
-
-## v1.0.1 build1 (2025-04-18)
-
-### Features
-- Initial implementation of handicap games
-- Support for multiple board sizes (9x9, 13x13, 19x19)
-- Basic scoring rules implemented (Japanese, Chinese, Korean, AGA, Ing)
+### Features Added
 - Real-time multiplayer functionality
-- Game state persistence
-- Move validation and capture logic
+- Socket.io integration
+- Game room management
+- Player synchronization
 
-### Known Issues
-- Handicap games incorrectly started with black's turn instead of white's turn (Fixed in build2)
+### Infrastructure
+- Server-side game state management
+- WebSocket communication
+- Session persistence
 
-## v1.0.1 (Current)
-### Features
-- Multiple scoring rule implementations:
-  - Japanese rules (territory + captured stones + komi)
-  - Chinese rules (territory + stones on board + komi)
-  - Korean rules (area scoring with procedural differences)
-  - AGA rules (American Go Association hybrid approach)
-  - Ing rules (SST scoring system)
-- Enhanced game type options:
-  - Even Game (standard play)
-  - Handicap Game (2-9 stones)
-  - Blitz Go (fast time controls)
-  - Teaching Game (with instruction tools)
-  - Rengo (Pair Go)
-- Advanced territory calculation with flood-fill algorithm
-- Dead stone marking and scoring
-- Multiple time control options:
-  - No time limit
-  - Time per game (10min, 30min, 1hr)
-  - Time per move (15s, 30s, 1min, 2min, 5min)
-- Game state persistence and offline access
-- Responsive board sizes (9×9, 13×13, 19×19)
-- Star points visualization based on board size
-- Real-time multiplayer synchronization
+## v1.0.1 - Basic UI
 
-### Bug Fixes
-- Fixed issue where creating a new game would incorrectly redirect to an old game URL
-- Fixed "Copy Game Link" button to always copy the current game's URL
-- Fixed territory calculation in corner positions
-- Fixed stone capture counting in Japanese rules
-- Fixed ko rule validation
-- Fixed game state synchronization after reconnection
+### Features Added
+- Interactive Go board
+- Stone placement
+- Basic game controls
+- Responsive design
 
-## v1.0.0 (Initial)
-### Features
-- Initial release with core Go game functionality
-- Real-time multiplayer with Socket.io
-- Basic game board implementation
-- Move validation and stone capture
-- Basic scoring system
-- Game sharing via links
-- Player turn management
-- Basic time controls
-- Game state persistence
+### Components
+- GoBoard component
+- Stone rendering
+- Move history
+- Game status display
 
-### Bug Fixes
-- Initial release - no recorded fixes 
+## v1.0.0 - Initial Release
+
+### Core Features
+- Basic Go board setup
+- Single-player stone placement
+- Simple UI framework
+- Project structure
+
+### Foundation
+- React + TypeScript setup
+- Tailwind CSS styling
+- Component architecture
+- Build system configuration
 
 ## Credits
 Powered by [Beaver Foundation](https://beaver.foundation) - [ShioDev](https://hello.shiodev.com) 

@@ -308,6 +308,12 @@ const GameInfo: React.FC<GameInfoProps> = ({
             isPlaying={status === 'playing'}
             blackTimeRemaining={blackPlayer?.timeRemaining}
             whiteTimeRemaining={whitePlayer?.timeRemaining}
+            blackByoYomiPeriodsLeft={blackPlayer?.byoYomiPeriodsLeft}
+            whiteByoYomiPeriodsLeft={whitePlayer?.byoYomiPeriodsLeft}
+            blackByoYomiTimeLeft={blackPlayer?.byoYomiTimeLeft}
+            whiteByoYomiTimeLeft={whitePlayer?.byoYomiTimeLeft}
+            blackIsInByoYomi={blackPlayer?.isInByoYomi}
+            whiteIsInByoYomi={whitePlayer?.isInByoYomi}
             onTimeout={(color) => {
               console.log(`Player ${color} has timed out`);
               // Handle timeout by forfeiting the game for the timed-out player

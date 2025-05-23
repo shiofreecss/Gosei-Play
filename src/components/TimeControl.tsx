@@ -15,6 +15,13 @@ interface TimeControlProps {
   // Add actual player time remaining
   blackTimeRemaining?: number; // Actual black time remaining in seconds
   whiteTimeRemaining?: number; // Actual white time remaining in seconds
+  // Add byo-yomi state for both players
+  blackByoYomiPeriodsLeft?: number;
+  whiteByoYomiPeriodsLeft?: number;
+  blackByoYomiTimeLeft?: number;
+  whiteByoYomiTimeLeft?: number;
+  blackIsInByoYomi?: boolean;
+  whiteIsInByoYomi?: boolean;
 }
 
 interface TimeState {
@@ -35,7 +42,13 @@ const TimeControl: React.FC<TimeControlProps> = ({
   onTimeout,
   isPlaying,
   blackTimeRemaining,
-  whiteTimeRemaining
+  whiteTimeRemaining,
+  blackByoYomiPeriodsLeft,
+  whiteByoYomiPeriodsLeft,
+  blackByoYomiTimeLeft,
+  whiteByoYomiTimeLeft,
+  blackIsInByoYomi,
+  whiteIsInByoYomi
 }) => {
   // Add AppTheme context
   const { currentTheme } = useAppTheme();
@@ -51,14 +64,14 @@ const TimeControl: React.FC<TimeControlProps> = ({
     // Use blackTimeRemaining if provided, otherwise use full timeControl
     const initialTime = blackTimeRemaining !== undefined ? blackTimeRemaining : timeControl * 60;
     
-    // Determine if we're in byo-yomi mode - only if byoYomiPeriods > 0 is explicitly set
-    const isInByoYomi = initialTime <= 0 && byoYomiPeriods > 0;
+    // Use server-provided byo-yomi state if available
+    const isInByoYomi = blackIsInByoYomi || (initialTime <= 0 && byoYomiPeriods > 0);
     
     return {
       // If we're in byo-yomi, mainTime is 0, otherwise use the initialTime
       mainTime: isInByoYomi ? 0 : initialTime,
-      byoYomiPeriodsLeft: byoYomiPeriods,
-      byoYomiTimeLeft: byoYomiTime,
+      byoYomiPeriodsLeft: blackByoYomiPeriodsLeft !== undefined ? blackByoYomiPeriodsLeft : byoYomiPeriods,
+      byoYomiTimeLeft: blackByoYomiTimeLeft !== undefined ? blackByoYomiTimeLeft : byoYomiTime,
       isByoYomi: isInByoYomi,
       timePerMoveLeft: timePerMove > 0 ? timePerMove : undefined
     };
@@ -68,14 +81,14 @@ const TimeControl: React.FC<TimeControlProps> = ({
     // Use whiteTimeRemaining if provided, otherwise use full timeControl
     const initialTime = whiteTimeRemaining !== undefined ? whiteTimeRemaining : timeControl * 60;
     
-    // Determine if we're in byo-yomi mode - only if byoYomiPeriods > 0 is explicitly set
-    const isInByoYomi = initialTime <= 0 && byoYomiPeriods > 0;
+    // Use server-provided byo-yomi state if available
+    const isInByoYomi = whiteIsInByoYomi || (initialTime <= 0 && byoYomiPeriods > 0);
     
     return {
       // If we're in byo-yomi, mainTime is 0, otherwise use the initialTime
       mainTime: isInByoYomi ? 0 : initialTime,
-      byoYomiPeriodsLeft: byoYomiPeriods,
-      byoYomiTimeLeft: byoYomiTime,
+      byoYomiPeriodsLeft: whiteByoYomiPeriodsLeft !== undefined ? whiteByoYomiPeriodsLeft : byoYomiPeriods,
+      byoYomiTimeLeft: whiteByoYomiTimeLeft !== undefined ? whiteByoYomiTimeLeft : byoYomiTime,
       isByoYomi: isInByoYomi,
       timePerMoveLeft: timePerMove > 0 ? timePerMove : undefined
     };
@@ -96,32 +109,34 @@ const TimeControl: React.FC<TimeControlProps> = ({
   // Update times when props change (e.g., when rejoining)
   useEffect(() => {
     if (blackTimeRemaining !== undefined) {
-      const isInByoYomi = blackTimeRemaining <= 0 && byoYomiPeriods > 0;
+      const isInByoYomi = blackIsInByoYomi || (blackTimeRemaining <= 0 && byoYomiPeriods > 0);
       setBlackTime({
         mainTime: isInByoYomi ? 0 : blackTimeRemaining,
-        byoYomiPeriodsLeft: byoYomiPeriods,
-        byoYomiTimeLeft: byoYomiTime,
+        byoYomiPeriodsLeft: blackByoYomiPeriodsLeft !== undefined ? blackByoYomiPeriodsLeft : byoYomiPeriods,
+        byoYomiTimeLeft: blackByoYomiTimeLeft !== undefined ? blackByoYomiTimeLeft : byoYomiTime,
         isByoYomi: isInByoYomi,
         timePerMoveLeft: timePerMove > 0 ? timePerMove : undefined
       });
-      console.log(`Syncing black time with server: ${blackTimeRemaining} seconds remaining`);
+      console.log(`Syncing black time with server: ${blackTimeRemaining} seconds remaining, byo-yomi: ${isInByoYomi}`);
     }
     
     if (whiteTimeRemaining !== undefined) {
-      const isInByoYomi = whiteTimeRemaining <= 0 && byoYomiPeriods > 0;
+      const isInByoYomi = whiteIsInByoYomi || (whiteTimeRemaining <= 0 && byoYomiPeriods > 0);
       setWhiteTime({
         mainTime: isInByoYomi ? 0 : whiteTimeRemaining,
-        byoYomiPeriodsLeft: byoYomiPeriods,
-        byoYomiTimeLeft: byoYomiTime,
+        byoYomiPeriodsLeft: whiteByoYomiPeriodsLeft !== undefined ? whiteByoYomiPeriodsLeft : byoYomiPeriods,
+        byoYomiTimeLeft: whiteByoYomiTimeLeft !== undefined ? whiteByoYomiTimeLeft : byoYomiTime,
         isByoYomi: isInByoYomi,
         timePerMoveLeft: timePerMove > 0 ? timePerMove : undefined
       });
-      console.log(`Syncing white time with server: ${whiteTimeRemaining} seconds remaining`);
+      console.log(`Syncing white time with server: ${whiteTimeRemaining} seconds remaining, byo-yomi: ${isInByoYomi}`);
     }
     
     // Mark as initialized after first sync
     initializedRef.current = true;
-  }, [blackTimeRemaining, whiteTimeRemaining, byoYomiPeriods, byoYomiTime, timePerMove]);
+  }, [blackTimeRemaining, whiteTimeRemaining, blackByoYomiPeriodsLeft, whiteByoYomiPeriodsLeft, 
+      blackByoYomiTimeLeft, whiteByoYomiTimeLeft, blackIsInByoYomi, whiteIsInByoYomi, 
+      byoYomiPeriods, byoYomiTime, timePerMove]);
 
   // Reset last update time reference when syncing with server times
   useEffect(() => {

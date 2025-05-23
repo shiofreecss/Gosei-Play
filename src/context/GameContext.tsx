@@ -96,7 +96,7 @@ type GameAction =
   | { type: 'RESET_GAME' }
   | { type: 'LEAVE_GAME' }
   | { type: 'SET_SOCKET'; payload: Socket | null }
-  | { type: 'UPDATE_PLAYER_TIME'; payload: { playerId: string; color: StoneColor; timeRemaining: number } };
+  | { type: 'UPDATE_PLAYER_TIME'; payload: { playerId: string; color: StoneColor; timeRemaining: number; byoYomiPeriodsLeft?: number; byoYomiTimeLeft?: number; isInByoYomi?: boolean } };
 
 // Reducer function
 const gameReducer = (state: GameContextState, action: GameAction): GameContextState => {
@@ -173,7 +173,13 @@ const gameReducer = (state: GameContextState, action: GameAction): GameContextSt
         gameState: {
           ...state.gameState,
           players: state.gameState.players.map(player =>
-            player.id === action.payload.playerId ? { ...player, timeRemaining: action.payload.timeRemaining } : player
+            player.id === action.payload.playerId ? { 
+              ...player, 
+              timeRemaining: action.payload.timeRemaining,
+              byoYomiPeriodsLeft: action.payload.byoYomiPeriodsLeft,
+              byoYomiTimeLeft: action.payload.byoYomiTimeLeft,
+              isInByoYomi: action.payload.isInByoYomi
+            } : player
           )
         },
       };
@@ -383,6 +389,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             playerId: timeData.playerId,
             color: timeData.color,
             timeRemaining: timeData.timeRemaining,
+            byoYomiPeriodsLeft: timeData.byoYomiPeriodsLeft,
+            byoYomiTimeLeft: timeData.byoYomiTimeLeft,
+            isInByoYomi: timeData.isInByoYomi,
             currentServerTime: new Date().toISOString(),
             currentClientTime: Date.now()
           });
@@ -393,7 +402,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             payload: {
               playerId: timeData.playerId,
               color: timeData.color,
-              timeRemaining: timeData.timeRemaining
+              timeRemaining: timeData.timeRemaining,
+              byoYomiPeriodsLeft: timeData.byoYomiPeriodsLeft,
+              byoYomiTimeLeft: timeData.byoYomiTimeLeft,
+              isInByoYomi: timeData.isInByoYomi
             }
           });
         });
@@ -415,17 +427,53 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             console.log(`Game ended by timeout: ${timeoutData.message} (${timeoutData.result})`);
           } else {
             // Fallback for backward compatibility
-            if (timeoutData.color === state.currentPlayer?.color) {
-              dispatch({ 
-                type: 'MOVE_ERROR', 
-                payload: 'You ran out of time! The game is over.' 
-              });
+          if (timeoutData.color === state.currentPlayer?.color) {
+            dispatch({ 
+              type: 'MOVE_ERROR', 
+              payload: 'You ran out of time! The game is over.' 
+            });
             } else {
               dispatch({ 
                 type: 'MOVE_ERROR', 
                 payload: 'Your opponent ran out of time! You win!' 
               });
             }
+          }
+        });
+        
+        // Handle byo-yomi started event
+        newSocket.on('byoYomiStarted', (byoYomiData) => {
+          console.log(`Player ${byoYomiData.playerId} (${byoYomiData.color}) entered byo-yomi`);
+          
+          // Show notification about byo-yomi start
+          if (byoYomiData.color === state.currentPlayer?.color) {
+            dispatch({ 
+              type: 'MOVE_ERROR', 
+              payload: `You've entered byo-yomi! ${byoYomiData.periodsLeft} periods of ${byoYomiData.timePerPeriod} seconds each.` 
+            });
+          } else {
+            dispatch({ 
+              type: 'MOVE_ERROR', 
+              payload: `Your opponent entered byo-yomi! ${byoYomiData.periodsLeft} periods remaining.` 
+            });
+          }
+        });
+        
+        // Handle byo-yomi period used event
+        newSocket.on('byoYomiPeriodUsed', (periodData) => {
+          console.log(`Player ${periodData.playerId} (${periodData.color}) used a byo-yomi period`);
+          
+          // Show notification about period usage
+          if (periodData.color === state.currentPlayer?.color) {
+            dispatch({ 
+              type: 'MOVE_ERROR', 
+              payload: `Byo-yomi period used! ${periodData.periodsLeft} periods remaining.` 
+            });
+          } else {
+            dispatch({ 
+              type: 'MOVE_ERROR', 
+              payload: `Opponent used a byo-yomi period. ${periodData.periodsLeft} periods remaining.` 
+            });
           }
         });
         
@@ -520,6 +568,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({
             newSocket.off('playerDisconnected');
             newSocket.off('timeUpdate');
             newSocket.off('playerTimeout');
+            newSocket.off('byoYomiStarted');
+            newSocket.off('byoYomiPeriodUsed');
             newSocket.off('deadStoneToggled');
             newSocket.off('scoringCanceled');
             
@@ -633,7 +683,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
   useEffect(() => {
     if (state.socket) {
       // Handle time updates
-      state.socket.on('timeUpdate', (timeData: { playerId: string; color: StoneColor; timeRemaining: number }) => {
+      state.socket.on('timeUpdate', (timeData: { playerId: string; color: StoneColor; timeRemaining: number; byoYomiPeriodsLeft?: number; byoYomiTimeLeft?: number; isInByoYomi?: boolean }) => {
         console.log(`Time update for player ${timeData.playerId}: ${timeData.timeRemaining}s remaining`);
         
         // Update the player's time in the game state directly
@@ -642,7 +692,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({
           payload: {
             playerId: timeData.playerId,
             color: timeData.color,
-            timeRemaining: timeData.timeRemaining
+            timeRemaining: timeData.timeRemaining,
+            byoYomiPeriodsLeft: timeData.byoYomiPeriodsLeft,
+            byoYomiTimeLeft: timeData.byoYomiTimeLeft,
+            isInByoYomi: timeData.isInByoYomi
           }
         });
       });

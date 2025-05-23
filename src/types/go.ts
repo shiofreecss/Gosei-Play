@@ -22,6 +22,9 @@ export interface Player {
   username: string;
   color: StoneColor;
   timeRemaining?: number; // Time remaining in seconds
+  byoYomiPeriodsLeft?: number; // Number of byo-yomi periods remaining
+  byoYomiTimeLeft?: number; // Time remaining in current byo-yomi period (seconds)
+  isInByoYomi?: boolean; // Whether player is currently in byo-yomi
 }
 
 // Update ScoringRule to include new rule types

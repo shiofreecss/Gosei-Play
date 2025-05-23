@@ -232,10 +232,10 @@ const HomePage: React.FC = () => {
         // Only update time if it's currently at the old recommended value (user hasn't customized it)
         if (prev.timeControl === oldRecommendedTime) {
           newState.timeControl = newRecommendedTime;
-          newState.timeControlOptions = {
-            ...prev.timeControlOptions,
+        newState.timeControlOptions = {
+          ...prev.timeControlOptions,
             timeControl: newRecommendedTime
-          };
+        };
         }
       }
       
@@ -762,6 +762,9 @@ const HomePage: React.FC = () => {
           <div className="mt-4 flex justify-center space-x-6">
             <Link to="/board-demo" className="text-primary-600 underline hover:text-primary-800 transition-colors">
               View Board Size Comparison
+            </Link>
+            <Link to="/rules" className="text-primary-600 underline hover:text-primary-800 transition-colors">
+              Learn Go Rules
             </Link>
           </div>
         </header>
