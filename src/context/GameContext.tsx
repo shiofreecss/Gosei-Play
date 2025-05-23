@@ -382,19 +382,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         });
         
         // Handle timer updates
-        newSocket.on('timeUpdate', (timeData) => {
-          console.log(`Time update for player ${timeData.playerId}: ${timeData.timeRemaining}s remaining`);
-          // Add more detailed timer debugging
-          console.log(`Timer debug: Received timeUpdate event`, {
-            playerId: timeData.playerId,
-            color: timeData.color,
-            timeRemaining: timeData.timeRemaining,
-            byoYomiPeriodsLeft: timeData.byoYomiPeriodsLeft,
-            byoYomiTimeLeft: timeData.byoYomiTimeLeft,
-            isInByoYomi: timeData.isInByoYomi,
-            currentServerTime: new Date().toISOString(),
-            currentClientTime: Date.now()
-          });
+        newSocket.on('timeUpdate', (timeData: { playerId: string; color: StoneColor; timeRemaining: number; byoYomiPeriodsLeft?: number; byoYomiTimeLeft?: number; isInByoYomi?: boolean }) => {
+          console.log(`Time update for player ${timeData.playerId} (${timeData.color}): ${timeData.timeRemaining}s remaining`);
+          
+          // Add more detailed logging for byo-yomi time updates
+          if (timeData.isInByoYomi) {
+            console.log(`Byo-yomi time update: ${timeData.byoYomiTimeLeft}s remaining in current period, ${timeData.byoYomiPeriodsLeft} periods left`);
+          }
           
           // Update the player's time in the game state directly
           dispatch({ 
@@ -684,7 +678,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({
     if (state.socket) {
       // Handle time updates
       state.socket.on('timeUpdate', (timeData: { playerId: string; color: StoneColor; timeRemaining: number; byoYomiPeriodsLeft?: number; byoYomiTimeLeft?: number; isInByoYomi?: boolean }) => {
-        console.log(`Time update for player ${timeData.playerId}: ${timeData.timeRemaining}s remaining`);
+        console.log(`Time update for player ${timeData.playerId} (${timeData.color}): ${timeData.timeRemaining}s remaining`);
+        
+        // Add more detailed logging for byo-yomi time updates
+        if (timeData.isInByoYomi) {
+          console.log(`Byo-yomi time update: ${timeData.byoYomiTimeLeft}s remaining in current period, ${timeData.byoYomiPeriodsLeft} periods left`);
+        }
         
         // Update the player's time in the game state directly
         dispatch({ 

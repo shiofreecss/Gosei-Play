@@ -118,6 +118,11 @@ const TimeControl: React.FC<TimeControlProps> = ({
         timePerMoveLeft: timePerMove > 0 ? timePerMove : undefined
       });
       console.log(`Syncing black time with server: ${blackTimeRemaining} seconds remaining, byo-yomi: ${isInByoYomi}`);
+      
+      // Add detailed logging for byo-yomi updates
+      if (isInByoYomi) {
+        console.log(`Black byo-yomi details: ${blackByoYomiTimeLeft}s left in current period, ${blackByoYomiPeriodsLeft} periods remaining`);
+      }
     }
     
     if (whiteTimeRemaining !== undefined) {
@@ -130,6 +135,11 @@ const TimeControl: React.FC<TimeControlProps> = ({
         timePerMoveLeft: timePerMove > 0 ? timePerMove : undefined
       });
       console.log(`Syncing white time with server: ${whiteTimeRemaining} seconds remaining, byo-yomi: ${isInByoYomi}`);
+      
+      // Add detailed logging for byo-yomi updates
+      if (isInByoYomi) {
+        console.log(`White byo-yomi details: ${whiteByoYomiTimeLeft}s left in current period, ${whiteByoYomiPeriodsLeft} periods remaining`);
+      }
     }
     
     // Mark as initialized after first sync

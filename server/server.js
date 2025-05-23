@@ -346,6 +346,17 @@ io.on('connection', (socket) => {
         // Reset current byo-yomi period when move is made
         movingPlayer.byoYomiTimeLeft = gameState.timeControl.byoYomiTime;
         log(`Player ${movingPlayer.id} (${color}) made move in byo-yomi, period reset`);
+        
+        // Send immediate time update to all clients for this player
+        io.to(gameId).emit('timeUpdate', {
+          gameId,
+          playerId: movingPlayer.id,
+          color: movingPlayer.color,
+          timeRemaining: movingPlayer.timeRemaining,
+          byoYomiPeriodsLeft: movingPlayer.byoYomiPeriodsLeft,
+          byoYomiTimeLeft: movingPlayer.byoYomiTimeLeft,
+          isInByoYomi: movingPlayer.isInByoYomi
+        });
       }
       
       // Update captured stones count
@@ -505,6 +516,17 @@ io.on('connection', (socket) => {
         // Reset current byo-yomi period when pass is made
         passingPlayer.byoYomiTimeLeft = gameState.timeControl.byoYomiTime;
         log(`Player ${passingPlayer.id} (${color}) passed in byo-yomi, period reset`);
+        
+        // Send immediate time update to all clients for this player
+        io.to(gameId).emit('timeUpdate', {
+          gameId,
+          playerId: passingPlayer.id,
+          color: passingPlayer.color,
+          timeRemaining: passingPlayer.timeRemaining,
+          byoYomiPeriodsLeft: passingPlayer.byoYomiPeriodsLeft,
+          byoYomiTimeLeft: passingPlayer.byoYomiTimeLeft,
+          isInByoYomi: passingPlayer.isInByoYomi
+        });
       }
       
       // Check if this is the second consecutive pass (game end)
