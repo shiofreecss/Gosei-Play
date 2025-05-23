@@ -400,7 +400,69 @@ export const isSuicideMove = (position: Position, color: StoneColor, gameState: 
   return false;
 };
 
-// Check for ko rule violation
+// Helper function to serialize a board state for comparison
+export const serializeBoardState = (board: Board): string => {
+  const stateArray: string[][] = Array(board.size).fill(null).map(() => Array(board.size).fill('.'));
+  
+  board.stones.forEach(stone => {
+    stateArray[stone.position.y][stone.position.x] = stone.color === 'black' ? 'B' : 'W';
+  });
+  
+  return stateArray.map(row => row.join('')).join('\n');
+};
+
+// Helper function to simulate a move and return the resulting board state
+export const simulateMove = (
+  currentBoard: Board,
+  position: Position,
+  color: StoneColor
+): Board => {
+  // Create a temporary board with the new stone
+  const tempStones = [...currentBoard.stones, { position, color }];
+  
+  // Check for captures and remove captured stones
+  const oppositeColor: StoneColor = color === 'black' ? 'white' : 'black';
+  const capturedPositions: Position[] = [];
+  
+  // Check adjacent positions for opponent groups that would be captured
+  const adjacentPositions = getAdjacentPositions(position);
+  
+  for (const adjPos of adjacentPositions) {
+    if (!isWithinBounds(adjPos, currentBoard.size)) continue;
+    
+    const adjStone = tempStones.find(s => 
+      s.position.x === adjPos.x && s.position.y === adjPos.y
+    );
+    
+    if (adjStone && adjStone.color === oppositeColor) {
+      // Get the connected group
+      const group = findConnectedGroup(
+        { size: currentBoard.size, stones: tempStones },
+        adjPos,
+        oppositeColor
+      );
+      
+      // Check if this group has any liberties
+      if (!hasLiberties({ size: currentBoard.size, stones: tempStones }, adjPos)) {
+        capturedPositions.push(...group);
+      }
+    }
+  }
+  
+  // Remove captured stones
+  const finalStones = tempStones.filter(stone => 
+    !capturedPositions.some(capturedPos => 
+      capturedPos.x === stone.position.x && capturedPos.y === stone.position.y
+    )
+  );
+  
+  return {
+    size: currentBoard.size,
+    stones: finalStones
+  };
+};
+
+// Original simple KO rule violation check (fallback)
 export const isKoViolation = (position: Position, color: StoneColor, gameState: GameState): boolean => {
   // If there's a KO position set and this move is at that position, it's a violation
   // The KO position will remain restricted until another move is played
@@ -410,6 +472,153 @@ export const isKoViolation = (position: Position, color: StoneColor, gameState: 
   
   return false;
 };
+
+/**
+ * KO Rule Checking Function
+ * 
+ * Checks whether a move violates the KO rule according to Go game rules.
+ * 
+ * @param currentBoardState - The current board state as a 2D array where:
+ *   - "B" represents a black stone
+ *   - "W" represents a white stone  
+ *   - "." represents an empty intersection
+ * @param proposedMove - Object containing:
+ *   - position: {x: number, y: number} - coordinates of the proposed move
+ *   - color: "black" | "white" - color of the stone to be placed
+ * @param previousBoardState - The board state immediately before the opponent's last move
+ * 
+ * @returns boolean - true if the move violates the KO rule, false if it's allowed
+ */
+export const checkKoRule = (
+  currentBoardState: string[][],
+  proposedMove: { position: { x: number; y: number }; color: 'black' | 'white' },
+  previousBoardState: string[][] | null
+): boolean => {
+  // If there's no previous board state to compare, no KO violation possible
+  if (!previousBoardState || !Array.isArray(previousBoardState)) {
+    return false;
+  }
+  
+  const boardSize = currentBoardState.length;
+  const { position, color } = proposedMove;
+  
+  // Validate board size consistency
+  if (previousBoardState.length !== boardSize) {
+    return false;
+  }
+  
+  // Validate move position is within bounds
+  if (position.x < 0 || position.x >= boardSize || position.y < 0 || position.y >= boardSize) {
+    return false;
+  }
+  
+  // Validate position is empty
+  if (currentBoardState[position.y][position.x] !== '.') {
+    return false;
+  }
+  
+  // Create a copy of the current board and simulate the move
+  const simulatedBoard = currentBoardState.map(row => [...row]);
+  simulatedBoard[position.y][position.x] = color === 'black' ? 'B' : 'W';
+  
+  // Find and remove captured opponent stones
+  const oppositeColor = color === 'black' ? 'W' : 'B';
+  const adjacentPositions = [
+    { x: position.x - 1, y: position.y },
+    { x: position.x + 1, y: position.y },
+    { x: position.x, y: position.y - 1 },
+    { x: position.x, y: position.y + 1 }
+  ].filter(pos => pos.x >= 0 && pos.x < boardSize && pos.y >= 0 && pos.y < boardSize);
+  
+  // Check each adjacent position for opponent groups to capture
+  for (const adjPos of adjacentPositions) {
+    if (simulatedBoard[adjPos.y][adjPos.x] === oppositeColor) {
+      const group = findConnectedGroupFromArray(simulatedBoard, adjPos, oppositeColor);
+      const hasLibertiesInGroup = checkGroupLiberties(simulatedBoard, group);
+      
+      if (!hasLibertiesInGroup) {
+        // Remove captured stones
+        group.forEach(stone => {
+          simulatedBoard[stone.y][stone.x] = '.';
+        });
+      }
+    }
+  }
+  
+  // Compare the resulting board state with the previous board state
+  return boardStatesEqual(simulatedBoard, previousBoardState);
+};
+
+// Helper function to find connected group from 2D array
+function findConnectedGroupFromArray(
+  board: string[][],
+  startPos: { x: number; y: number },
+  color: string
+): { x: number; y: number }[] {
+  const boardSize = board.length;
+  const visited = new Set<string>();
+  const group: { x: number; y: number }[] = [];
+  
+  function visit(pos: { x: number; y: number }) {
+    const key = `${pos.x},${pos.y}`;
+    if (visited.has(key)) return;
+    if (pos.x < 0 || pos.x >= boardSize || pos.y < 0 || pos.y >= boardSize) return;
+    if (board[pos.y][pos.x] !== color) return;
+    
+    visited.add(key);
+    group.push(pos);
+    
+    // Check adjacent positions
+    visit({ x: pos.x - 1, y: pos.y });
+    visit({ x: pos.x + 1, y: pos.y });
+    visit({ x: pos.x, y: pos.y - 1 });
+    visit({ x: pos.x, y: pos.y + 1 });
+  }
+  
+  visit(startPos);
+  return group;
+}
+
+// Helper function to check if a group has liberties
+function checkGroupLiberties(
+  board: string[][],
+  group: { x: number; y: number }[]
+): boolean {
+  const boardSize = board.length;
+  
+  for (const stone of group) {
+    const adjacentPositions = [
+      { x: stone.x - 1, y: stone.y },
+      { x: stone.x + 1, y: stone.y },
+      { x: stone.x, y: stone.y - 1 },
+      { x: stone.x, y: stone.y + 1 }
+    ];
+    
+    for (const adjPos of adjacentPositions) {
+      if (adjPos.x >= 0 && adjPos.x < boardSize && adjPos.y >= 0 && adjPos.y < boardSize) {
+        if (board[adjPos.y][adjPos.x] === '.') {
+          return true; // Found a liberty
+        }
+      }
+    }
+  }
+  
+  return false; // No liberties found
+}
+
+// Helper function to compare two board states
+function boardStatesEqual(board1: string[][], board2: string[][]): boolean {
+  if (board1.length !== board2.length) return false;
+  
+  for (let y = 0; y < board1.length; y++) {
+    if (board1[y].length !== board2[y].length) return false;
+    for (let x = 0; x < board1[y].length; x++) {
+      if (board1[y][x] !== board2[y][x]) return false;
+    }
+  }
+  
+  return true;
+}
 
 // Capture stones that have no liberties after a move
 export const captureDeadStones = (gameState: GameState, lastMovePosition: Position): { 
