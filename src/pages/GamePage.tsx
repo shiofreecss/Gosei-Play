@@ -11,6 +11,7 @@ import FloatingChatBubble from '../components/FloatingChatBubble';
 import Notification from '../components/Notification';
 import GameCompleteModal from '../components/GameCompleteModal';
 import GoseiLogo from '../components/GoseiLogo';
+import GameNotification from '../components/GameNotification';
 
 // Helper function to check game status safely
 const hasStatus = (gameState: GameState, status: 'waiting' | 'playing' | 'finished' | 'scoring'): boolean => {
@@ -66,6 +67,18 @@ const GamePage: React.FC = () => {
     message: string;
     type: 'info' | 'warning' | 'error';
   }>>([]);
+
+  // Notification state
+  const [notification, setNotification] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'info' | 'warning' | 'error' | 'resign' | 'leave';
+    result?: string;
+  }>({
+    visible: false,
+    message: '',
+    type: 'info'
+  });
 
   // Check if there's a gameId in the URL and try to load that game
   useEffect(() => {
@@ -231,6 +244,52 @@ const GamePage: React.FC = () => {
       }
     });
 
+    // Listen for player resignation
+    socket.on('playerResigned', (data: { playerId: string, color: string, username: string, message?: string, result?: string }) => {
+      console.log(`Player resignation: ${data.message || `${data.username} (${data.color}) resigned`}`);
+      
+      // Only show notification to the opponent
+      if (currentPlayer && data.playerId !== currentPlayer.id) {
+        // Use the enhanced message if available, otherwise fallback to the old format
+        const message = data.message || `${data.username} has resigned the game.`;
+        const result = data.result || (data.color === 'black' ? 'W+R' : 'B+R');
+        
+        setNotification({
+          visible: true,
+          message: message,
+          type: 'resign',
+          result: result
+        });
+      }
+    });
+
+    // Listen for player leaving
+    socket.on('playerLeft', (data: { playerId: string, username: string }) => {
+      console.log(`Player ${data.username} left the game`);
+      
+      // Only show notification to the opponent
+      if (currentPlayer && data.playerId !== currentPlayer.id) {
+        setNotification({
+          visible: true,
+          message: `${data.username} has left the game.`,
+          type: 'leave'
+        });
+      }
+    });
+
+    // Listen for player timeout
+    socket.on('playerTimeout', (data: { playerId: string, color: string, message: string, result: string }) => {
+      console.log(`Player timeout: ${data.message}`);
+      
+      // Show timeout notification with proper message and result
+      setNotification({
+        visible: true,
+        message: data.message,
+        type: 'info',
+        result: data.result
+      });
+    });
+
     return () => {
       socket.off('chatMessageReceived');
       socket.off('chatHistory');
@@ -240,6 +299,8 @@ const GamePage: React.FC = () => {
       socket.off('connect_error');
       socket.off('playerLeft');
       socket.off('playerDisconnected');
+      socket.off('playerResigned');
+      socket.off('playerTimeout');
     };
   }, [gameState?.socket, gameState?.id, currentPlayer, gameState?.players]);
 
@@ -284,9 +345,7 @@ const GamePage: React.FC = () => {
   };
 
   const handleResignGame = () => {
-    if (window.confirm('Are you sure you want to resign this game?')) {
-      resignGame();
-    }
+    resignGame();
   };
 
   const handleToggleDeadStone = (position: Position) => {
@@ -679,6 +738,16 @@ const GamePage: React.FC = () => {
           messages={chatMessages}
         />
       )}
+
+      {/* Game Notifications */}
+      <GameNotification
+        isVisible={notification.visible}
+        message={notification.message}
+        type={notification.type}
+        result={notification.result}
+        duration={7000}
+        onClose={() => setNotification(prev => ({ ...prev, visible: false }))}
+      />
     </div>
   );
 };

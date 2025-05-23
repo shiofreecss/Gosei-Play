@@ -74,13 +74,28 @@ function broadcastGameUpdate(gameId, gameState) {
 // Improved timer handling function
 function handlePlayerTimeout(gameState, player) {
   gameState.status = 'finished';
-  gameState.winner = player.color === 'black' ? 'white' : 'black';
+  const winner = player.color === 'black' ? 'white' : 'black';
+  gameState.winner = winner;
   
-  // Broadcast timeout and game end
+  // Set the game result with timeout notation
+  const result = winner === 'black' ? 'B+T' : 'W+T';
+  gameState.result = result;
+  
+  // Create timeout message
+  const timeoutMessage = player.color === 'black' 
+    ? 'Black expired - White win (W+T)' 
+    : 'White expired - Black win (B+T)';
+  
+  log(`Game ${gameState.id}: ${timeoutMessage}`);
+  
+  // Broadcast timeout and game end with detailed information
   io.to(gameState.id).emit('playerTimeout', {
     gameId: gameState.id,
     playerId: player.id,
-    color: player.color
+    color: player.color,
+    winner: winner,
+    result: result,
+    message: timeoutMessage
   });
   
   broadcastGameUpdate(gameState.id, gameState);
@@ -110,16 +125,16 @@ io.on('connection', (socket) => {
       }
     }
     
-    // Initialize move timer if specified
-    if (gameState.timePerMove && gameState.timePerMove > 0) {
+    // Initialize timer with full time control if specified
+    if (gameState.timeControl && gameState.timeControl.timeControl > 0) {
       gameState.lastMoveTime = Date.now();
       
-      // Initialize time remaining for each player
-      if (!gameState.players[0].timeRemaining) {
-        gameState.players.forEach(player => {
-          player.timeRemaining = gameState.timePerMove;
-        });
-      }
+      // Initialize time remaining for each player with full time control
+      gameState.players.forEach(player => {
+        if (!player.timeRemaining) {
+          player.timeRemaining = gameState.timeControl.timeControl * 60; // Convert minutes to seconds
+        }
+      });
     }
     
     // Store the game state
@@ -147,8 +162,31 @@ io.on('connection', (socket) => {
     const gameState = activeGames.get(gameId);
     
     if (gameState) {
-      // If this is not a reconnect, update the game state
-      if (!isReconnect) {
+      // If this is a reconnect, ensure we keep the player's existing time
+      if (isReconnect) {
+        // Find the existing player in the game state
+        const existingPlayer = gameState.players.find(p => p.id === playerId);
+        
+        if (existingPlayer) {
+          log(`Reconnect: Preserving time for player ${playerId}: ${existingPlayer.timeRemaining} seconds remaining`);
+          // Send the current game state with preserved time remaining to the reconnecting client
+          socket.emit('gameState', gameState);
+          
+          // Also send an immediate time update to refresh the UI
+          gameState.players.forEach(player => {
+            socket.emit('timeUpdate', {
+              gameId,
+              playerId: player.id,
+              color: player.color,
+              timeRemaining: player.timeRemaining
+            });
+          });
+        } else {
+          log(`Warning: Reconnecting player ${playerId} not found in game ${gameId}`);
+          socket.emit('gameState', gameState);
+        }
+      } else {
+        // Handle new player joining (not a reconnect)
         // Find the player in the game state
         const playerIndex = gameState.players.findIndex(p => p.id === playerId);
         
@@ -168,7 +206,7 @@ io.on('connection', (socket) => {
             id: playerId,
             username,
             color: newPlayerColor,
-            timeRemaining: gameState.timePerMove || 0, // Initialize time remaining
+            timeRemaining: gameState.timeControl ? gameState.timeControl.timeControl * 60 : 0, // Initialize with full time control in seconds
           });
           
           // If we now have 2 players, set status to playing
@@ -206,10 +244,6 @@ io.on('connection', (socket) => {
         
         // Use the new broadcast function for game updates
         broadcastGameUpdate(gameId, gameState);
-      } else {
-        // Just send current game state to the reconnecting client
-        socket.emit('gameState', gameState);
-        log(`Sending game state to reconnecting player ${playerId}`);
       }
       
       // Send join acknowledgment
@@ -312,7 +346,10 @@ io.on('connection', (socket) => {
   // Timer tick event to update remaining time
   socket.on('timerTick', ({ gameId }) => {
     const gameState = activeGames.get(gameId);
-    if (gameState && gameState.status === 'playing' && gameState.timePerMove > 0 && gameState.lastMoveTime) {
+    if (gameState && gameState.status === 'playing' && 
+        ((gameState.timePerMove && gameState.timePerMove > 0) || 
+         (gameState.timeControl && gameState.timeControl.timeControl > 0)) && 
+        gameState.lastMoveTime) {
       const now = Date.now();
       const elapsedTime = Math.floor((now - gameState.lastMoveTime) / 1000);
       
@@ -562,7 +599,19 @@ io.on('connection', (socket) => {
     if (gameState) {
       // Set game as finished with the opponent as winner
       gameState.status = 'finished';
-      gameState.winner = color === 'black' ? 'white' : 'black';
+      const winner = color === 'black' ? 'white' : 'black';
+      gameState.winner = winner;
+      
+      // Set the game result with resignation notation
+      const result = winner === 'black' ? 'B+R' : 'W+R';
+      gameState.result = result;
+      
+      // Create resignation message
+      const resignationMessage = color === 'black' 
+        ? 'Black resigned - White win (W+R)' 
+        : 'White resigned - Black win (B+R)';
+      
+      log(`Game ${gameState.id}: ${resignationMessage}`);
       
       // Store updated game state
       activeGames.set(gameId, gameState);
@@ -575,7 +624,9 @@ io.on('connection', (socket) => {
         gameId,
         playerId,
         color,
-        winner: gameState.winner
+        winner: gameState.winner,
+        result: result,
+        message: resignationMessage
       });
       log(`Broadcasting resignation to all clients in room ${gameId}`);
       

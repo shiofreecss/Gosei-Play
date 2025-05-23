@@ -147,8 +147,8 @@ const setStoredValue = (key: string, value: any): void => {
   }
 };
 
-// Helper function to get minimum time based on board size
-const getMinimumTimeForBoardSize = (size: number): number => {
+// Helper function to get recommended time based on board size (changed from getMinimumTimeForBoardSize)
+const getRecommendedTimeForBoardSize = (size: number): number => {
   switch (size) {
     case 9: return 10;
     case 13: return 20;
@@ -225,14 +225,18 @@ const HomePage: React.FC = () => {
         [key]: value
       };
       
-      // If updating board size, automatically set the minimum time
+      // If updating board size, automatically set the recommended time (only if current time is at the old recommended value)
       if (key === 'boardSize') {
-        const minTime = getMinimumTimeForBoardSize(value as number);
-        newState.timeControl = minTime;
-        newState.timeControlOptions = {
-          ...prev.timeControlOptions,
-          timeControl: minTime
-        };
+        const newRecommendedTime = getRecommendedTimeForBoardSize(value as number);
+        const oldRecommendedTime = getRecommendedTimeForBoardSize(prev.boardSize);
+        // Only update time if it's currently at the old recommended value (user hasn't customized it)
+        if (prev.timeControl === oldRecommendedTime) {
+          newState.timeControl = newRecommendedTime;
+          newState.timeControlOptions = {
+            ...prev.timeControlOptions,
+            timeControl: newRecommendedTime
+          };
+        }
       }
       
       // If updating timeControlOptions, sync the direct timeControl and timePerMove properties
@@ -247,12 +251,10 @@ const HomePage: React.FC = () => {
       
       // If updating direct timeControl or timePerMove, sync the timeControlOptions
       if (key === 'timeControl' && typeof value === 'number') {
-        const minTime = getMinimumTimeForBoardSize(newState.boardSize);
-        const finalTime = Math.max(value, minTime);
-        newState.timeControl = finalTime;
+        newState.timeControl = value;
         newState.timeControlOptions = {
           ...prev.timeControlOptions,
-          timeControl: finalTime
+          timeControl: value
         };
       }
       
@@ -353,10 +355,11 @@ const HomePage: React.FC = () => {
         onClick={() => {
           // Update board size
           updateGameOption('boardSize', size);
-          // Update time control to minimum if it's below the minimum
-          const minTime = getMinimumTimeForBoardSize(size);
-          if (!gameOptions.timeControl || gameOptions.timeControl < minTime) {
-            updateGameOption('timeControl', minTime);
+          // Only update time control to recommended if it's currently at the old recommended value
+          const currentRecommendedTime = getRecommendedTimeForBoardSize(gameOptions.boardSize);
+          const newRecommendedTime = getRecommendedTimeForBoardSize(size);
+          if (!gameOptions.timeControl || gameOptions.timeControl === currentRecommendedTime) {
+            updateGameOption('timeControl', newRecommendedTime);
           }
         }}
         title={`${size}×${size} board - ${description}`}
@@ -606,19 +609,16 @@ const HomePage: React.FC = () => {
                   value={gameOptions.timeControl}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
-                    const minTime = getMinimumTimeForBoardSize(gameOptions.boardSize);
-                    if (newValue < minTime) {
-                      updateGameOption('timeControl', minTime);
-                    } else {
+                    if (newValue >= 0) {
                       updateGameOption('timeControl', newValue);
                     }
                   }}
-                  min={getMinimumTimeForBoardSize(gameOptions.boardSize)}
+                  min="0"
                   className="form-input w-full"
                 />
                 <div className="mt-1">
                   <p className="text-sm text-neutral-500">
-                    Minimum {getMinimumTimeForBoardSize(gameOptions.boardSize)} minutes for {gameOptions.boardSize}×{gameOptions.boardSize} board
+                    Recommended {getRecommendedTimeForBoardSize(gameOptions.boardSize)} minutes for {gameOptions.boardSize}×{gameOptions.boardSize} board (you can set any time you want)
                   </p>
                 </div>
               </div>

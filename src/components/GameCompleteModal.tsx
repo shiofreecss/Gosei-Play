@@ -23,15 +23,18 @@ const GameCompleteModal: React.FC<GameCompleteModalProps> = ({ onClose, onPlayAg
   }, []);
 
   // Don't render if there's no game state or if game isn't finished
-  if (!gameState || gameState.status !== 'finished' || !gameState.score) {
+  if (!gameState || gameState.status !== 'finished') {
     return null;
   }
 
   const score = gameState.score;
   const winner = gameState.winner;
+  const result = gameState.result;
   const playerColor = currentPlayer?.color;
   
-  const pointDifference = Math.abs(score.black - score.white).toFixed(1);
+  // For timeout games, there might not be a score object
+  const isTimeoutGame = result && (result.includes('+T'));
+  const pointDifference = score ? Math.abs(score.black - score.white).toFixed(1) : '0';
   
   // Determine if the current player won
   const playerWon = playerColor === winner;
@@ -80,24 +83,40 @@ const GameCompleteModal: React.FC<GameCompleteModalProps> = ({ onClose, onPlayAg
             </div>
             
             {/* Score display */}
-            <div className="flex justify-center items-center gap-4">
-              <div>
-                <div className="text-xs opacity-80">Black</div>
-                <div className="text-2xl font-bold">{score.black.toFixed(1)}</div>
+            {score ? (
+              <div className="flex justify-center items-center gap-4">
+                <div>
+                  <div className="text-xs opacity-80">Black</div>
+                  <div className="text-2xl font-bold">{score.black.toFixed(1)}</div>
+                </div>
+                <div className="text-sm">vs</div>
+                <div>
+                  <div className="text-xs opacity-80">White</div>
+                  <div className="text-2xl font-bold">{score.white.toFixed(1)}</div>
+                </div>
               </div>
-              <div className="text-sm">vs</div>
-              <div>
-                <div className="text-xs opacity-80">White</div>
-                <div className="text-2xl font-bold">{score.white.toFixed(1)}</div>
+            ) : (
+              <div className="flex justify-center items-center">
+                <div className="text-xl font-semibold">
+                  {result || 'Game Complete'}
+                </div>
               </div>
-            </div>
+            )}
             
             {/* Personal result message */}
             {playerColor && !isDraw && (
               <div className="mt-4 font-medium text-base">
-                {playerWon 
-                  ? `You win by ${pointDifference} points` 
-                  : `You lose by ${pointDifference} points`}
+                {isTimeoutGame ? (
+                  playerWon 
+                    ? 'You win - opponent ran out of time!' 
+                    : 'You lose - time expired!'
+                ) : score ? (
+                  playerWon 
+                    ? `You win by ${pointDifference} points` 
+                    : `You lose by ${pointDifference} points`
+                ) : (
+                  playerWon ? 'You win!' : 'You lose!'
+                )}
               </div>
             )}
           </div>

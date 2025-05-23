@@ -1,5 +1,35 @@
 # Gosei Play Version History
 
+## v1.0.5 (2025-05-23)
+
+### Features
+- **Flexible Time Controls**: Users can now set any main time they want
+  - Removed enforced minimum time requirements based on board size
+  - Time settings are now recommendations rather than restrictions
+  - Users can create bullet games, blitz games, or any custom timing
+  - Smart board size changes: only updates time if user hasn't customized it
+
+- **Enhanced Game End Notifications**: Proper timeout and resignation notifications
+  - Timeout notifications: "Black/White expired - Opponent win (W+T/B+T)"
+  - Resignation notifications: "Black/White resigned - Opponent win (W+R/B+R)"
+  - Standard Go result notation (B+T, W+T, B+R, W+R)
+  - Enhanced GameCompleteModal to handle games without traditional scoring
+  - Immediate notifications when games end by timeout or resignation
+
+### Improvements
+- Changed time control input validation to allow any positive value (≥0 minutes)
+- Updated help text from "Minimum X minutes" to "Recommended X minutes (you can set any time you want)"
+- Enhanced user interface to be more user-friendly and flexible
+- Preserved custom time settings when changing board sizes
+- Updated documentation to reflect recommendations vs. requirements
+- Enhanced server-side timeout and resignation handling with proper result notation
+- Improved client-side event handling for game end scenarios
+
+### Documentation Updates
+- Updated BOARD_SIZES.md to reflect recommended rather than enforced time settings
+- Updated README.md to clarify time control flexibility
+- Added comprehensive test documentation for the new functionality
+
 ## v1.0.4 (2025-04-25)
 
 ### Features

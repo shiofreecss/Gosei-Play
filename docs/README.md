@@ -18,7 +18,7 @@ v1.0.4 - See [VERSION.md](VERSION.md) for complete version history and change de
 - **Modern UI** with intuitive controls and visual feedback
 - **Game sharing** via shareable game links
 - **Multiple scoring rules** including Japanese, Chinese, Korean, AGA, and Ing systems
-- **Time control options** to manage game duration
+- **Time control options** to manage game duration (fully customizable - see [TIME_CONTROL_FLEXIBILITY.md](TIME_CONTROL_FLEXIBILITY.md))
 - **Handicap settings** for balanced gameplay between players of different skill levels
 - **Game state synchronization** to handle connection issues
 - **Clean, organized interface** with game controls in a single location
@@ -141,21 +141,23 @@ The socket server will run on http://localhost:3001
 
 ## Board Sizes
 
-For detailed information about board sizes, star points, time requirements, and recommendations, please see [BOARD_SIZES.md](BOARD_SIZES.md).
+For detailed information about board sizes, star points, time recommendations, and game settings, please see [BOARD_SIZES.md](BOARD_SIZES.md).
+
+For information about timeout and resignation notifications, see [TIMEOUT_NOTIFICATIONS.md](TIMEOUT_NOTIFICATIONS.md).
 
 ### Standard Sizes
-- **9×9**: Perfect for beginners, ideal for quick games (10+ minutes per player)
-- **13×13**: Intermediate play, good balance of complexity and duration (20+ minutes per player)
-- **19×19**: Standard tournament size, full strategic depth (45+ minutes per player)
+- **9×9**: Perfect for beginners, ideal for quick games (recommended: 10+ minutes per player)
+- **13×13**: Intermediate play, good balance of complexity and duration (recommended: 20+ minutes per player)
+- **19×19**: Standard tournament size, full strategic depth (recommended: 45+ minutes per player)
 
 ### Custom Sizes
-- **15×15**: Traditional Korean size, medium-length games (30+ minutes per player)
-- **21×21**: Extended board size for unique gameplay experiences (60+ minutes per player)
+- **15×15**: Traditional Korean size, medium-length games (recommended: 30+ minutes per player)
+- **21×21**: Extended board size for unique gameplay experiences (recommended: 60+ minutes per player)
 
 Each board size features:
 - Visual preview showing the actual grid and star points
 - Accurate star point (hoshi) placement
-- Enforced minimum time requirements
+- Recommended time settings (fully customizable by users)
 - Responsive grid scaling for all screen sizes
 
 Board size selection is available during game creation, with standard sizes always visible and custom sizes in a collapsible section. Your selected board size preference is saved between games.

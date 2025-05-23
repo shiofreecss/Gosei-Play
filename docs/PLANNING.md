@@ -135,32 +135,41 @@ Features:
    - Compatibility with all scoring rules
    - Support for handicap placement
 
-### 3. Time Control Systems (Partially Implemented)
+### 3. Time Control Systems (Enhanced Implementation)
 
 #### Current Features
-- Basic time per game (10min, 30min, 1hr)
-- Time per move (15s, 30s, 1min, 2min, 5min)
-- Simple countdown display
-- Basic timeout handling
-- Visual time warnings
+- Flexible main time control (users can set any time they want)
+- Recommended time settings based on board size (not enforced)
+- Basic time per game and time per move options
+- Byo-yomi periods support (3, 5, 7 periods)
+- Fischer increment time controls (5s, 10s, 15s)
+- Countdown display with visual warnings
+- Time timeout handling
+- Sound notifications for time pressure
+- Smart time setting preservation when changing board sizes
+
+#### Recent Improvements (v1.0.5)
+- Removed enforced minimum time requirements
+- Users can now create bullet games, blitz games, or any custom timing
+- Enhanced UI with clearer messaging about time recommendations
+- Improved user experience with flexible time control input
 
 #### Missing Features
 1. Advanced Time Systems
-   - Byo-yomi periods
    - Canadian byo-yomi
-   - Fischer time controls
    - Absolute vs. delay time
+   - Multiple time control presets
 
 2. Time Management UI
-   - Period indicators
-   - Time system selection
-   - Custom time settings
-   - Time settings presets
+   - Enhanced period indicators
+   - Advanced time system selection
+   - Custom time settings presets
+   - Quick time setting templates
 
 3. Time Control Features
-   - Sound notifications
-   - Time pressure indicators
-   - Time violation handling
+   - Enhanced sound notifications
+   - Advanced time pressure indicators
+   - Time violation handling improvements
    - Time adjustment tools
 
 ## Implementation Priorities
@@ -173,10 +182,11 @@ Features:
    - Enhance UI feedback
 
 2. Enhance Blitz Go Features
-   - Implement byo-yomi system
-   - Add Fischer time controls
-   - Improve time pressure UI
-   - Add sound notifications
+   - ✅ **COMPLETED**: Basic flexible time controls
+   - Implement advanced byo-yomi features
+   - Add more Fischer time control options
+   - Improve time pressure UI animations
+   - Add enhanced sound notifications
 
 ### Phase 2: Teaching Tools
 1. Teaching Game Implementation
@@ -198,11 +208,11 @@ Features:
    - Team communication
    - Partner visualization
 
-2. Time Control Enhancement
-   - Advanced time systems
-   - Comprehensive time UI
+2. Advanced Time Control Enhancement
+   - Canadian byo-yomi system
+   - Comprehensive time UI improvements
    - Time management tools
-   - Custom time settings
+   - Custom time setting presets
 
 ## Technical Considerations
 

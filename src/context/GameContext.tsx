@@ -402,12 +402,30 @@ export const GameProvider: React.FC<GameProviderProps> = ({
         newSocket.on('playerTimeout', (timeoutData) => {
           console.log(`Player ${timeoutData.playerId} (${timeoutData.color}) has run out of time`);
           console.log(`Timer debug: Received playerTimeout event`, timeoutData);
-          // Alert the user that time has run out
-          if (timeoutData.color === state.currentPlayer?.color) {
+          
+          // Show timeout notification with the proper message and result
+          if (timeoutData.message && timeoutData.result) {
             dispatch({ 
               type: 'MOVE_ERROR', 
-              payload: 'You ran out of time! The game is over.' 
+              payload: timeoutData.message
             });
+            
+            // If we have a notification system available, use it to show the timeout
+            // The GamePage component should handle showing GameNotification for timeouts
+            console.log(`Game ended by timeout: ${timeoutData.message} (${timeoutData.result})`);
+          } else {
+            // Fallback for backward compatibility
+            if (timeoutData.color === state.currentPlayer?.color) {
+              dispatch({ 
+                type: 'MOVE_ERROR', 
+                payload: 'You ran out of time! The game is over.' 
+              });
+            } else {
+              dispatch({ 
+                type: 'MOVE_ERROR', 
+                payload: 'Your opponent ran out of time! You win!' 
+              });
+            }
           }
         });
         
@@ -858,7 +876,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       id: playerId,
       username: playerName,
       color: playerColor,
-      timeRemaining: timePerMove > 0 ? timePerMove : undefined
+      timeRemaining: timeControl > 0 ? timeControl * 60 : undefined // Initialize with full time control in seconds
     };
     
     // Get handicap stones if applicable
@@ -1041,7 +1059,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
           id: playerId,
           username,
           color: playerColor,
-          timeRemaining: foundGame.timeControl.timePerMove || undefined
+          timeRemaining: foundGame.timeControl ? foundGame.timeControl.timeControl * 60 : undefined // Initialize with full time control in seconds
         };
         updatedPlayers.push(player);
       }
@@ -1422,6 +1440,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({
       ...gameState,
       status: 'finished',
       winner: currentPlayer.color === 'black' ? 'white' : 'black',
+      result: currentPlayer.color === 'black' ? 'W+R' : 'B+R'
     };
     
     // Update local state immediately for responsive UI

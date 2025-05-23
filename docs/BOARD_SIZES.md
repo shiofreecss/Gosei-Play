@@ -1,6 +1,6 @@
 # Board Sizes and Specifications
 
-This document details the supported board sizes, their star points (hoshi), and time requirements in Gosei Play.
+This document details the supported board sizes, their star points (hoshi), and recommended time settings in Gosei Play.
 
 ## Board Size Overview
 
@@ -12,15 +12,17 @@ This document details the supported board sizes, their star points (hoshi), and 
 | 19×19      | Advanced       | 45+ minutes      | 9 points    | Standard tournament size |
 | 21×21      | Expert         | 60+ minutes      | 9 points    | Extended gameplay |
 
-## Minimum Time Requirements
+## Recommended Time Settings
 
-To ensure quality gameplay, the following minimum time settings are enforced:
+The following time settings are recommended for quality gameplay, but users can set any time they prefer:
 
-- **9×9 Board**: 10 minutes main time per player
-- **13×13 Board**: 20 minutes main time per player
-- **15×15 Board**: 30 minutes main time per player
-- **19×19 Board**: 45 minutes main time per player
-- **21×21 Board**: 60 minutes main time per player
+- **9×9 Board**: 10 minutes main time per player (recommended)
+- **13×13 Board**: 20 minutes main time per player (recommended)
+- **15×15 Board**: 30 minutes main time per player (recommended)
+- **19×19 Board**: 45 minutes main time per player (recommended)
+- **21×21 Board**: 60 minutes main time per player (recommended)
+
+*Note: Users are free to set any time control they prefer. These are just recommendations based on typical game length and complexity.*
 
 ## Star Point (Hoshi) Positions
 

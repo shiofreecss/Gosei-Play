@@ -75,6 +75,7 @@ export interface GameState {
   history: GameMove[];
   status: 'waiting' | 'playing' | 'finished' | 'scoring';
   winner: StoneColor | null;
+  result?: string; // Game result notation (e.g., B+T, W+T, B+R, W+R, B+5.5, etc.)
   deadStones?: Position[];
   territory?: Territory[];
   scoringRule: ScoringRule;

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GameState, Player, GameMove, Position, StoneColor, Stone, GameType } from '../../types/go';
 import TimeControl from '../TimeControl';
 import SoundSettings from '../SoundSettings';
 import PlayerAvatar from '../PlayerAvatar';
 import BoardThemeButton from '../BoardThemeButton';
 import useDeviceDetect from '../../hooks/useDeviceDetect';
+import ConfirmationModal from '../ConfirmationModal';
 
 // Helper function to check if a move is a pass
 function isPassMove(move: GameMove): move is { pass: true, color: StoneColor } {
@@ -58,6 +59,10 @@ const GameInfo: React.FC<GameInfoProps> = ({
 }) => {
   const { isMobile, isTablet, isDesktop } = useDeviceDetect();
   const { players, currentTurn, status, capturedStones, history, score, deadStones, undoRequest, board } = gameState;
+  
+  // State for confirmation modals
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   
   // Find black and white players
   const blackPlayer = players.find(player => player.color === 'black');
@@ -190,6 +195,26 @@ const GameInfo: React.FC<GameInfoProps> = ({
     }
   };
   
+  // Handle resignation with confirmation
+  const handleResignClick = () => {
+    setShowResignConfirm(true);
+  };
+
+  const handleConfirmResign = () => {
+    setShowResignConfirm(false);
+    if (onResign) onResign();
+  };
+
+  // Handle leave game with confirmation
+  const handleLeaveClick = () => {
+    setShowLeaveConfirm(true);
+  };
+
+  const handleConfirmLeave = () => {
+    setShowLeaveConfirm(false);
+    if (onLeaveGame) onLeaveGame();
+  };
+
   return (
     <div className={`game-info bg-gray-900 text-white p-3 sm:p-4 rounded-lg shadow-lg border border-gray-800 ${
       isTablet 
@@ -221,7 +246,6 @@ const GameInfo: React.FC<GameInfoProps> = ({
             />
             <div className="text-center mt-2 sm:mt-4">
               <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 mb-1 sm:mb-2">
-                <div className={`w-4 h-4 ${isTablet ? 'w-6 h-6' : 'sm:w-5 sm:h-5'} bg-black rounded-full border-2 border-neutral-700 shadow-inner`}></div>
                 <span className={`font-semibold text-white ${isTablet ? 'text-xl' : 'text-sm sm:text-lg'} truncate max-w-[90px] sm:max-w-full`}>
                   {blackPlayer?.username || 'Waiting for opponent'}
                 </span>
@@ -252,7 +276,6 @@ const GameInfo: React.FC<GameInfoProps> = ({
             />
             <div className="text-center mt-2 sm:mt-4">
               <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 mb-1 sm:mb-2">
-                <div className={`w-4 h-4 ${isTablet ? 'w-6 h-6' : 'sm:w-5 sm:h-5'} bg-white rounded-full border-2 border-neutral-300 shadow-lg`}></div>
                 <span className={`font-semibold text-white ${isTablet ? 'text-xl' : 'text-sm sm:text-lg'} truncate max-w-[90px] sm:max-w-full`}>
                   {whitePlayer?.username || 'Waiting for opponent'}
                 </span>
@@ -271,6 +294,30 @@ const GameInfo: React.FC<GameInfoProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Timer component */}
+      {gameState.timeControl && gameState.timeControl.timeControl > 0 && (
+        <div className="mt-3 mb-4">
+          <TimeControl
+            timeControl={gameState.timeControl.timeControl}
+            timePerMove={gameState.timePerMove || gameState.timeControl.timePerMove || 0}
+            byoYomiPeriods={gameState.timeControl.byoYomiPeriods || 0}
+            byoYomiTime={gameState.timeControl.byoYomiTime || 30}
+            fischerTime={gameState.timeControl.fischerTime || 0}
+            currentTurn={currentTurn}
+            isPlaying={status === 'playing'}
+            blackTimeRemaining={blackPlayer?.timeRemaining}
+            whiteTimeRemaining={whitePlayer?.timeRemaining}
+            onTimeout={(color) => {
+              console.log(`Player ${color} has timed out`);
+              // Handle timeout by forfeiting the game for the timed-out player
+              if (onResign && currentPlayer?.color === color) {
+                onResign();
+              }
+            }}
+          />
+        </div>
+      )}
 
       {/* Current Turn Indicator */}
       <div className={`text-center p-2.5 mb-4 rounded-lg bg-neutral-800/80 border border-neutral-700 ${
@@ -346,7 +393,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
           </button>
           
           <button
-            onClick={onResign}
+            onClick={handleResignClick}
             disabled={status !== 'playing'}
             className={`flex items-center justify-center gap-2 ${
               isTablet 
@@ -358,6 +405,23 @@ const GameInfo: React.FC<GameInfoProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
             Resign
+          </button>
+        </div>
+        
+        {/* Leave Game Button */}
+        <div className="w-full">
+          <button
+            onClick={handleLeaveClick}
+            className={`w-full flex items-center justify-center gap-2 ${
+              isTablet 
+                ? 'text-base gap-4 px-6 py-4' 
+                : 'sm:gap-2 px-4 py-2.5'
+            } bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-sm font-medium`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isTablet ? 'h-5 w-5' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Leave Game
           </button>
         </div>
       </div>
@@ -542,6 +606,29 @@ const GameInfo: React.FC<GameInfoProps> = ({
           )}
         </div>
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showResignConfirm}
+        title="Resign Game"
+        message="Are you sure you want to resign? This will count as a loss."
+        confirmLabel="Resign"
+        cancelLabel="Cancel"
+        confirmButtonColor="bg-red-600 hover:bg-red-700"
+        onConfirm={handleConfirmResign}
+        onCancel={() => setShowResignConfirm(false)}
+      />
+
+      <ConfirmationModal
+        isOpen={showLeaveConfirm}
+        title="Leave Game"
+        message="Are you sure you want to leave this game? Your opponent will be notified."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        confirmButtonColor="bg-gray-600 hover:bg-gray-500"
+        onConfirm={handleConfirmLeave}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
     </div>
   );
 };
