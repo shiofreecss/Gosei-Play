@@ -631,7 +631,7 @@ const GameInfo: React.FC<GameInfoProps> = ({
         message="Are you sure you want to leave this game? Your opponent will be notified."
         confirmLabel="Leave"
         cancelLabel="Stay"
-        confirmButtonColor="bg-gray-600 hover:bg-gray-500"
+        confirmButtonColor="bg-red-600 hover:bg-red-700"
         onConfirm={handleConfirmLeave}
         onCancel={() => setShowLeaveConfirm(false)}
       />
