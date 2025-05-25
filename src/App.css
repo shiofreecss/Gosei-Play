@@ -1296,31 +1296,31 @@
 
 /* Scoring phase styling */
 .theme-modern .bg-yellow-50 {
-  background-color: rgba(255, 252, 232, 0.7);
+  background-color: rgba(255, 252, 232, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .theme-modern .bg-red-50 {
-  background-color: rgba(254, 242, 242, 0.7);
+  background-color: rgba(254, 242, 242, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .theme-modern .bg-green-50 {
-  background-color: rgba(240, 253, 244, 0.7);
+  background-color: rgba(240, 253, 244, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .theme-modern .bg-blue-50 {
-  background-color: rgba(240, 249, 255, 0.7);
+  background-color: rgba(240, 249, 255, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 .theme-modern .bg-indigo-50 {
-  background-color: rgba(240, 245, 255, 0.7);
+  background-color: rgba(240, 245, 255, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -1396,7 +1396,7 @@
 }
 
 .theme-modern .player-card {
-  background-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: rgba(255, 255, 255, 1) !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 8px !important;
   transition: all 0.2s ease;
