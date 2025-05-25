@@ -3,7 +3,7 @@
 A modern, responsive real-time Go (Baduk/Weiqi) game application built with React, TypeScript, and Socket.io.
 
 ## Current Version
-v1.0.4 - See [VERSION.md](VERSION.md) for complete version history and change details.
+v1.0.7 - Move-Based Time Tracking System - See [VERSION.md](VERSION.md) for complete version history and change details.
 
 ## Features
 
@@ -19,6 +19,7 @@ v1.0.4 - See [VERSION.md](VERSION.md) for complete version history and change de
 - **Modern UI** with intuitive controls and visual feedback
 - **Game sharing** via shareable game links
 - **Multiple scoring rules** including Japanese, Chinese, Korean, AGA, and Ing systems
+- **Advanced time tracking system** with move-based time deduction and accurate timing (see [BYO_YOMI_CLOCK_RESET_ISSUE.md](BYO_YOMI_CLOCK_RESET_ISSUE.md))
 - **Time control options** to manage game duration (fully customizable - see [TIME_CONTROL_FLEXIBILITY.md](TIME_CONTROL_FLEXIBILITY.md))
 - **Handicap settings** for balanced gameplay between players of different skill levels
 - **Game state synchronization** to handle connection issues
@@ -172,6 +173,36 @@ Board size selection is available during game creation, with standard sizes alwa
 
 Board themes can be changed during gameplay from the Game Information panel. Your theme preference is saved between games.
 
+## Time Tracking System
+
+Gosei Play features an advanced move-based time tracking system that provides accurate timing for competitive play:
+
+### Key Features
+- **Move-Based Deduction**: Time is only deducted when actual moves or passes are made
+- **Precise Timing**: Each move records the exact time spent thinking
+- **Automatic Transitions**: Seamless progression from main time to byo-yomi periods
+- **Real-Time Updates**: All players receive immediate time updates after each move
+
+### How It Works
+1. **Turn Start**: Timer begins when it becomes your turn
+2. **Move Made**: System calculates time spent = current time - turn start time
+3. **Time Deduction**: Spent time is deducted from your remaining time
+4. **State Update**: All players see updated time displays immediately
+
+### Byo-Yomi Support
+- **Main Time**: Standard countdown from your allocated time
+- **Byo-Yomi Periods**: Additional time periods when main time expires
+- **Period Management**: Automatic progression through available periods
+- **Visual Indicators**: Clear display of current time state and periods remaining
+
+### Benefits
+- **Accuracy**: Time tracking matches actual thinking time
+- **Fairness**: No timer drift or synchronization issues
+- **Performance**: Reduced server load and better scalability
+- **Transparency**: Clear logging of time spent on each move
+
+For detailed technical information, see [TIME_TRACKING_SYSTEM.md](TIME_TRACKING_SYSTEM.md) and [BYO_YOMI_CLOCK_RESET_ISSUE.md](BYO_YOMI_CLOCK_RESET_ISSUE.md).
+
 ## Technology Stack
 
 - **Frontend:**
@@ -225,6 +256,7 @@ gosei-play/
 - **[KO_RULE.md](KO_RULE.md)** - Complete KO rule implementation documentation
 - **[KO_RULE_QUICK_REFERENCE.md](KO_RULE_QUICK_REFERENCE.md)** - Quick reference for developers
 - **[BOARD_SIZES.md](BOARD_SIZES.md)** - Board size specifications and features
+- **[TIME_TRACKING_SYSTEM.md](TIME_TRACKING_SYSTEM.md)** - Advanced move-based time tracking system
 - **[TIME_CONTROL_FLEXIBILITY.md](TIME_CONTROL_FLEXIBILITY.md)** - Time control system documentation
 - **[MOBILE_RESPONSIVENESS.md](MOBILE_RESPONSIVENESS.md)** - Mobile optimization details
 

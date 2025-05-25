@@ -6,8 +6,8 @@ import { getTimeControlDescription } from '../utils/timeUtils';
 
 const GameTimer = ({ gameState, socket }) => {
   const [playerTimes, setPlayerTimes] = useState({
-    black: { timeRemaining: 0, isInByoYomi: false, byoYomiPeriodsLeft: 0, byoYomiTimeLeft: 0 },
-    white: { timeRemaining: 0, isInByoYomi: false, byoYomiPeriodsLeft: 0, byoYomiTimeLeft: 0 }
+    black: { timeRemaining: 0, isInByoYomi: false, byoYomiPeriodsLeft: 0, byoYomiTimeLeft: 0, justReset: false },
+    white: { timeRemaining: 0, isInByoYomi: false, byoYomiPeriodsLeft: 0, byoYomiTimeLeft: 0, justReset: false }
   });
   
   const [lastMove, setLastMove] = useState(null);
@@ -133,18 +133,30 @@ const GameTimer = ({ gameState, socket }) => {
       
       if (resetKey !== lastReset) {
         setLastReset(resetKey);
-        console.log(`Byoyomi reset received for ${color}: ${byoYomiTimeLeft} seconds, ${byoYomiPeriodsLeft} periods left`);
+        console.log(`🔄 BYO-YOMI RESET for ${color}: ${byoYomiTimeLeft} seconds, ${byoYomiPeriodsLeft} periods left`);
         
-        // Update the time display immediately with the reset values
+        // Update the time display immediately with the reset values and visual flag
         setPlayerTimes(prev => ({
           ...prev,
           [color]: {
             ...prev[color],
             byoYomiTimeLeft: byoYomiTimeLeft,
             byoYomiPeriodsLeft: byoYomiPeriodsLeft,
-            isInByoYomi: true
+            isInByoYomi: true,
+            justReset: true // Flag for visual feedback
           }
         }));
+        
+        // Clear the reset flag after animation
+        setTimeout(() => {
+          setPlayerTimes(prev => ({
+            ...prev,
+            [color]: {
+              ...prev[color],
+              justReset: false
+            }
+          }));
+        }, 1500);
       }
     };
     
@@ -153,7 +165,7 @@ const GameTimer = ({ gameState, socket }) => {
     socket.on('byoYomiStarted', handleByoYomiStarted);
     socket.on('byoYomiPeriodUsed', handleByoYomiPeriodUsed);
     socket.on('moveMade', handleMoveMade);
-    socket.on('byoyomiReset', handleByoYomiReset);
+    socket.on('byoYomiReset', handleByoYomiReset);
     
     // Cleanup
     return () => {
@@ -161,7 +173,7 @@ const GameTimer = ({ gameState, socket }) => {
       socket.off('byoYomiStarted', handleByoYomiStarted);
       socket.off('byoYomiPeriodUsed', handleByoYomiPeriodUsed);
       socket.off('moveMade', handleMoveMade);
-      socket.off('byoyomiReset', handleByoYomiReset);
+      socket.off('byoYomiReset', handleByoYomiReset);
     };
   }, [socket, gameState, lastReset]);
 
@@ -184,6 +196,7 @@ const GameTimer = ({ gameState, socket }) => {
           isInByoYomi={playerTimes.black.isInByoYomi}
           byoYomiPeriodsLeft={playerTimes.black.byoYomiPeriodsLeft}
           byoYomiTimeLeft={playerTimes.black.byoYomiTimeLeft}
+          justReset={playerTimes.black.justReset}
           socket={socket}
           gameId={gameState.id}
         />
@@ -195,6 +208,7 @@ const GameTimer = ({ gameState, socket }) => {
           isInByoYomi={playerTimes.white.isInByoYomi}
           byoYomiPeriodsLeft={playerTimes.white.byoYomiPeriodsLeft}
           byoYomiTimeLeft={playerTimes.white.byoYomiTimeLeft}
+          justReset={playerTimes.white.justReset}
           socket={socket}
           gameId={gameState.id}
         />

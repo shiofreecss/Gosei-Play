@@ -1,6 +1,90 @@
 # Gosei Play Version History
 
-## v1.0.6 - Byo-Yomi Timeout Implementation (Current)
+## v1.0.8 - Proper Byo-Yomi Reset System (Current)
+
+### Byo-Yomi Reset Implementation
+- **Authentic Byo-Yomi Behavior**: Implemented traditional Japanese byo-yomi reset rules
+- **Time Within Period**: Moves made within byo-yomi time reset the period to full time
+- **Period Consumption**: Moves exceeding byo-yomi time consume a period and reset to full time
+- **Timeout Handling**: Players timeout with W+T or B+T when final period is exceeded
+
+### Enhanced Time Logic
+- **Move-Based Reset**: Byo-yomi periods reset only when moves/passes are made
+- **Proper Timeout**: Automatic game end when all byo-yomi periods are exhausted
+- **Consistent Behavior**: Same logic applies to both moves and passes
+- **Real-Time Updates**: All clients receive immediate time state updates
+
+### Server Enhancements (`server/server.js`)
+- Updated move handler with proper byo-yomi reset logic
+- Updated pass handler with same byo-yomi reset behavior
+- Enhanced timeout handling with W+T/B+T game results
+- Improved logging for byo-yomi state changes
+
+### New Logging Messages
+```
+🔄 BYO-YOMI RESET - Player made move in 15s, period reset to 40s
+⏳ BYO-YOMI PERIOD USED - Player exceeded time, used one period, 4 remaining
+💀 TIMEOUT - Player exceeded final byo-yomi period - Game ends W+T
+```
+
+### Technical Implementation
+- **Time Comparison**: `if (timeSpent <= byoYomiTimeLeft)` for reset logic
+- **Period Management**: Automatic period consumption and reset
+- **Game Termination**: Proper timeout handling with game result notation
+- **State Synchronization**: Real-time updates to all connected clients
+
+## v1.0.7 - Move-Based Time Tracking System
+
+### Major Overhaul
+- **Complete Time Tracking Redesign**: Implemented move-based time deduction system
+- **Accurate Move Timing**: Each move records exact time spent thinking
+- **Proper Time Deduction**: Time is deducted from remaining time when moves are made
+- **Enhanced Byo-Yomi Handling**: Automatic transitions and period management
+
+### New Time System Features
+- **Move-Based Deduction**: Time only deducted when actual moves/passes are made
+- **Precise Timing**: Calculate time spent = current time - turn start time
+- **Automatic Transitions**: Seamless main time to byo-yomi transitions
+- **Period Management**: Proper byo-yomi period consumption based on actual usage
+- **Real-Time Updates**: All clients receive immediate time updates after each move
+
+### Server Enhancements (`server/server.js`)
+- New helper functions: `calculateMoveTime()`, `formatMoveTimeDisplay()`
+- Enhanced move handler with time deduction logic
+- Proper main time to byo-yomi transition handling
+- Updated timer tick system (now only for display sync)
+- Comprehensive logging for debugging and monitoring
+
+### Technical Improvements
+- **Performance**: Reduced server load (no continuous timer updates)
+- **Accuracy**: Time tracking matches actual thinking time
+- **Scalability**: Better performance for multiple concurrent games
+- **Maintainability**: Simplified timer logic with clear separation of concerns
+
+### User Experience
+- Clear feedback on time spent per move (e.g., "Time spent: 00:15s")
+- Accurate time remaining displays
+- Proper byo-yomi transitions without reset issues
+- Enhanced logging for transparency
+
+### Backward Compatibility
+- All existing games continue to work
+- No client-side changes required
+- Existing time control settings preserved
+- Compatible with all board sizes and game types
+
+### Testing Results
+- ✅ Various time control settings (2 minutes + 5×40s byo-yomi)
+- ✅ Main time to byo-yomi transitions
+- ✅ Multiple byo-yomi period consumption
+- ✅ Both moves and passes
+- ✅ Multiple concurrent games
+
+### Files Modified
+- `server/server.js` - Complete time tracking system implementation
+- `docs/BYO_YOMI_CLOCK_RESET_ISSUE.md` - Updated to reflect resolution
+
+## v1.0.6 - Byo-Yomi Timeout Implementation
 
 ### New Features
 - **Complete Byo-Yomi System**: Full implementation of Japanese time control

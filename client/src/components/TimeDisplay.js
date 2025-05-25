@@ -8,6 +8,7 @@ const TimeDisplay = ({
   isInByoYomi, 
   byoYomiPeriodsLeft, 
   byoYomiTimeLeft, 
+  justReset,
   socket, 
   gameId 
 }) => {
@@ -58,6 +59,7 @@ const TimeDisplay = ({
         
         // Send timer tick to server
         if (socket && gameId) {
+          console.log(`⏱️ Sending timer tick for ${color} player (current: ${isCurrentPlayer})`);
           socket.emit('timerTick', { gameId });
         }
       }, 1000);
@@ -66,7 +68,7 @@ const TimeDisplay = ({
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isCurrentPlayer, socket, gameId, lastUpdateTime]);
+  }, [isCurrentPlayer, socket, gameId]);
   
   // Check for byoyomi time reset (when server sends new values)
   useEffect(() => {
@@ -98,7 +100,7 @@ const TimeDisplay = ({
   // Determine color styling
   const getTimeColor = () => {
     if (clientTime.isInByoYomi) {
-      if (justMoved) return '#4caf50'; // Green when just reset
+      if (justReset || justMoved) return '#4caf50'; // Green when just reset
       return clientTime.byoYomiTimeLeft < 5 ? '#f44336' : '#ff9800'; // Red when < 5s, orange otherwise
     } else {
       return clientTime.timeRemaining < 30 ? '#f44336' : 'inherit';
@@ -115,7 +117,7 @@ const TimeDisplay = ({
           </div>
           <div className="periods-left">{clientTime.byoYomiPeriodsLeft} periods left</div>
           <div 
-            className={`time-value text-base sm:text-lg font-semibold font-mono ${justMoved ? 'reset-pulse' : ''}`} 
+            className={`time-value text-base sm:text-lg font-semibold font-mono ${justReset || justMoved ? 'reset-pulse' : ''}`} 
             style={{ color: getTimeColor() }}
           >
             {formatTime(clientTime.byoYomiTimeLeft)}
