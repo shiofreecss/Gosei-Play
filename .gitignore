@@ -7,10 +7,6 @@
 */node_modules
 server/node_modules
 
-# documentation
-/docs
-docs/
-
 # testing
 /coverage
 /cypress/videos
