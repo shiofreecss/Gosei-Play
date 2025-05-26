@@ -6,7 +6,7 @@ A modern, real-time Go (Weiqi/Baduk) game platform built with React and Node.js.
 
 **Latest Update**: Proper Byo-Yomi Reset System - Authentic Japanese time control implementation with competitive-level accuracy.
 
-**Status**: Production Ready ✅ | **Last Updated**: December 2025
+**Status**: Production Ready ✅ | **Last Updated**: May 26, 2025
 
 ## Features
 
