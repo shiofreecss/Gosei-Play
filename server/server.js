@@ -2,7 +2,6 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
-const pusher = require('./pusher');
 
 const app = express();
 app.use(cors());
@@ -106,18 +105,6 @@ function broadcastGameUpdate(gameId, gameState) {
   
   // Then broadcast full state update
   io.to(gameId).emit('gameState', gameState);
-  
-  // Only try Pusher broadcast if configured
-  if (pusher) {
-    try {
-      pusher.trigger(`game-${gameId}`, 'game-update', {
-        gameState: gameState
-      });
-    } catch (error) {
-      console.error('Error broadcasting via Pusher:', error);
-      // Continue execution even if Pusher fails
-    }
-  }
   
   // Store the game state
   activeGames.set(gameId, gameState);

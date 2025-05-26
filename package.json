@@ -1,6 +1,6 @@
 {
   "name": "gosei-play",
-  "version": "1.0.2",
+  "version": "1.0.8",
   "private": true,
   "dependencies": {
     "@headlessui/react": "^2.2.1",
@@ -11,12 +11,9 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
-    "@types/pusher-js": "^4.2.2",
     "@types/react": "^19.1.1",
     "@types/react-dom": "^19.1.2",
     "@types/uuid": "^10.0.0",
-    "pusher": "^5.2.0",
-    "pusher-js": "^8.4.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.5.0",
@@ -32,6 +29,11 @@
     "build:netlify": "DISABLE_ESLINT_PLUGIN=true CI=false npm run build && npx copyfiles -u 1 \"functions/socket-server/**/*\" build/socket-server",
     "build:netlify-safe": "DISABLE_ESLINT_PLUGIN=true CI=false TSC_COMPILE_ON_ERROR=true ESLINT_NO_DEV_ERRORS=true react-scripts build && npx copyfiles -u 1 \"functions/socket-server/**/*\" build/socket-server",
     "test": "react-scripts test",
+    "test:unit": "mocha test/**/*.js --config test/mocha.opts",
+    "test:ko": "mocha test/ko-rule/*.js --config test/mocha.opts",
+    "test:time": "mocha test/time-control/*.js --config test/mocha.opts",
+    "test:game": "mocha test/game-type/*.js --config test/mocha.opts",
+    "test:all": "npm run test:unit && npm run test:ko && npm run test:time && npm run test:game",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -54,6 +56,8 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.3.3"
   }
